@@ -1,0 +1,10 @@
+export { EstadoChip } from "./EstadoChip";
+export type { EstadoChipProps } from "./EstadoChip";
+export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps } from "./PageHeader";
+export { Permiso } from "./Permiso";
+export type { PermisoProps } from "./Permiso";
+export { SearchableTable } from "./SearchableTable";
+export type { Columna, SearchableTableProps } from "./SearchableTable";
+export { StatCard } from "./StatCard";
+export type { StatCardProps } from "./StatCard";
