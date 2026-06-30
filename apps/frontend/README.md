@@ -21,8 +21,8 @@ integradas por el `web-shell`, que es el host de navegación y layout.
 
 ```bash
 pnpm install                    # instala todo el monorepo (desde la raíz)
-pnpm --filter @scipos/web-shell dev      # corre el shell en http://localhost:3000
-pnpm --filter @scipos/example-front dev  # corre la plantilla en http://localhost:3001
+pnpm --filter @scipos/web-shell dev      # corre el shell en http://localhost:3001
+pnpm --filter @scipos/example-front dev  # corre la plantilla en http://localhost:3002
 pnpm build                      # build de todo
 pnpm lint                       # lint con Biome
 ```

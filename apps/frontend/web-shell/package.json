@@ -4,9 +4,9 @@
   "private": true,
   "description": "Host del frontend de SCIPOS: navegación, layout y carga de módulos.",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p 3001",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "next start -p 3001",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit"
   },
