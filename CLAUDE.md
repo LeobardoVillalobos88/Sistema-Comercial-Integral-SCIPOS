@@ -16,9 +16,9 @@ The **frontend (Avance 2) is built and runnable**: the pnpm + Turborepo monorepo
 
 ### What exists today (`apps/frontend/`)
 
-- **`web-shell/`** (`@scipos/web-shell`, port 3000) — the host app (Next.js App Router). `AppShell` = Topbar + Sidebar + content area; `src/config/navegacion.ts` is the single source for the sidebar menu (each module's route, icon, required privilege, and team owner). Domain routes (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/caja`) currently render `<ModuloEnConstruccion>` placeholders — teammates replace these with their real modules. `/dashboard` is the only built screen.
+- **`web-shell/`** (`@scipos/web-shell`, port 3001) — the host app (Next.js App Router). `AppShell` = Topbar + Sidebar + content area; `src/config/navegacion.ts` is the single source for the sidebar menu (each module's route, icon, required privilege, and team owner). Domain routes (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/caja`) currently render `<ModuloEnConstruccion>` placeholders — teammates replace these with their real modules. `/dashboard` is the only built screen.
 - **`commons/`** (`@scipos/frontend-commons`) — the Design System and shared library. **All shared frontend code is imported from here**, via subpath exports: `@scipos/frontend-commons` (barrel), `/theme`, `/permisos`, `/components`, `/mocks`. It is a source-only package (`main`/`types` point at `src/index.ts`) consumed through Next's `transpilePackages` — there is no build step for it.
-- **`example-front/`** (`@scipos/example-front`, port 3001) — reference template. Teammates create `<dominio>-front/` by copying this app.
+- **`example-front/`** (`@scipos/example-front`, port 3002) — reference template. Teammates create `<dominio>-front/` by copying this app.
 
 ### The privilege system (frontend half)
 
@@ -42,8 +42,8 @@ Run from the repo root. Use **pnpm** (workspaces), not npm. Node ≥ 20 (`.nvmrc
 ```bash
 pnpm install                              # install the whole monorepo
 pnpm dev                                  # turbo run dev — all apps at once
-pnpm --filter @scipos/web-shell dev       # just the host    → http://localhost:3000
-pnpm --filter @scipos/example-front dev   # just the template → http://localhost:3001
+pnpm --filter @scipos/web-shell dev       # just the host    → http://localhost:3001
+pnpm --filter @scipos/example-front dev   # just the template → http://localhost:3002
 pnpm build                                # turbo run build (Next builds)
 pnpm lint                                 # biome check .   (lint + format check, whole repo)
 pnpm lint:fix                             # biome check --write .
