@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Builds / cache
+.next/
+out/
+dist/
+build/
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Entorno
+.env
+.env*.local
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# UAT
+.uat-logs/

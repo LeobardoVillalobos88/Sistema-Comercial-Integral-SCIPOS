@@ -1,0 +1,15 @@
+# Paquetes que forman el monorepo.
+# Por ahora solo el frontend (Avance 2). El backend/mobile se agregarán
+# cuando se trabajen sus avances.
+packages:
+  - "apps/frontend/*"
+  - "packages/*"
+
+allowBuilds:
+  '@biomejs/biome': true
+  sharp: true
+
+# Dependencias a las que se les permite ejecutar scripts de instalación.
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - sharp
