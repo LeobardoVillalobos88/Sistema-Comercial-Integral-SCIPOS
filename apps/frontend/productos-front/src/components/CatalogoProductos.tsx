@@ -51,6 +51,12 @@ const FORMULARIO_VACIO: FormularioProducto = {
   activo: true,
 };
 
+interface ErroresFormulario {
+  clave?: string;
+  nombre?: string;
+  existencia?: string;
+}
+
 function productoAFormulario(producto: Producto): FormularioProducto {
   return {
     id: producto.id,
@@ -77,6 +83,7 @@ export function CatalogoProductos() {
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("TODOS");
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [formulario, setFormulario] = useState<FormularioProducto>(FORMULARIO_VACIO);
+  const [errores, setErrores] = useState<ErroresFormulario>({});
 
   const productosFiltrados = useMemo(() => {
     return productos.filter((p) => {
@@ -89,11 +96,13 @@ export function CatalogoProductos() {
 
   const abrirCrear = () => {
     setFormulario(FORMULARIO_VACIO);
+    setErrores({});
     setDialogoAbierto(true);
   };
 
   const abrirEditar = useCallback((producto: Producto) => {
     setFormulario(productoAFormulario(producto));
+    setErrores({});
     setDialogoAbierto(true);
   }, []);
 
@@ -102,7 +111,20 @@ export function CatalogoProductos() {
   const guardar = () => {
     const precio = Number(formulario.precio);
     const existencia = Number(formulario.existencia);
-    if (!formulario.clave.trim() || !formulario.nombre.trim()) {
+
+    const nuevosErrores: ErroresFormulario = {};
+    if (!formulario.clave.trim()) {
+      nuevosErrores.clave = "La clave es obligatoria.";
+    }
+    if (!formulario.nombre.trim()) {
+      nuevosErrores.nombre = "El nombre es obligatorio.";
+    }
+    if (existencia < 0 || existencia > 999) {
+      nuevosErrores.existencia = "La existencia debe estar entre 0 y 999.";
+    }
+
+    setErrores(nuevosErrores);
+    if (Object.keys(nuevosErrores).length > 0) {
       return;
     }
 
@@ -258,12 +280,16 @@ export function CatalogoProductos() {
               label="Clave"
               value={formulario.clave}
               onChange={(e) => setFormulario((f) => ({ ...f, clave: e.target.value }))}
+              error={Boolean(errores.clave)}
+              helperText={errores.clave}
               fullWidth
             />
             <TextField
               label="Nombre"
               value={formulario.nombre}
               onChange={(e) => setFormulario((f) => ({ ...f, nombre: e.target.value }))}
+              error={Boolean(errores.nombre)}
+              helperText={errores.nombre}
               fullWidth
             />
             <TextField
@@ -290,6 +316,8 @@ export function CatalogoProductos() {
               type="number"
               value={formulario.existencia}
               onChange={(e) => setFormulario((f) => ({ ...f, existencia: e.target.value }))}
+              error={Boolean(errores.existencia)}
+              helperText={errores.existencia}
               fullWidth
             />
             <TextField
