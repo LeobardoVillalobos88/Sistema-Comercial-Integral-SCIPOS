@@ -51,6 +51,12 @@ const FORMULARIO_VACIO: FormularioProducto = {
   activo: true,
 };
 
+interface ErroresFormulario {
+  clave?: string;
+  nombre?: string;
+  existencia?: string;
+}
+
 function productoAFormulario(producto: Producto): FormularioProducto {
   return {
     id: producto.id,
@@ -77,6 +83,7 @@ export function CatalogoProductos() {
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("TODOS");
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [formulario, setFormulario] = useState<FormularioProducto>(FORMULARIO_VACIO);
+  const [errores, setErrores] = useState<ErroresFormulario>({});
 
   const productosFiltrados = useMemo(() => {
     return productos.filter((p) => {
@@ -89,11 +96,13 @@ export function CatalogoProductos() {
 
   const abrirCrear = () => {
     setFormulario(FORMULARIO_VACIO);
+    setErrores({});
     setDialogoAbierto(true);
   };
 
   const abrirEditar = useCallback((producto: Producto) => {
     setFormulario(productoAFormulario(producto));
+    setErrores({});
     setDialogoAbierto(true);
   }, []);
 
@@ -102,7 +111,20 @@ export function CatalogoProductos() {
   const guardar = () => {
     const precio = Number(formulario.precio);
     const existencia = Number(formulario.existencia);
-    if (!formulario.clave.trim() || !formulario.nombre.trim()) {
+
+    const nuevosErrores: ErroresFormulario = {};
+    if (!formulario.clave.trim()) {
+      nuevosErrores.clave = "La clave es obligatoria.";
+    }
+    if (!formulario.nombre.trim()) {
+      nuevosErrores.nombre = "El nombre es obligatorio.";
+    }
+    if (existencia < 0 || existencia > 999) {
+      nuevosErrores.existencia = "La existencia debe estar entre 0 y 999.";
+    }
+
+    setErrores(nuevosErrores);
+    if (Object.keys(nuevosErrores).length > 0) {
       return;
     }
 
@@ -201,8 +223,8 @@ export function CatalogoProductos() {
   return (
     <Box>
       <PageHeader
-        titulo="Productos y servicios"
-        descripcion="Catálogo con búsqueda, filtros, alta, edición y baja lógica."
+        titulo="Catálogo"
+        descripcion="productos y servicios"
         acciones={
           <Permiso requiere="productos:crear">
             <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>
@@ -212,39 +234,40 @@ export function CatalogoProductos() {
         }
       />
 
-      <Stack direction={{ xs: "row", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
-        <TextField
-          select
-          label="Estado"
-          size="small"
-          value={filtroEstado}
-          onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="TODOS">Todos</MenuItem>
-          <MenuItem value="ACTIVO">Activo</MenuItem>
-          <MenuItem value="INACTIVO">Inactivo</MenuItem>
-        </TextField>
-        <TextField
-          select
-          label="Tipo"
-          size="small"
-          value={filtroTipo}
-          onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value="TODOS">Todos</MenuItem>
-          <MenuItem value="PRODUCTO">Producto</MenuItem>
-          <MenuItem value="SERVICIO">Servicio</MenuItem>
-        </TextField>
-      </Stack>
-
       <SearchableTable
         filas={productosFiltrados}
         columnas={columnas}
         textoBusqueda={(p) => `${p.clave} ${p.nombre}`}
         placeholderBusqueda="Buscar producto o servicio..."
         mensajeVacio="No hay productos que coincidan con la búsqueda y los filtros."
+        filtros={
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <TextField
+              select
+              label="Estado"
+              size="small"
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="TODOS">Todos</MenuItem>
+              <MenuItem value="ACTIVO">Activo</MenuItem>
+              <MenuItem value="INACTIVO">Inactivo</MenuItem>
+            </TextField>
+            <TextField
+              select
+              label="Tipo"
+              size="small"
+              value={filtroTipo}
+              onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="TODOS">Todos</MenuItem>
+              <MenuItem value="PRODUCTO">Producto</MenuItem>
+              <MenuItem value="SERVICIO">Servicio</MenuItem>
+            </TextField>
+          </Stack>
+        }
       />
 
       <Dialog open={dialogoAbierto} onClose={cerrarDialogo} fullWidth maxWidth="sm">
@@ -257,12 +280,16 @@ export function CatalogoProductos() {
               label="Clave"
               value={formulario.clave}
               onChange={(e) => setFormulario((f) => ({ ...f, clave: e.target.value }))}
+              error={Boolean(errores.clave)}
+              helperText={errores.clave}
               fullWidth
             />
             <TextField
               label="Nombre"
               value={formulario.nombre}
               onChange={(e) => setFormulario((f) => ({ ...f, nombre: e.target.value }))}
+              error={Boolean(errores.nombre)}
+              helperText={errores.nombre}
               fullWidth
             />
             <TextField
@@ -289,6 +316,8 @@ export function CatalogoProductos() {
               type="number"
               value={formulario.existencia}
               onChange={(e) => setFormulario((f) => ({ ...f, existencia: e.target.value }))}
+              error={Boolean(errores.existencia)}
+              helperText={errores.existencia}
               fullWidth
             />
             <TextField
