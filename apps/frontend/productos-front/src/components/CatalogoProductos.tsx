@@ -224,7 +224,7 @@ export function CatalogoProductos() {
     <Box>
       <PageHeader
         titulo="Catálogo"
-        descripcion="productos y servicios"
+        descripcion="Productos y servicios"
         acciones={
           <Permiso requiere="productos:crear">
             <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>

@@ -7,9 +7,9 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "dev": "next dev -p 3002",
+    "dev": "next dev -p 3003",
     "build": "next build",
-    "start": "next start -p 3002",
+    "start": "next start -p 3003",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit"
   },
