@@ -1,7 +1,5 @@
-import { ModuloEnConstruccion } from "@/components/ModuloEnConstruccion";
+import PosCajaPage from "@scipos/pos-caja-front";
 
 export default function CajaPage() {
-  return (
-    <ModuloEnConstruccion titulo="Caja" responsable="Alejandro Torres" rama="feature/caja-corte" />
-  );
+  return <PosCajaPage defaultTab={1} hideTabs />;
 }

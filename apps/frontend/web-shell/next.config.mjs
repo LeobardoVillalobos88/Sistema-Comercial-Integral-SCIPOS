@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   // Permite consumir el Design System compartido (TypeScript sin compilar).
-  transpilePackages: ["@scipos/frontend-commons"],
+  transpilePackages: ["@scipos/frontend-commons", "@scipos/pos-caja-front"],
 };
 
 export default nextConfig;
