@@ -1,12 +1,12 @@
 "use client";
 
-import { generarFolio } from "@/lib/folio";
 import {
   COTIZACIONES_MOCK,
   type Cotizacion,
   type PartidaCotizacion,
 } from "@scipos/frontend-commons";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { generarFolio } from "../lib/folio";
 
 interface NuevaCotizacionInput {
   clienteId: string;
