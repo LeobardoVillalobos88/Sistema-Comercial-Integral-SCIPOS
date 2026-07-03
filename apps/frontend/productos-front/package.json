@@ -1,12 +1,15 @@
 {
-  "name": "@scipos/web-shell",
+  "name": "@scipos/productos-front",
   "version": "0.0.0",
   "private": true,
-  "description": "Host del frontend de SCIPOS: navegación, layout y carga de módulos.",
+  "description": "Microfrontend de catálogo de productos y servicios (RF-07, RF-08, RF-09).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3003",
     "build": "next build",
-    "start": "next start -p 3001",
+    "start": "next start -p 3003",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit"
   },
@@ -16,10 +19,7 @@
     "@mui/icons-material": "^6.3.0",
     "@mui/material": "^6.3.0",
     "@mui/material-nextjs": "^6.3.0",
-    "@scipos/cotizaciones-front": "workspace:*",
     "@scipos/frontend-commons": "workspace:*",
-    "@scipos/clientes-front": "workspace:*",
-    "@scipos/productos-front": "workspace:*",
     "next": "^15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
