@@ -7,7 +7,7 @@ Microfrontend del módulo de Productos (RF-07, RF-08, RF-09). Responsable: José
 
 ```bash
 pnpm install
-pnpm --filter @scipos/productos-front dev   # http://localhost:3002
+pnpm --filter @scipos/productos-front dev   # http://localhost:3003
 ```
 
 ## Qué hace

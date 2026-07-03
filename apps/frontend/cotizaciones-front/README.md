@@ -26,5 +26,5 @@ Todas las acciones sensibles (crear, convertir) están controladas con `usePermi
 
 ```bash
 pnpm install
-pnpm --filter @scipos/cotizaciones-front dev   # http://localhost:3004
+pnpm --filter @scipos/cotizaciones-front dev   # http://localhost:3005
 ```
