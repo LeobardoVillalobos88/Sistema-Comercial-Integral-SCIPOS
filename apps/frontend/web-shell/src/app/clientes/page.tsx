@@ -1,11 +1,7 @@
-import { ModuloEnConstruccion } from "@/components/ModuloEnConstruccion";
+"use client";
 
-export default function ClientesPage() {
-  return (
-    <ModuloEnConstruccion
-      titulo="Clientes"
-      responsable="Jassiel Paredes"
-      rama="feature/clientes-gestion"
-    />
-  );
+import ClientesPage from "@scipos/clientes-front/src/app/page";
+
+export default function ClientesPageWrapper() {
+  return <ClientesPage />;
 }
