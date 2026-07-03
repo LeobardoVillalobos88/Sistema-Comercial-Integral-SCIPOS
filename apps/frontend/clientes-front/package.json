@@ -4,9 +4,9 @@
   "private": true,
   "description": "Módulo de gestión de clientes para SCIPOS.",
   "scripts": {
-    "dev": "next dev -p 3003",
+    "dev": "next dev -p 3004",
     "build": "next build",
-    "start": "next start -p 3003",
+    "start": "next start -p 3004",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit"
   },
