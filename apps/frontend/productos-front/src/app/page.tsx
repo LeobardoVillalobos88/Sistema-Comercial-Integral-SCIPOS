@@ -1,5 +1,5 @@
+import { CatalogoProductos } from "@/components/CatalogoProductos";
 import Container from "@mui/material/Container";
-import { CatalogoProductos } from "@scipos/productos-front";
 
 export default function ProductosPage() {
   return (

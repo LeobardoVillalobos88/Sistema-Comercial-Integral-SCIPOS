@@ -4,6 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import Box from "@mui/material/Box";
 import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -32,6 +33,8 @@ export interface SearchableTableProps<T> {
   placeholderBusqueda?: string;
   /** Mensaje cuando no hay resultados. */
   mensajeVacio?: string;
+  /** Controles adicionales (selects de filtro, etc.) junto a la barra de búsqueda. */
+  filtros?: React.ReactNode;
 }
 
 /**
@@ -44,6 +47,7 @@ export function SearchableTable<T>({
   textoBusqueda,
   placeholderBusqueda = "Buscar...",
   mensajeVacio = "No hay registros que coincidan con la búsqueda.",
+  filtros,
 }: SearchableTableProps<T>) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -57,23 +61,31 @@ export function SearchableTable<T>({
 
   return (
     <Box>
-      <TextField
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        placeholder={placeholderBusqueda}
-        size="small"
-        fullWidth
-        sx={{ mb: 2, maxWidth: 360 }}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          },
-        }}
-      />
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
+        <TextField
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder={placeholderBusqueda}
+          size="small"
+          fullWidth
+          sx={{ maxWidth: { sm: 360 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        {filtros}
+      </Stack>
       <TableContainer component={Paper} variant="outlined">
         <Table>
           <TableHead>

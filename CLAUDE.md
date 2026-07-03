@@ -16,6 +16,12 @@ The **frontend (Avance 2) is built and runnable**: the pnpm + Turborepo monorepo
 
 ### What exists today (`apps/frontend/`)
 
+- **`web-shell/`** (`@scipos/web-shell`, port 3001) — the host app (Next.js App Router). `AppShell` = Topbar + Sidebar + content area; `src/config/navegacion.ts` is the single source for the sidebar menu (each module's route, icon, required privilege, and team owner). Domain routes still pending a real module (`/clientes`, `/cotizaciones`, `/pos`, `/caja`) render `<ModuloEnConstruccion>` placeholders. `/dashboard` and `/productos` are the built screens.
+- **`commons/`** (`@scipos/frontend-commons`) — the Design System and shared library. **All shared frontend code is imported from here**, via subpath exports: `@scipos/frontend-commons` (barrel), `/theme`, `/permisos`, `/components`, `/mocks`. It is a source-only package (`main`/`types` point at `src/index.ts`) consumed through Next's `transpilePackages` — there is no build step for it.
+- **`example-front/`** (`@scipos/example-front`, port 3002) — reference template. Teammates create `<dominio>-front/` by copying this app.
+- **`productos-front/`** (`@scipos/productos-front`, port 3003) — the first domain microfrontend, fully scaffolded and integrated. Implements RF-07/RF-08/RF-09: `CatalogoProductos` component with search, estado/tipo filters, create/edit dialog, and soft-delete toggle — all guarded by `productos:*` privileges. Data is in-memory (`PRODUCTOS_MOCK`); no API calls yet.
+
+**Integration pattern**: `web-shell` embeds each domain microfrontend by depending on it as a normal `workspace:*` package (not an iframe or module-federation remote) — see `web-shell/src/app/productos/page.tsx`, which imports `{ CatalogoProductos }` straight from `@scipos/productos-front` and adds the package to both `next.config.mjs`'s `transpilePackages` and `web-shell/package.json` dependencies. Follow this same wiring (package dependency + transpilePackages entry + page import) for every new `*-front` module.
 - **`web-shell/`** (`@scipos/web-shell`, port 3001) — the host app (Next.js App Router). `AppShell` = Topbar + Sidebar + content area; `src/config/navegacion.ts` is the single source for the sidebar menu (each module's route, icon, required privilege, and team owner). Domain routes (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/caja`) currently render `<ModuloEnConstruccion>` placeholders — teammates replace these with their real modules. `/dashboard` is the only built screen.
 - **`commons/`** (`@scipos/frontend-commons`) — the Design System and shared library. **All shared frontend code is imported from here**, via subpath exports: `@scipos/frontend-commons` (barrel), `/theme`, `/permisos`, `/components`, `/mocks`. It is a source-only package (`main`/`types` point at `src/index.ts`) consumed through Next's `transpilePackages` — there is no build step for it.
 - **`example-front/`** (`@scipos/example-front`, port 3002) — reference template. Teammates create `<dominio>-front/` by copying this app.
@@ -40,6 +46,17 @@ const { can } = usePermisos();
 Run from the repo root. Use **pnpm** (workspaces), not npm. Node ≥ 20 (`.nvmrc`); package manager pinned to pnpm 11 (`packageManager` field).
 
 ```bash
+pnpm install                                  # install the whole monorepo
+pnpm dev                                      # turbo run dev — all apps at once
+pnpm --filter @scipos/web-shell dev           # just the host        → http://localhost:3001
+pnpm --filter @scipos/example-front dev       # just the template    → http://localhost:3002
+pnpm --filter @scipos/productos-front dev     # just productos       → http://localhost:3003
+pnpm build                                    # turbo run build (Next builds)
+pnpm lint                                     # biome check .   (lint + format check, whole repo)
+pnpm lint:fix                                 # biome check --write .
+pnpm format                                   # biome format --write .
+pnpm --filter @scipos/web-shell typecheck     # tsc --noEmit for one package
+pnpm --filter @scipos/productos-front typecheck
 pnpm install                              # install the whole monorepo
 pnpm dev                                  # turbo run dev — all apps at once
 pnpm --filter @scipos/web-shell dev       # just the host    → http://localhost:3001
@@ -60,7 +77,7 @@ pnpm --filter @scipos/web-shell typecheck # tsc --noEmit for one package
 - **Commits** must follow Conventional Commits, enforced by the `commit-msg` husky hook (`commitlint.config.cjs`). **Spanish subjects are expected and allowed** (`subject-case` is disabled), e.g. `feat(productos): tabla de catálogo con filtros`. Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. The `pre-commit` hook runs `pnpm lint`.
 - **Language**: requirements, docs, UI copy, code comments, and identifiers are **Spanish (es-MX)** — match the surrounding code (`usePermisos`, `temaScipos`, `MATRIZ_PRIVILEGIOS`, `etiqueta`, `responsable`).
 - **Branching**: work branches follow `feature/<algo>` (current branch: `feature/setup-frontend-base`; placeholders reference e.g. `feature/productos-catalogo`). `main` is the integration base; PR-based.
-- **New domain microfrontend**: copy `apps/frontend/example-front/`, rename the package to `@scipos/<dominio>-front`, give it a distinct dev port, depend on `@scipos/frontend-commons` (`workspace:*`), and wire its route into `web-shell/src/config/navegacion.ts`. Don't invent ad-hoc shared UI — extend `commons` instead.
+- **New domain microfrontend**: copy `apps/frontend/example-front/`, rename the package to `@scipos/<dominio>-front`, depend on `@scipos/frontend-commons` (`workspace:*`), and wire its route into `web-shell/src/config/navegacion.ts`. Then integrate it into `web-shell` using the pattern in `productos-front` above (add as a `workspace:*` dependency of `web-shell`, list it in `next.config.mjs`'s `transpilePackages`, import its top-level component directly in the route's `page.tsx`). Don't invent ad-hoc shared UI — extend `commons` instead.
 - Shared UI components (`PageHeader`, `SearchableTable`, `EstadoChip`, `StatCard`, `Permiso`), mock catalog data (`PRODUCTOS_MOCK`, `CLIENTES_MOCK`), and helpers (`formatearMoneda`) all live in and are re-exported from `commons`.
 
 ## Mandatory architecture (non-negotiable, from the brief)
