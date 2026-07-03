@@ -25,8 +25,8 @@ const CotizacionesContext = createContext<CotizacionesContextValue | null>(null)
 let contadorLocal = 0;
 
 /**
- * Estado en memoria del módulo (equivalente mock al backend del Avance 3).
- * Se inicializa con `COTIZACIONES_MOCK` y vive mientras dure la sesión del navegador.
+ * Estado en memoria del módulo de cotizaciones. Se inicializa con
+ * `COTIZACIONES_MOCK` y vive mientras dure la sesión del navegador.
  */
 export function CotizacionesProvider({ children }: { children: React.ReactNode }) {
   const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>(COTIZACIONES_MOCK);

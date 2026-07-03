@@ -54,6 +54,7 @@ const FORMULARIO_VACIO: FormularioProducto = {
 interface ErroresFormulario {
   clave?: string;
   nombre?: string;
+  precio?: string;
   existencia?: string;
 }
 
@@ -119,7 +120,10 @@ export function CatalogoProductos() {
     if (!formulario.nombre.trim()) {
       nuevosErrores.nombre = "El nombre es obligatorio.";
     }
-    if (existencia < 0 || existencia > 999) {
+    if (Number.isNaN(precio) || precio <= 0) {
+      nuevosErrores.precio = "El precio debe ser mayor a 0.";
+    }
+    if (Number.isNaN(existencia) || existencia < 0 || existencia > 999) {
       nuevosErrores.existencia = "La existencia debe estar entre 0 y 999.";
     }
 
@@ -309,6 +313,8 @@ export function CatalogoProductos() {
               type="number"
               value={formulario.precio}
               onChange={(e) => setFormulario((f) => ({ ...f, precio: e.target.value }))}
+              error={Boolean(errores.precio)}
+              helperText={errores.precio}
               fullWidth
             />
             <TextField

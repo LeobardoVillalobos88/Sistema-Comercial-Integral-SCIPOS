@@ -993,7 +993,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
             <Grid item xs={12} md={6}>
               <PanelSeccion
                 titulo="Historial de ventas previas"
-                descripcion="Ventas simuladas para validar el comportamiento del prototipo."
+                descripcion="Ventas registradas en turnos anteriores."
               >
                 <TablaVentasHistoricas ventas={VENTAS_POS_MOCK} />
               </PanelSeccion>
@@ -1002,7 +1002,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
             <Grid item xs={12} md={6}>
               <PanelSeccion
                 titulo="Cortes de caja previos"
-                descripcion="Cortes históricos simulados para el avance 2."
+                descripcion="Cortes de caja de turnos anteriores."
               >
                 <TablaCortesHistoricos cortes={cortesCaja} />
               </PanelSeccion>
