@@ -263,7 +263,11 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   const [dialogCorteAbierto, setDialogCorteAbierto] = useState(false);
 
   const rolActual = permisos.rol;
-  const puedeGestionarTurno = rolActual === "ADMINISTRADOR" || rolActual === "SUPERVISOR";
+  const puedeDescuento = permisos.can("pos:descuento");
+  const puedeCancelar = permisos.can("pos:cancelar");
+  const puedeAbrirCaja = permisos.can("caja:abrir");
+  const puedeRegistrarMovimiento = permisos.can("caja:movimiento");
+  const puedeCerrarCaja = permisos.can("caja:cerrar");
 
   const subtotalCarrito = useMemo(
     () => carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0),
@@ -402,7 +406,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   };
 
   const aplicarDescuento = () => {
-    if (!puedeGestionarTurno) {
+    if (!puedeDescuento) {
       mostrarMensaje("Tu rol no tiene permiso para aplicar descuentos.", "warning");
       return;
     }
@@ -418,7 +422,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   };
 
   const cancelarVenta = () => {
-    if (!puedeGestionarTurno) {
+    if (!puedeCancelar) {
       mostrarMensaje("Tu rol no tiene permiso para cancelar ventas.", "warning");
       return;
     }
@@ -473,6 +477,11 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   };
 
   const abrirCaja = () => {
+    if (!puedeAbrirCaja) {
+      mostrarMensaje("Tu rol no tiene permiso para abrir la caja.", "warning");
+      return;
+    }
+
     const monto = Number.parseFloat(montoInicialCaptura);
 
     if (Number.isNaN(monto) || monto < 0) {
@@ -485,6 +494,11 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   };
 
   const registrarMovimiento = () => {
+    if (!puedeRegistrarMovimiento) {
+      mostrarMensaje("Tu rol no tiene permiso para registrar movimientos de caja.", "warning");
+      return;
+    }
+
     if (!cajaAbierta) {
       mostrarMensaje("Primero abre la caja para registrar movimientos.", "warning");
       return;
@@ -513,6 +527,11 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   };
 
   const abrirDialogoCorte = () => {
+    if (!puedeCerrarCaja) {
+      mostrarMensaje("Tu rol no tiene permiso para cerrar la caja.", "warning");
+      return;
+    }
+
     if (!cajaAbierta) {
       mostrarMensaje("La caja debe estar abierta para realizar un corte.", "warning");
       return;
@@ -566,7 +585,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
               color={cajaAbierta ? "success" : "warning"}
               variant="outlined"
             />
-            <RolSelector permisos={permisos} />
+            {hideTabs ? null : <RolSelector permisos={permisos} />}
           </Stack>
         }
       />
@@ -780,13 +799,13 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                         onChange={(event) => setDescuentoCaptura(event.target.value)}
                         size="small"
                         fullWidth
-                        disabled={!puedeGestionarTurno || carrito.length === 0 || !cajaAbierta}
+                        disabled={!puedeDescuento || carrito.length === 0 || !cajaAbierta}
                         inputProps={{ min: 0, step: "0.01" }}
                       />
                       <Button
                         variant="outlined"
                         onClick={aplicarDescuento}
-                        disabled={!puedeGestionarTurno || carrito.length === 0 || !cajaAbierta}
+                        disabled={!puedeDescuento || carrito.length === 0 || !cajaAbierta}
                       >
                         Aplicar descuento
                       </Button>
@@ -809,7 +828,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                       color="warning"
                       fullWidth
                       onClick={cancelarVenta}
-                      disabled={!puedeGestionarTurno || carrito.length === 0 || !cajaAbierta}
+                      disabled={!puedeCancelar || carrito.length === 0 || !cajaAbierta}
                     >
                       Cancelar venta
                     </Button>
