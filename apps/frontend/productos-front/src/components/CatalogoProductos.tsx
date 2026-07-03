@@ -312,7 +312,9 @@ export function CatalogoProductos() {
               label="Precio"
               type="number"
               value={formulario.precio}
-              onChange={(e) => setFormulario((f) => ({ ...f, precio: e.target.value }))}
+              onChange={(e) =>
+                setFormulario((f) => ({ ...f, precio: e.target.value.replace(/[^\d.]/g, "") }))
+              }
               error={Boolean(errores.precio)}
               helperText={errores.precio}
               fullWidth
@@ -321,7 +323,12 @@ export function CatalogoProductos() {
               label="Existencia"
               type="number"
               value={formulario.existencia}
-              onChange={(e) => setFormulario((f) => ({ ...f, existencia: e.target.value }))}
+              onChange={(e) =>
+                setFormulario((f) => ({
+                  ...f,
+                  existencia: e.target.value.replace(/\D/g, "").slice(0, 3),
+                }))
+              }
               error={Boolean(errores.existencia)}
               helperText={errores.existencia}
               fullWidth

@@ -17,6 +17,7 @@ interface CotizacionesContextValue {
   cotizaciones: Cotizacion[];
   obtenerPorId: (id: string) => Cotizacion | undefined;
   crearCotizacion: (input: NuevaCotizacionInput) => Cotizacion;
+  marcarEnviada: (id: string) => void;
   convertirAVenta: (id: string) => void;
 }
 
@@ -48,10 +49,20 @@ export function CotizacionesProvider({ children }: { children: React.ReactNode }
     [cotizaciones],
   );
 
+  const marcarEnviada = useCallback((id: string) => {
+    setCotizaciones((prev) =>
+      prev.map((cotizacion) =>
+        cotizacion.id === id && cotizacion.estado === "BORRADOR"
+          ? { ...cotizacion, estado: "ENVIADA" }
+          : cotizacion,
+      ),
+    );
+  }, []);
+
   const convertirAVenta = useCallback((id: string) => {
     setCotizaciones((prev) =>
       prev.map((cotizacion) =>
-        cotizacion.id === id ? { ...cotizacion, estado: "CONVERTIDA" } : cotizacion,
+        cotizacion.id === id ? { ...cotizacion, estado: "VENDIDA" } : cotizacion,
       ),
     );
   }, []);
@@ -62,8 +73,8 @@ export function CotizacionesProvider({ children }: { children: React.ReactNode }
   );
 
   const value = useMemo<CotizacionesContextValue>(
-    () => ({ cotizaciones, obtenerPorId, crearCotizacion, convertirAVenta }),
-    [cotizaciones, obtenerPorId, crearCotizacion, convertirAVenta],
+    () => ({ cotizaciones, obtenerPorId, crearCotizacion, marcarEnviada, convertirAVenta }),
+    [cotizaciones, obtenerPorId, crearCotizacion, marcarEnviada, convertirAVenta],
   );
 
   return <CotizacionesContext.Provider value={value}>{children}</CotizacionesContext.Provider>;

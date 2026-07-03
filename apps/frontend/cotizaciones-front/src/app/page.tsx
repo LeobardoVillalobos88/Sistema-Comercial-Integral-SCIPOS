@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SearchIcon from "@mui/icons-material/Search";
+import SendIcon from "@mui/icons-material/Send";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
@@ -50,7 +51,7 @@ const OPCIONES_ESTADO: { valor: EstadoCotizacion | "TODOS"; etiqueta: string }[]
   { valor: "TODOS", etiqueta: "Todos los estados" },
   { valor: "BORRADOR", etiqueta: "Borrador" },
   { valor: "ENVIADA", etiqueta: "Enviada" },
-  { valor: "CONVERTIDA", etiqueta: "Convertida" },
+  { valor: "VENDIDA", etiqueta: "Vendida" },
 ];
 
 const ESTADO_CHIP: Record<
@@ -59,7 +60,7 @@ const ESTADO_CHIP: Record<
 > = {
   BORRADOR: { etiqueta: "Borrador", color: "default" },
   ENVIADA: { etiqueta: "Enviada", color: "info" },
-  CONVERTIDA: { etiqueta: "Convertida", color: "success" },
+  VENDIDA: { etiqueta: "Vendida", color: "success" },
 };
 
 const CLIENTES_ACTIVOS = CLIENTES_MOCK.filter((c) => c.activo);
@@ -291,7 +292,7 @@ interface ModalDetalleCotizacionProps {
 
 /** Modal de detalle: partidas, total y conversión a venta sin recapturar datos. */
 function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionProps) {
-  const { obtenerPorId, convertirAVenta } = useCotizaciones();
+  const { obtenerPorId, marcarEnviada, convertirAVenta } = useCotizaciones();
   const [ventaGenerada, setVentaGenerada] = useState(false);
 
   const cotizacion = id ? obtenerPorId(id) : undefined;
@@ -312,6 +313,10 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
   const convertir = () => {
     convertirAVenta(cotizacion.id);
     setVentaGenerada(true);
+  };
+
+  const enviar = () => {
+    marcarEnviada(cotizacion.id);
   };
 
   return (
@@ -374,7 +379,14 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
       </DialogContent>
       <DialogActions>
         <Button onClick={cerrar}>Cerrar</Button>
-        {cotizacion.estado !== "CONVERTIDA" ? (
+        {cotizacion.estado === "BORRADOR" ? (
+          <Permiso requiere="cotizaciones:enviar">
+            <Button variant="outlined" startIcon={<SendIcon />} onClick={enviar}>
+              Marcar como enviada
+            </Button>
+          </Permiso>
+        ) : null}
+        {cotizacion.estado !== "VENDIDA" ? (
           <Permiso requiere="cotizaciones:convertir">
             <Button variant="contained" startIcon={<SwapHorizIcon />} onClick={convertir}>
               Convertir a venta

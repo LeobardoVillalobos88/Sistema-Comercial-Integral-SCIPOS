@@ -796,7 +796,9 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                         label="Descuento manual"
                         type="number"
                         value={descuentoCaptura}
-                        onChange={(event) => setDescuentoCaptura(event.target.value)}
+                        onChange={(event) =>
+                          setDescuentoCaptura(event.target.value.replace(/[^\d.]/g, ""))
+                        }
                         size="small"
                         fullWidth
                         disabled={!puedeDescuento || carrito.length === 0 || !cajaAbierta}
@@ -869,7 +871,9 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                     label="Monto inicial en efectivo"
                     type="number"
                     value={montoInicialCaptura}
-                    onChange={(event) => setMontoInicialCaptura(event.target.value)}
+                    onChange={(event) =>
+                      setMontoInicialCaptura(event.target.value.replace(/[^\d.]/g, ""))
+                    }
                     fullWidth
                     inputProps={{ min: 0, step: "0.01" }}
                     disabled={cajaAbierta}
@@ -917,7 +921,9 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                     label="Monto"
                     type="number"
                     value={montoMovimiento}
-                    onChange={(event) => setMontoMovimiento(event.target.value)}
+                    onChange={(event) =>
+                      setMontoMovimiento(event.target.value.replace(/[^\d.]/g, ""))
+                    }
                     fullWidth
                     inputProps={{ min: 0, step: "0.01" }}
                     disabled={!cajaAbierta}
@@ -938,6 +944,53 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                     />
                   </Stack>
                 </Stack>
+              </PanelSeccion>
+            </Grid>
+
+            <Grid item xs={12}>
+              <PanelSeccion
+                titulo="Movimientos del turno"
+                descripcion="Registro activo de ingresos y egresos manuales capturados en esta sesión."
+              >
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell>Concepto</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell align="right">Monto</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {movimientos.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">
+                            <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+                              Aún no se registran movimientos manuales.
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        movimientos.map((movimiento) => (
+                          <TableRow key={movimiento.id} hover>
+                            <TableCell>{formatearFechaConHora(movimiento.fecha)}</TableCell>
+                            <TableCell>{movimiento.concepto}</TableCell>
+                            <TableCell>
+                              <Chip
+                                label={movimiento.tipo === "Ingreso" ? "Ingreso" : "Egreso"}
+                                color={movimiento.tipo === "Ingreso" ? "success" : "warning"}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell align="right">{formatearMoneda(movimiento.monto)}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               </PanelSeccion>
             </Grid>
 
@@ -1005,53 +1058,6 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                 descripcion="Cortes de caja de turnos anteriores."
               >
                 <TablaCortesHistoricos cortes={cortesCaja} />
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <PanelSeccion
-                titulo="Movimientos del turno"
-                descripcion="Registro activo de ingresos y egresos manuales capturados en esta sesión."
-              >
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Fecha</TableCell>
-                        <TableCell>Concepto</TableCell>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {movimientos.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center">
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                              Aún no se registran movimientos manuales.
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        movimientos.map((movimiento) => (
-                          <TableRow key={movimiento.id} hover>
-                            <TableCell>{formatearFechaConHora(movimiento.fecha)}</TableCell>
-                            <TableCell>{movimiento.concepto}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={movimiento.tipo === "Ingreso" ? "Ingreso" : "Egreso"}
-                                color={movimiento.tipo === "Ingreso" ? "success" : "warning"}
-                                size="small"
-                                variant="outlined"
-                              />
-                            </TableCell>
-                            <TableCell align="right">{formatearMoneda(movimiento.monto)}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
               </PanelSeccion>
             </Grid>
           </Grid>

@@ -326,7 +326,7 @@ export default function ClientesPage() {
                   placeholder="10 dígitos"
                   fullWidth
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   error={!!errores.telefono}
                   helperText={errores.telefono}
                   size="small"
@@ -504,7 +504,7 @@ export default function ClientesPage() {
                                       label={cot.estado}
                                       variant="outlined"
                                       color={
-                                        cot.estado === "CONVERTIDA"
+                                        cot.estado === "VENDIDA"
                                           ? "success"
                                           : cot.estado === "ENVIADA"
                                             ? "info"

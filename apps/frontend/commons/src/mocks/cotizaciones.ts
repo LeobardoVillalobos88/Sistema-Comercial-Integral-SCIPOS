@@ -10,7 +10,7 @@ export const COTIZACIONES_MOCK: Cotizacion[] = [
     folio: "COT-2026-0001",
     clienteId: "c-001",
     fecha: "2026-05-10T10:15:00.000Z",
-    estado: "CONVERTIDA",
+    estado: "VENDIDA",
     partidas: [
       { productoId: "p-001", cantidad: 3, precioUnitario: 45.5 },
       { productoId: "p-002", cantidad: 6, precioUnitario: 18.0 },
@@ -40,7 +40,7 @@ export const COTIZACIONES_MOCK: Cotizacion[] = [
     folio: "COT-2026-0004",
     clienteId: "c-003",
     fecha: "2026-05-22T11:00:00.000Z",
-    estado: "CONVERTIDA",
+    estado: "VENDIDA",
     partidas: [
       { productoId: "p-013", cantidad: 1, precioUnitario: 65.0 },
       { productoId: "p-014", cantidad: 5, precioUnitario: 50.0 },
@@ -71,7 +71,7 @@ export const COTIZACIONES_MOCK: Cotizacion[] = [
     folio: "COT-2026-0007",
     clienteId: "c-005",
     fecha: "2026-06-10T15:10:00.000Z",
-    estado: "CONVERTIDA",
+    estado: "VENDIDA",
     partidas: [
       { productoId: "p-003", cantidad: 12, precioUnitario: 12.0 },
       { productoId: "p-004", cantidad: 5, precioUnitario: 38.9 },
