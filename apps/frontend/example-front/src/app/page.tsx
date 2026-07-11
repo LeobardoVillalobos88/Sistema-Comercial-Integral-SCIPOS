@@ -17,7 +17,7 @@ import {
 
 // Definición de columnas para la tabla (patrón a seguir en tu módulo).
 const columnas: Columna<Producto>[] = [
-  { clave: "clave", titulo: "Clave", render: (p) => p.clave },
+  { clave: "lote", titulo: "Lote", render: (p) => p.lote },
   { clave: "nombre", titulo: "Nombre", render: (p) => p.nombre },
   { clave: "precio", titulo: "Precio", align: "right", render: (p) => formatearMoneda(p.precio) },
   { clave: "existencia", titulo: "Existencia", align: "right", render: (p) => p.existencia },
@@ -43,7 +43,7 @@ export default function EjemploPage() {
         <SearchableTable
           filas={PRODUCTOS_MOCK}
           columnas={columnas}
-          textoBusqueda={(p) => `${p.clave} ${p.nombre}`}
+          textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
           placeholderBusqueda="Buscar producto..."
         />
       </Box>

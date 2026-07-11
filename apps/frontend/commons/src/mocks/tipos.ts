@@ -8,11 +8,13 @@ export type TipoProducto = "PRODUCTO" | "SERVICIO";
 
 export interface Producto {
   id: string;
-  clave: string;
+  lote: string;
   nombre: string;
   tipo: TipoProducto;
   precio: number;
   existencia: number;
+  /** Fecha ISO de caducidad del lote. Opcional (servicios no caducan). */
+  fechaCaducidad?: string;
   activo: boolean;
 }
 

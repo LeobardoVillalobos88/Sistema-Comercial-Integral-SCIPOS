@@ -14,8 +14,8 @@ pnpm --filter @scipos/productos-front dev   # http://localhost:3002
 
 - Lista el catálogo (`PRODUCTOS_MOCK` de `@scipos/frontend-commons`) con búsqueda y
   filtros por **estado** (activo/inactivo) y **tipo** (producto/servicio).
-- **Alta y edición** vía un modal con los campos clave, nombre, tipo, precio,
-  existencia y estado.
+- **Alta y edición** vía un modal con los campos lote, nombre, tipo, precio,
+  existencia, fecha de caducidad y estado. El precio no admite valores negativos.
 - **Desactivar/activar** (baja lógica, nunca se borra el registro).
 - Las acciones (`Nuevo`, `Editar`, `Desactivar`) se ocultan según el rol mock activo
   con `<Permiso requiere="productos:...">` — ver `@scipos/frontend-commons/permisos`.

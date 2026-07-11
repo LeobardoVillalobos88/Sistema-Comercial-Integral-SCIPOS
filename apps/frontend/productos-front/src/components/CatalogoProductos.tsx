@@ -24,6 +24,7 @@ import {
   type Producto,
   SearchableTable,
   type TipoProducto,
+  formatearFecha,
   formatearMoneda,
   usePermisos,
 } from "@scipos/frontend-commons";
@@ -34,37 +35,41 @@ type FiltroTipo = "TODOS" | TipoProducto;
 
 interface FormularioProducto {
   id?: string;
-  clave: string;
+  lote: string;
   nombre: string;
   tipo: TipoProducto;
   precio: string;
   existencia: string;
+  fechaCaducidad: string;
   activo: boolean;
 }
 
 const FORMULARIO_VACIO: FormularioProducto = {
-  clave: "",
+  lote: "",
   nombre: "",
   tipo: "PRODUCTO",
   precio: "",
   existencia: "",
+  fechaCaducidad: "",
   activo: true,
 };
 
 interface ErroresFormulario {
-  clave?: string;
+  lote?: string;
   nombre?: string;
+  precio?: string;
   existencia?: string;
 }
 
 function productoAFormulario(producto: Producto): FormularioProducto {
   return {
     id: producto.id,
-    clave: producto.clave,
+    lote: producto.lote,
     nombre: producto.nombre,
     tipo: producto.tipo,
     precio: String(producto.precio),
     existencia: String(producto.existencia),
+    fechaCaducidad: producto.fechaCaducidad ?? "",
     activo: producto.activo,
   };
 }
@@ -113,11 +118,14 @@ export function CatalogoProductos() {
     const existencia = Number(formulario.existencia);
 
     const nuevosErrores: ErroresFormulario = {};
-    if (!formulario.clave.trim()) {
-      nuevosErrores.clave = "La clave es obligatoria.";
+    if (!formulario.lote.trim()) {
+      nuevosErrores.lote = "El lote es obligatorio.";
     }
     if (!formulario.nombre.trim()) {
       nuevosErrores.nombre = "El nombre es obligatorio.";
+    }
+    if (Number.isNaN(precio) || precio < 0) {
+      nuevosErrores.precio = "El precio no puede ser negativo.";
     }
     if (existencia < 0 || existencia > 999) {
       nuevosErrores.existencia = "La existencia debe estar entre 0 y 999.";
@@ -128,17 +136,20 @@ export function CatalogoProductos() {
       return;
     }
 
+    const fechaCaducidad = formulario.fechaCaducidad || undefined;
+
     if (formulario.id) {
       setProductos((actuales) =>
         actuales.map((p) =>
           p.id === formulario.id
             ? {
                 ...p,
-                clave: formulario.clave.trim(),
+                lote: formulario.lote.trim(),
                 nombre: formulario.nombre.trim(),
                 tipo: formulario.tipo,
                 precio,
                 existencia,
+                fechaCaducidad,
                 activo: formulario.activo,
               }
             : p,
@@ -149,11 +160,12 @@ export function CatalogoProductos() {
         ...actuales,
         {
           id: `p-${Date.now()}`,
-          clave: formulario.clave.trim(),
+          lote: formulario.lote.trim(),
           nombre: formulario.nombre.trim(),
           tipo: formulario.tipo,
           precio,
           existencia,
+          fechaCaducidad,
           activo: formulario.activo,
         },
       ]);
@@ -169,7 +181,7 @@ export function CatalogoProductos() {
 
   const columnas = useMemo<Columna<Producto>[]>(() => {
     const base: Columna<Producto>[] = [
-      { clave: "clave", titulo: "Clave", render: (p) => p.clave },
+      { clave: "lote", titulo: "Lote", render: (p) => p.lote },
       { clave: "nombre", titulo: "Nombre", render: (p) => p.nombre },
       {
         clave: "tipo",
@@ -183,6 +195,11 @@ export function CatalogoProductos() {
         render: (p) => formatearMoneda(p.precio),
       },
       { clave: "existencia", titulo: "Existencia", align: "right", render: (p) => p.existencia },
+      {
+        clave: "fechaCaducidad",
+        titulo: "Caducidad",
+        render: (p) => (p.fechaCaducidad ? formatearFecha(p.fechaCaducidad) : "—"),
+      },
       { clave: "estado", titulo: "Estado", render: (p) => <EstadoChip activo={p.activo} /> },
     ];
 
@@ -237,7 +254,7 @@ export function CatalogoProductos() {
       <SearchableTable
         filas={productosFiltrados}
         columnas={columnas}
-        textoBusqueda={(p) => `${p.clave} ${p.nombre}`}
+        textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
         placeholderBusqueda="Buscar producto o servicio..."
         mensajeVacio="No hay productos que coincidan con la búsqueda y los filtros."
         filtros={
@@ -277,11 +294,11 @@ export function CatalogoProductos() {
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Clave"
-              value={formulario.clave}
-              onChange={(e) => setFormulario((f) => ({ ...f, clave: e.target.value }))}
-              error={Boolean(errores.clave)}
-              helperText={errores.clave}
+              label="Lote"
+              value={formulario.lote}
+              onChange={(e) => setFormulario((f) => ({ ...f, lote: e.target.value }))}
+              error={Boolean(errores.lote)}
+              helperText={errores.lote}
               fullWidth
             />
             <TextField
@@ -307,8 +324,11 @@ export function CatalogoProductos() {
             <TextField
               label="Precio"
               type="number"
+              slotProps={{ htmlInput: { min: 0, step: "0.01" } }}
               value={formulario.precio}
               onChange={(e) => setFormulario((f) => ({ ...f, precio: e.target.value }))}
+              error={Boolean(errores.precio)}
+              helperText={errores.precio}
               fullWidth
             />
             <TextField
@@ -318,6 +338,14 @@ export function CatalogoProductos() {
               onChange={(e) => setFormulario((f) => ({ ...f, existencia: e.target.value }))}
               error={Boolean(errores.existencia)}
               helperText={errores.existencia}
+              fullWidth
+            />
+            <TextField
+              label="Fecha de caducidad"
+              type="date"
+              value={formulario.fechaCaducidad}
+              onChange={(e) => setFormulario((f) => ({ ...f, fechaCaducidad: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
             />
             <TextField
