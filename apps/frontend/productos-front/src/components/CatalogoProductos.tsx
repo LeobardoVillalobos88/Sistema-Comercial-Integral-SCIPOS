@@ -124,10 +124,10 @@ export function CatalogoProductos() {
     if (!formulario.nombre.trim()) {
       nuevosErrores.nombre = "El nombre es obligatorio.";
     }
-    if (Number.isNaN(precio) || precio < 0) {
-      nuevosErrores.precio = "El precio no puede ser negativo.";
+    if (Number.isNaN(precio) || precio <= 0) {
+      nuevosErrores.precio = "El precio debe ser mayor a 0.";
     }
-    if (existencia < 0 || existencia > 999) {
+    if (Number.isNaN(existencia) || existencia < 0 || existencia > 999) {
       nuevosErrores.existencia = "La existencia debe estar entre 0 y 999.";
     }
 
@@ -326,7 +326,9 @@ export function CatalogoProductos() {
               type="number"
               slotProps={{ htmlInput: { min: 0, step: "0.01" } }}
               value={formulario.precio}
-              onChange={(e) => setFormulario((f) => ({ ...f, precio: e.target.value }))}
+              onChange={(e) =>
+                setFormulario((f) => ({ ...f, precio: e.target.value.replace(/[^\d.]/g, "") }))
+              }
               error={Boolean(errores.precio)}
               helperText={errores.precio}
               fullWidth
@@ -335,7 +337,12 @@ export function CatalogoProductos() {
               label="Existencia"
               type="number"
               value={formulario.existencia}
-              onChange={(e) => setFormulario((f) => ({ ...f, existencia: e.target.value }))}
+              onChange={(e) =>
+                setFormulario((f) => ({
+                  ...f,
+                  existencia: e.target.value.replace(/\D/g, "").slice(0, 3),
+                }))
+              }
               error={Boolean(errores.existencia)}
               helperText={errores.existencia}
               fullWidth

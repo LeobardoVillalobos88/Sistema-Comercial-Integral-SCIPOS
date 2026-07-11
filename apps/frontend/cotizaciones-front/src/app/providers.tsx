@@ -1,0 +1,22 @@
+"use client";
+
+import { CotizacionesProvider } from "@/store/CotizacionesContext";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
+import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider } from "@mui/material/styles";
+import { PermisosProvider, temaScipos } from "@scipos/frontend-commons";
+
+// Cada microfrontend, al correr solo, monta sus propios proveedores.
+// Cuando se integra en el web-shell, estos proveedores los aporta el host.
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <AppRouterCacheProvider options={{ key: "mui" }}>
+      <ThemeProvider theme={temaScipos}>
+        <CssBaseline />
+        <PermisosProvider rolInicial="VENDEDOR">
+          <CotizacionesProvider>{children}</CotizacionesProvider>
+        </PermisosProvider>
+      </ThemeProvider>
+    </AppRouterCacheProvider>
+  );
+}

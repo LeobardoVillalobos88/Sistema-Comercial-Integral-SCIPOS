@@ -1,11 +1,5 @@
-import { ModuloEnConstruccion } from "@/components/ModuloEnConstruccion";
+import PosCajaPage from "@scipos/pos-caja-front";
 
 export default function PosPage() {
-  return (
-    <ModuloEnConstruccion
-      titulo="Punto de venta"
-      responsable="Alejandro Torres"
-      rama="feature/pos-venta"
-    />
-  );
+  return <PosCajaPage defaultTab={0} hideTabs />;
 }

@@ -16,13 +16,15 @@ The **frontend (Avance 2) is built and runnable**: the pnpm + Turborepo monorepo
 
 ### What exists today (`apps/frontend/`)
 
-- **`web-shell/`** (`@scipos/web-shell`, port 3001) — the host app (Next.js App Router). `AppShell` = Topbar + Sidebar + content area; `src/config/navegacion.ts` is the single source for the sidebar menu (each module's route, icon, required privilege, and team owner). Domain routes still pending a real module (`/cotizaciones`, `/pos`, `/caja`) render `<ModuloEnConstruccion>` placeholders. `/dashboard`, `/productos`, and `/clientes` are the built screens.
+- **`web-shell/`** (`@scipos/web-shell`, port 3001) — the host app (Next.js App Router). `AppShell` = Topbar + Sidebar + content area; `src/config/navegacion.ts` is the single source for the sidebar menu (each module's route, icon, required privilege, and team owner). All five domain routes (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/caja`) now embed real domain microfrontends; `/dashboard` is built in the shell itself and its cards react to the active role.
 - **`commons/`** (`@scipos/frontend-commons`) — the Design System and shared library. **All shared frontend code is imported from here**, via subpath exports: `@scipos/frontend-commons` (barrel), `/theme`, `/permisos`, `/components`, `/mocks`. It is a source-only package (`main`/`types` point at `src/index.ts`) consumed through Next's `transpilePackages` — there is no build step for it.
 - **`example-front/`** (`@scipos/example-front`, port 3002) — reference template. Teammates create `<dominio>-front/` by copying this app.
-- **`productos-front/`** (`@scipos/productos-front`, port 3003) — domain microfrontend implementing RF-07/RF-08/RF-09: `CatalogoProductos` component with search, estado/tipo filters, create/edit dialog, and soft-delete toggle — all guarded by `productos:*` privileges. Data is in-memory (`PRODUCTOS_MOCK`); no API calls yet.
-- **`clientes-front/`** (`@scipos/clientes-front`, port 3004) — domain microfrontend implementing RF-11/RF-12: `ClientesPage` component with searchable table, create/edit dialog (RFC/teléfono/correo validation), activo/inactivo toggle, and a detail dialog with tabbed **cotizaciones/ventas history** per client (`src/mocks/clientesData.ts`: `COTIZACIONES_MOCK_HISTORIAL`, `VENTAS_MOCK_HISTORIAL`) — all guarded by `clientes:*` privileges. Data is in-memory; no API calls yet.
+- **`productos-front/`** (`@scipos/productos-front`, port 3003) — RF-07/08/09: `CatalogoProductos` with search, estado/tipo filters, create/edit dialog and soft-delete toggle, guarded by `productos:*`. Data from `PRODUCTOS_MOCK`.
+- **`clientes-front/`** (`@scipos/clientes-front`, port 3004) — RF-10/11/12: CRUD + activate/deactivate and a detail dialog with the client's cotizaciones/ventas history in tabs, guarded by `clientes:*`. Seeds from `CLIENTES_MOCK`.
+- **`cotizaciones-front/`** (`@scipos/cotizaciones-front`, port 3005) — RF-13→17: create quote, list/filter, and the **BORRADOR → ENVIADA → VENDIDA** lifecycle (buttons "Marcar como enviada" and "Convertir a venta"), guarded by `cotizaciones:*` (incl. `cotizaciones:enviar`, `cotizaciones:convertir`). State lives in a React Context; shares `COTIZACIONES_MOCK` from commons.
+- **`pos-caja-front/`** (`@scipos/pos-caja-front`, port 3006) — RF-18→26: POS (cart, IVA, descuento, cancelar) **and** caja (apertura, movimientos, corte). A single `PosCajaPage` serves both routes via `defaultTab`/`hideTabs`; sensitive actions guarded by `pos:*` / `caja:*`.
 
-**Integration pattern**: `web-shell` embeds each domain microfrontend by depending on it as a normal `workspace:*` package (not an iframe or module-federation remote) — see `web-shell/src/app/productos/page.tsx` and `web-shell/src/app/clientes/page.tsx`, which import the domain page component straight from `@scipos/<dominio>-front` and add the package to both `next.config.mjs`'s `transpilePackages` and `web-shell/package.json` dependencies. Follow this same wiring (package dependency + transpilePackages entry + page import) for every new `*-front` module.
+**Integration pattern**: `web-shell` embeds each domain microfrontend by depending on it as a normal `workspace:*` package (not an iframe or module-federation remote): add the package to both `next.config.mjs`'s `transpilePackages` and `web-shell/package.json` dependencies, then import its top-level component in the route's `page.tsx` (e.g. `import { CatalogoProductos } from "@scipos/productos-front"`). Follow this same wiring for every new `*-front` module. Each `*-front` gets its own dev port (3003, 3004, 3005, 3006 … next free is 3007).
 
 ### The privilege system (frontend half)
 
@@ -50,13 +52,13 @@ pnpm --filter @scipos/web-shell dev           # just the host        → http://
 pnpm --filter @scipos/example-front dev       # just the template    → http://localhost:3002
 pnpm --filter @scipos/productos-front dev     # just productos       → http://localhost:3003
 pnpm --filter @scipos/clientes-front dev      # just clientes        → http://localhost:3004
+pnpm --filter @scipos/cotizaciones-front dev  # just cotizaciones    → http://localhost:3005
+pnpm --filter @scipos/pos-caja-front dev      # just POS + caja      → http://localhost:3006
 pnpm build                                    # turbo run build (Next builds)
 pnpm lint                                     # biome check .   (lint + format check, whole repo)
 pnpm lint:fix                                 # biome check --write .
 pnpm format                                   # biome format --write .
 pnpm --filter @scipos/web-shell typecheck     # tsc --noEmit for one package
-pnpm --filter @scipos/productos-front typecheck
-pnpm --filter @scipos/clientes-front typecheck
 ```
 
 - **Lint/format is Biome** (`biome.json`), not ESLint/Prettier: 2-space indent, line width 100, double quotes, trailing commas, semicolons always, `organizeImports` on. `pnpm lint` runs at the root over everything; per-package `lint`/`typecheck` scripts exist too.

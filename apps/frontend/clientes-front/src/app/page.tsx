@@ -12,6 +12,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -186,7 +187,12 @@ export default function ClientesPage() {
     {
       clave: "rfc",
       titulo: "RFC",
-      render: (c) => c.rfc || <span style={{ color: "#aaa" }}>Público en general</span>,
+      render: (c) =>
+        c.rfc || (
+          <Typography variant="body2" component="span" color="text.disabled">
+            Público en general
+          </Typography>
+        ),
     },
     {
       clave: "contacto",
@@ -320,7 +326,7 @@ export default function ClientesPage() {
                   placeholder="10 dígitos"
                   fullWidth
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
+                  onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   error={!!errores.telefono}
                   helperText={errores.telefono}
                   size="small"
@@ -429,7 +435,7 @@ export default function ClientesPage() {
                     </Box>
 
                     {/* Resumen de Compras del Cliente */}
-                    <Box sx={{ mt: 3, pt: 2, borderTop: "1px solid #ddd" }}>
+                    <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: "divider" }}>
                       <Typography variant="caption" color="text.secondary" display="block">
                         Total Comprado (POS)
                       </Typography>
@@ -493,28 +499,18 @@ export default function ClientesPage() {
                                   <TableCell>{cot.folio}</TableCell>
                                   <TableCell>{formatearFecha(cot.fecha)}</TableCell>
                                   <TableCell>
-                                    <span
-                                      style={{
-                                        fontSize: "0.75rem",
-                                        padding: "2px 6px",
-                                        borderRadius: "4px",
-                                        backgroundColor:
-                                          cot.estado === "CONVERTIDA"
-                                            ? "#e8f5e9"
-                                            : cot.estado === "ENVIADA"
-                                              ? "#e3f2fd"
-                                              : "#fff3e0",
-                                        color:
-                                          cot.estado === "CONVERTIDA"
-                                            ? "#2e7d32"
-                                            : cot.estado === "ENVIADA"
-                                              ? "#1565c0"
-                                              : "#ef6c00",
-                                        fontWeight: "bold",
-                                      }}
-                                    >
-                                      {cot.estado}
-                                    </span>
+                                    <Chip
+                                      size="small"
+                                      label={cot.estado}
+                                      variant="outlined"
+                                      color={
+                                        cot.estado === "VENDIDA"
+                                          ? "success"
+                                          : cot.estado === "ENVIADA"
+                                            ? "info"
+                                            : "warning"
+                                      }
+                                    />
                                   </TableCell>
                                   <TableCell align="right">{formatearMoneda(totalCot)}</TableCell>
                                 </TableRow>

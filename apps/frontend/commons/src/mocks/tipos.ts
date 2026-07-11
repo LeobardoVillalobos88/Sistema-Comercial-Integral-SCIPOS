@@ -34,7 +34,7 @@ export interface PartidaCotizacion {
   precioUnitario: number;
 }
 
-export type EstadoCotizacion = "BORRADOR" | "ENVIADA" | "CONVERTIDA";
+export type EstadoCotizacion = "BORRADOR" | "ENVIADA" | "VENDIDA";
 
 export interface Cotizacion {
   id: string;

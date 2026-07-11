@@ -17,6 +17,7 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "clientes:editar",
     "cotizaciones:ver",
     "cotizaciones:crear",
+    "cotizaciones:enviar",
     "cotizaciones:convertir",
     "pos:ver",
     "pos:vender",

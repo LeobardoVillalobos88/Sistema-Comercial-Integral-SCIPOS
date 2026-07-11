@@ -16,7 +16,7 @@ export const COTIZACIONES_MOCK_HISTORIAL: Cotizacion[] = [
     folio: "COT-2026-001",
     clienteId: "c-001",
     fecha: "2026-06-15",
-    estado: "CONVERTIDA" as EstadoCotizacion,
+    estado: "VENDIDA" as EstadoCotizacion,
     partidas: [
       { productoId: "p-001", cantidad: 2, precioUnitario: 350 },
       { productoId: "p-002", cantidad: 1, precioUnitario: 1200 },
@@ -35,7 +35,7 @@ export const COTIZACIONES_MOCK_HISTORIAL: Cotizacion[] = [
     folio: "COT-2026-003",
     clienteId: "c-002",
     fecha: "2026-06-18",
-    estado: "CONVERTIDA" as EstadoCotizacion,
+    estado: "VENDIDA" as EstadoCotizacion,
     partidas: [{ productoId: "p-002", cantidad: 1, precioUnitario: 1200 }],
   },
   {
