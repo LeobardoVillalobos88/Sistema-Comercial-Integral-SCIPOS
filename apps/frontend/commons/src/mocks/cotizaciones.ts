@@ -1,8 +1,8 @@
 import type { Cotizacion } from "./tipos";
 
 /**
- * Cotizaciones de ejemplo (lo consume el módulo de Ángel). Referencian los
- * mismos IDs de `CLIENTES_MOCK` y `PRODUCTOS_MOCK` para que la demo embone.
+ * Cotizaciones del sistema. Referencian los mismos IDs de `CLIENTES_MOCK` y
+ * `PRODUCTOS_MOCK` para que los datos embonen entre módulos.
  */
 export const COTIZACIONES_MOCK: Cotizacion[] = [
   {

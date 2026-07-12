@@ -1,6 +1,9 @@
 # Dependencias
 node_modules/
 .pnpm-store/
+# Usamos pnpm; ignoramos lockfiles de npm/yarn por si alguien corre npm por error
+package-lock.json
+yarn.lock
 
 # Builds / cache
 .next/
