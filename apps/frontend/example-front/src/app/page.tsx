@@ -19,7 +19,12 @@ import {
 const columnas: Columna<Producto>[] = [
   { clave: "lote", titulo: "Lote", render: (p) => p.lote },
   { clave: "nombre", titulo: "Nombre", render: (p) => p.nombre },
-  { clave: "precio", titulo: "Precio", align: "right", render: (p) => formatearMoneda(p.precio) },
+  {
+    clave: "precio",
+    titulo: "Precio venta",
+    align: "right",
+    render: (p) => formatearMoneda(p.precioVenta),
+  },
   { clave: "existencia", titulo: "Existencia", align: "right", render: (p) => p.existencia },
   { clave: "estado", titulo: "Estado", render: (p) => <EstadoChip activo={p.activo} /> },
 ];

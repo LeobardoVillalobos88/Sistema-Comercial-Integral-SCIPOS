@@ -1,6 +1,7 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import ToggleOffIcon from "@mui/icons-material/ToggleOff";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
@@ -28,6 +29,7 @@ import {
   formatearMoneda,
   usePermisos,
 } from "@scipos/frontend-commons";
+import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
 import { useCallback, useId, useMemo, useState } from "react";
 
 type FiltroEstado = "TODOS" | "ACTIVO" | "INACTIVO";
@@ -38,7 +40,8 @@ interface FormularioProducto {
   lote: string;
   nombre: string;
   tipo: TipoProducto;
-  precio: string;
+  precioCompra: string;
+  precioVenta: string;
   existencia: string;
   fechaCaducidad: string;
   activo: boolean;
@@ -48,7 +51,8 @@ const FORMULARIO_VACIO: FormularioProducto = {
   lote: "",
   nombre: "",
   tipo: "PRODUCTO",
-  precio: "",
+  precioCompra: "",
+  precioVenta: "",
   existencia: "",
   fechaCaducidad: "",
   activo: true,
@@ -57,7 +61,8 @@ const FORMULARIO_VACIO: FormularioProducto = {
 interface ErroresFormulario {
   lote?: string;
   nombre?: string;
-  precio?: string;
+  precioCompra?: string;
+  precioVenta?: string;
   existencia?: string;
 }
 
@@ -67,7 +72,8 @@ function productoAFormulario(producto: Producto): FormularioProducto {
     lote: producto.lote,
     nombre: producto.nombre,
     tipo: producto.tipo,
-    precio: String(producto.precio),
+    precioCompra: String(producto.precioCompra),
+    precioVenta: String(producto.precioVenta),
     existencia: String(producto.existencia),
     fechaCaducidad: producto.fechaCaducidad ?? "",
     activo: producto.activo,
@@ -82,6 +88,7 @@ function productoAFormulario(producto: Producto): FormularioProducto {
 export function CatalogoProductos() {
   const tituloDialogoId = useId();
   const { can } = usePermisos();
+  const toast = useToast();
 
   const [productos, setProductos] = useState<Producto[]>(PRODUCTOS_MOCK);
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("TODOS");
@@ -114,7 +121,8 @@ export function CatalogoProductos() {
   const cerrarDialogo = () => setDialogoAbierto(false);
 
   const guardar = () => {
-    const precio = Number(formulario.precio);
+    const precioCompra = Number(formulario.precioCompra);
+    const precioVenta = Number(formulario.precioVenta);
     const existencia = Number(formulario.existencia);
 
     const nuevosErrores: ErroresFormulario = {};
@@ -124,8 +132,11 @@ export function CatalogoProductos() {
     if (!formulario.nombre.trim()) {
       nuevosErrores.nombre = "El nombre es obligatorio.";
     }
-    if (Number.isNaN(precio) || precio <= 0) {
-      nuevosErrores.precio = "El precio debe ser mayor a 0.";
+    if (Number.isNaN(precioCompra) || precioCompra < 0) {
+      nuevosErrores.precioCompra = "El precio de compra no puede ser negativo.";
+    }
+    if (Number.isNaN(precioVenta) || precioVenta <= 0) {
+      nuevosErrores.precioVenta = "El precio de venta debe ser mayor a 0.";
     }
     if (Number.isNaN(existencia) || existencia < 0 || existencia > 999) {
       nuevosErrores.existencia = "La existencia debe estar entre 0 y 999.";
@@ -147,7 +158,8 @@ export function CatalogoProductos() {
                 lote: formulario.lote.trim(),
                 nombre: formulario.nombre.trim(),
                 tipo: formulario.tipo,
-                precio,
+                precioCompra,
+                precioVenta,
                 existencia,
                 fechaCaducidad,
                 activo: formulario.activo,
@@ -163,7 +175,8 @@ export function CatalogoProductos() {
           lote: formulario.lote.trim(),
           nombre: formulario.nombre.trim(),
           tipo: formulario.tipo,
-          precio,
+          precioCompra,
+          precioVenta,
           existencia,
           fechaCaducidad,
           activo: formulario.activo,
@@ -171,13 +184,44 @@ export function CatalogoProductos() {
       ]);
     }
     setDialogoAbierto(false);
+    toast.exito(formulario.id ? "Producto actualizado correctamente." : "Producto creado.");
   };
 
-  const alternarActivo = useCallback((producto: Producto) => {
-    setProductos((actuales) =>
-      actuales.map((p) => (p.id === producto.id ? { ...p, activo: !p.activo } : p)),
-    );
-  }, []);
+  const alternarActivo = useCallback(
+    async (producto: Producto) => {
+      if (producto.activo) {
+        const confirmado = await confirmar({
+          titulo: "¿Desactivar producto?",
+          texto: `"${producto.nombre}" dejará de estar disponible en el catálogo.`,
+          confirmar: "Sí, desactivar",
+        });
+        if (!confirmado) {
+          return;
+        }
+      }
+      setProductos((actuales) =>
+        actuales.map((p) => (p.id === producto.id ? { ...p, activo: !p.activo } : p)),
+      );
+      toast.info(producto.activo ? "Producto desactivado." : "Producto activado.");
+    },
+    [toast],
+  );
+
+  const eliminarProducto = useCallback(
+    async (producto: Producto) => {
+      const confirmado = await confirmar({
+        titulo: "¿Eliminar producto?",
+        texto: `"${producto.nombre}" se eliminará permanentemente del catálogo.`,
+        confirmar: "Sí, eliminar",
+      });
+      if (!confirmado) {
+        return;
+      }
+      setProductos((actuales) => actuales.filter((p) => p.id !== producto.id));
+      toast.info("Producto eliminado.");
+    },
+    [toast],
+  );
 
   const columnas = useMemo<Columna<Producto>[]>(() => {
     const base: Columna<Producto>[] = [
@@ -189,10 +233,16 @@ export function CatalogoProductos() {
         render: (p) => (p.tipo === "PRODUCTO" ? "Producto" : "Servicio"),
       },
       {
-        clave: "precio",
-        titulo: "Precio",
+        clave: "precioCompra",
+        titulo: "P. compra",
         align: "right",
-        render: (p) => formatearMoneda(p.precio),
+        render: (p) => formatearMoneda(p.precioCompra),
+      },
+      {
+        clave: "precioVenta",
+        titulo: "P. venta",
+        align: "right",
+        render: (p) => formatearMoneda(p.precioVenta),
       },
       { clave: "existencia", titulo: "Existencia", align: "right", render: (p) => p.existencia },
       {
@@ -203,7 +253,9 @@ export function CatalogoProductos() {
       { clave: "estado", titulo: "Estado", render: (p) => <EstadoChip activo={p.activo} /> },
     ];
 
-    if (!can("productos:editar") && !can("productos:desactivar")) return base;
+    if (!can("productos:editar") && !can("productos:desactivar") && !can("productos:eliminar")) {
+      return base;
+    }
 
     return [
       ...base,
@@ -213,13 +265,6 @@ export function CatalogoProductos() {
         align: "right",
         render: (p) => (
           <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <Permiso requiere="productos:editar">
-              <Tooltip title="Editar">
-                <IconButton size="small" onClick={() => abrirEditar(p)}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Permiso>
             <Permiso requiere="productos:desactivar">
               <Tooltip title={p.activo ? "Desactivar" : "Activar"}>
                 <IconButton size="small" onClick={() => alternarActivo(p)}>
@@ -231,11 +276,25 @@ export function CatalogoProductos() {
                 </IconButton>
               </Tooltip>
             </Permiso>
+            <Permiso requiere="productos:editar">
+              <Tooltip title="Editar">
+                <IconButton size="small" color="info" onClick={() => abrirEditar(p)}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Permiso>
+            <Permiso requiere="productos:eliminar">
+              <Tooltip title="Eliminar">
+                <IconButton size="small" color="error" onClick={() => eliminarProducto(p)}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Permiso>
           </Stack>
         ),
       },
     ];
-  }, [can, abrirEditar, alternarActivo]);
+  }, [can, abrirEditar, alternarActivo, eliminarProducto]);
 
   return (
     <Box>
@@ -322,15 +381,33 @@ export function CatalogoProductos() {
               <MenuItem value="SERVICIO">Servicio</MenuItem>
             </TextField>
             <TextField
-              label="Precio"
+              label="Precio de compra"
               type="number"
               slotProps={{ htmlInput: { min: 0, step: "0.01" } }}
-              value={formulario.precio}
+              value={formulario.precioCompra}
               onChange={(e) =>
-                setFormulario((f) => ({ ...f, precio: e.target.value.replace(/[^\d.]/g, "") }))
+                setFormulario((f) => ({
+                  ...f,
+                  precioCompra: e.target.value.replace(/[^\d.]/g, ""),
+                }))
               }
-              error={Boolean(errores.precio)}
-              helperText={errores.precio}
+              error={Boolean(errores.precioCompra)}
+              helperText={errores.precioCompra}
+              fullWidth
+            />
+            <TextField
+              label="Precio de venta"
+              type="number"
+              slotProps={{ htmlInput: { min: 0, step: "0.01" } }}
+              value={formulario.precioVenta}
+              onChange={(e) =>
+                setFormulario((f) => ({
+                  ...f,
+                  precioVenta: e.target.value.replace(/[^\d.]/g, ""),
+                }))
+              }
+              error={Boolean(errores.precioVenta)}
+              helperText={errores.precioVenta}
               fullWidth
             />
             <TextField

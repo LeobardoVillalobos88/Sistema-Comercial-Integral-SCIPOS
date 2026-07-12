@@ -11,7 +11,10 @@ export interface Producto {
   lote: string;
   nombre: string;
   tipo: TipoProducto;
-  precio: number;
+  /** Precio al que se compra el producto (a proveedor). */
+  precioCompra: number;
+  /** Precio al que se vende el producto (a cliente). */
+  precioVenta: number;
   existencia: number;
   /** Fecha ISO de caducidad del lote. Opcional (servicios no caducan). */
   fechaCaducidad?: string;
