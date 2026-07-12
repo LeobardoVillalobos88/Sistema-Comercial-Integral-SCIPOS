@@ -2,7 +2,8 @@ export interface Producto {
   id: string;
   clave: string;
   nombre: string;
-  precio: number;
+  precioCompra: number;
+  precioVenta: number;
   existencia: number;
   estado: "Activo" | "Inactivo";
 }
@@ -55,7 +56,8 @@ export const PRODUCTOS_MOCK: Producto[] = [
     id: "PROD-01",
     clave: "ABA-001",
     nombre: "Abarrotes surtidos 1 kg",
-    precio: 45.5,
+    precioCompra: 29.5,
+    precioVenta: 45.5,
     existencia: 120,
     estado: "Activo",
   },
@@ -63,7 +65,8 @@ export const PRODUCTOS_MOCK: Producto[] = [
     id: "PROD-02",
     clave: "BEB-010",
     nombre: "Refresco de cola 600 ml",
-    precio: 18,
+    precioCompra: 11.7,
+    precioVenta: 18,
     existencia: 240,
     estado: "Activo",
   },
@@ -71,7 +74,8 @@ export const PRODUCTOS_MOCK: Producto[] = [
     id: "PROD-03",
     clave: "BEB-011",
     nombre: "Agua natural 1 L",
-    precio: 12,
+    precioCompra: 7.8,
+    precioVenta: 12,
     existencia: 300,
     estado: "Activo",
   },
@@ -79,7 +83,8 @@ export const PRODUCTOS_MOCK: Producto[] = [
     id: "PROD-04",
     clave: "PAN-020",
     nombre: "Pan de caja grande",
-    precio: 38.9,
+    precioCompra: 25.3,
+    precioVenta: 38.9,
     existencia: 60,
     estado: "Activo",
   },
@@ -87,7 +92,8 @@ export const PRODUCTOS_MOCK: Producto[] = [
     id: "PROD-05",
     clave: "LAC-030",
     nombre: "Leche entera 1 L",
-    precio: 27.5,
+    precioCompra: 17.9,
+    precioVenta: 27.5,
     existencia: 80,
     estado: "Activo",
   },
@@ -95,7 +101,8 @@ export const PRODUCTOS_MOCK: Producto[] = [
     id: "PROD-06",
     clave: "SNK-060",
     nombre: "Botana salada 45 g",
-    precio: 16,
+    precioCompra: 10.4,
+    precioVenta: 16,
     existencia: 200,
     estado: "Activo",
   },

@@ -3,10 +3,12 @@
 import { NAVEGACION } from "@/config/navegacion";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionIcon from "@mui/icons-material/Description";
+import InsightsIcon from "@mui/icons-material/Insights";
 import InventoryIcon from "@mui/icons-material/Inventory2";
 import PeopleIcon from "@mui/icons-material/People";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import SavingsIcon from "@mui/icons-material/Savings";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
@@ -18,11 +20,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ICONOS = {
+  insights: InsightsIcon,
   dashboard: DashboardIcon,
   inventory: InventoryIcon,
   people: PeopleIcon,
   description: DescriptionIcon,
   point_of_sale: PointOfSaleIcon,
+  shopping_cart: ShoppingCartIcon,
   savings: SavingsIcon,
 } as const;
 

@@ -16,6 +16,7 @@
     "@mui/icons-material": "^6.3.0",
     "@mui/material": "^6.3.0",
     "@mui/material-nextjs": "^6.3.0",
+    "@mui/x-charts": "^7.28.0",
     "@scipos/clientes-front": "workspace:*",
     "@scipos/cotizaciones-front": "workspace:*",
     "@scipos/frontend-commons": "workspace:*",

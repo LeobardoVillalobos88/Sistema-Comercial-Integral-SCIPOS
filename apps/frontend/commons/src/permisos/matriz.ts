@@ -2,7 +2,7 @@ import type { Privilegio, Rol } from "./tipos";
 
 /**
  * Matriz de privilegios por rol. El comodín "*" significa "todos los
- * privilegios". Cada equipo puede agregar los privilegios que use su módulo
+ * privilegios". Cada módulo puede agregar los privilegios que necesite
  * con el formato `modulo:accion`.
  */
 export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
@@ -46,6 +46,7 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "pos:ver",
     "pos:descuento",
     "pos:cancelar",
+    "compras:ver",
     "caja:ver",
     "caja:cerrar",
     "reportes:ver",

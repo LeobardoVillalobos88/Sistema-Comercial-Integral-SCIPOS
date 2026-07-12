@@ -44,6 +44,7 @@ import {
   PageHeader,
   type PermisosContextValue,
   type Rol,
+  formatearFechaConHora,
   formatearMoneda,
   usePermisos,
 } from "@scipos/frontend-commons";
@@ -63,9 +64,13 @@ import {
 type SeveridadMensaje = "success" | "info" | "warning" | "error";
 type TipoFlujoForm = MovimientoCaja["tipo"];
 
+/** "venta" usa el precio de venta y resta inventario; "compra" usa el precio de compra y suma. */
+export type ModoPos = "venta" | "compra";
+
 export interface PosCajaPageProps {
   defaultTab?: number;
   hideTabs?: boolean;
+  modo?: ModoPos;
 }
 
 interface MensajeSistema {
@@ -92,28 +97,20 @@ function generarFolio(prefijo: string) {
   return `${prefijo}-${Math.floor(10000 + Math.random() * 90000)}`;
 }
 
-function crearItemCarrito(producto: Producto): ItemCarrito {
+function precioSegunModo(producto: Producto, modo: ModoPos): number {
+  return modo === "compra" ? producto.precioCompra : producto.precioVenta;
+}
+
+function crearItemCarrito(producto: Producto, modo: ModoPos): ItemCarrito {
+  const precio = precioSegunModo(producto, modo);
   return {
     productoId: producto.id,
     clave: producto.clave,
     nombre: producto.nombre,
-    precioUnitario: producto.precio,
+    precioUnitario: precio,
     cantidad: 1,
-    subtotal: producto.precio,
+    subtotal: precio,
   };
-}
-
-function formatearFechaConHora(isoFecha: string) {
-  const fecha = new Date(isoFecha);
-
-  if (Number.isNaN(fecha.getTime())) {
-    return isoFecha;
-  }
-
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(fecha);
 }
 
 function PanelSeccion({ titulo, descripcion, acciones, children }: PanelSeccionProps) {
@@ -228,7 +225,12 @@ function RolSelector({ permisos }: { permisos: PermisosContextValue }) {
   );
 }
 
-export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPageProps) {
+export function PosCajaPage({
+  defaultTab = 0,
+  hideTabs = false,
+  modo = "venta",
+}: PosCajaPageProps) {
+  const esCompra = modo === "compra";
   const permisos = usePermisos();
   const {
     cajaAbierta,
@@ -326,14 +328,14 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
     carrito.find((item) => item.productoId === productoId)?.cantidad ?? 0;
 
   const agregarProducto = (producto: Producto) => {
-    if (!cajaAbierta) {
+    if (!esCompra && !cajaAbierta) {
       mostrarMensaje("Primero debes abrir la caja para registrar ventas.", "warning");
       setActiveTab(1);
       return;
     }
 
     const cantidadActual = cantidadEnCarrito(producto.id);
-    if (cantidadActual >= producto.existencia) {
+    if (!esCompra && cantidadActual >= producto.existencia) {
       mostrarMensaje(`No hay más existencia disponible para ${producto.nombre}.`, "error");
       return;
     }
@@ -342,7 +344,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
       const existente = carritoActual.find((item) => item.productoId === producto.id);
 
       if (!existente) {
-        return [...carritoActual, crearItemCarrito(producto)];
+        return [...carritoActual, crearItemCarrito(producto, modo)];
       }
 
       return carritoActual.map((item) =>
@@ -367,7 +369,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
       return;
     }
 
-    if (partida.cantidad >= producto.existencia) {
+    if (!esCompra && partida.cantidad >= producto.existencia) {
       mostrarMensaje(`La existencia máxima de ${producto.nombre} ya fue alcanzada.`, "warning");
       return;
     }
@@ -434,18 +436,25 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   };
 
   const cobrarTransaccion = () => {
-    if (!cajaAbierta) {
+    if (!esCompra && !cajaAbierta) {
       mostrarMensaje("La caja debe estar abierta para cobrar una transacción.", "warning");
       return;
     }
 
     if (carrito.length === 0) {
-      mostrarMensaje("Agrega productos al carrito antes de cobrar.", "warning");
+      mostrarMensaje(
+        esCompra
+          ? "Agrega productos al carrito antes de registrar la compra."
+          : "Agrega productos al carrito antes de cobrar.",
+        "warning",
+      );
       return;
     }
 
-    const folio = generarFolio("VTA");
-    agregarVentaAcumulada(totalVenta);
+    const folio = generarFolio(esCompra ? "COM" : "VTA");
+    if (!esCompra) {
+      agregarVentaAcumulada(totalVenta);
+    }
     setInventario((inventarioActual) =>
       inventarioActual.map((producto) => {
         const partida = carrito.find((item) => item.productoId === producto.id);
@@ -456,7 +465,9 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
 
         return {
           ...producto,
-          existencia: Math.max(producto.existencia - partida.cantidad, 0),
+          existencia: esCompra
+            ? producto.existencia + partida.cantidad
+            : Math.max(producto.existencia - partida.cantidad, 0),
         };
       }),
     );
@@ -467,7 +478,12 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
     setCarrito([]);
     setDescuentoAplicado(0);
     setDescuentoCaptura("0");
-    mostrarMensaje("La transacción fue cobrada correctamente.", "success");
+    mostrarMensaje(
+      esCompra
+        ? "La compra fue registrada y el inventario se actualizó."
+        : "La transacción fue cobrada correctamente.",
+      "success",
+    );
   };
 
   const cerrarDialogoCobro = () => {
@@ -576,15 +592,21 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <PageHeader
-        titulo="Ventas POS + Caja"
-        descripcion="Punto de venta y gestión de caja"
+        titulo={esCompra ? "Punto de compra" : "Ventas POS + Caja"}
+        descripcion={
+          esCompra
+            ? "Registro de compras a proveedor (precio de compra, suma inventario)"
+            : "Punto de venta y gestión de caja"
+        }
         acciones={
           <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-            <Chip
-              label={cajaAbierta ? "Caja abierta" : "Caja cerrada"}
-              color={cajaAbierta ? "success" : "warning"}
-              variant="outlined"
-            />
+            {esCompra ? null : (
+              <Chip
+                label={cajaAbierta ? "Caja abierta" : "Caja cerrada"}
+                color={cajaAbierta ? "success" : "warning"}
+                variant="outlined"
+              />
+            )}
             {hideTabs ? null : <RolSelector permisos={permisos} />}
           </Stack>
         }
@@ -621,7 +643,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
 
       {activeTab === 0 ? (
         <Stack spacing={3}>
-          {!cajaAbierta ? (
+          {!esCompra && !cajaAbierta ? (
             <Alert severity="warning">
               La caja está cerrada. Abre una caja en la pestaña de Caja para habilitar el carrito y
               los cobros.
@@ -632,7 +654,11 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
             <Grid item xs={12} lg={8}>
               <PanelSeccion
                 titulo="Productos disponibles"
-                descripcion="Busca por texto o clave y agrega los artículos al carrito de la venta."
+                descripcion={
+                  esCompra
+                    ? "Busca y agrega los artículos que entran al inventario por compra."
+                    : "Busca por texto o clave y agrega los artículos al carrito de la venta."
+                }
               >
                 <Stack spacing={2}>
                   <TextField
@@ -676,14 +702,15 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                         ) : (
                           productosFiltrados.map((producto) => {
                             const cantidadActual = cantidadEnCarrito(producto.id);
-                            const sinExistencia = cantidadActual >= producto.existencia;
+                            const sinExistencia =
+                              !esCompra && cantidadActual >= producto.existencia;
 
                             return (
                               <TableRow key={producto.id} hover>
                                 <TableCell>{producto.clave}</TableCell>
                                 <TableCell>{producto.nombre}</TableCell>
                                 <TableCell align="right">
-                                  {formatearMoneda(producto.precio)}
+                                  {formatearMoneda(precioSegunModo(producto, modo))}
                                 </TableCell>
                                 <TableCell align="right">{producto.existencia}</TableCell>
                                 <TableCell>
@@ -695,7 +722,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                                     variant="outlined"
                                     startIcon={<AddIcon />}
                                     onClick={() => agregarProducto(producto)}
-                                    disabled={!cajaAbierta || sinExistencia}
+                                    disabled={(!esCompra && !cajaAbierta) || sinExistencia}
                                   >
                                     Agregar
                                   </Button>
@@ -713,8 +740,12 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
 
             <Grid item xs={12} lg={4}>
               <PanelSeccion
-                titulo="Carrito de compras"
-                descripcion="Administra cantidades, descuento, cobro y cancelación de la venta."
+                titulo={esCompra ? "Carrito de compra" : "Carrito de venta"}
+                descripcion={
+                  esCompra
+                    ? "Administra cantidades y registra la compra al inventario."
+                    : "Administra cantidades, descuento, cobro y cancelación de la venta."
+                }
               >
                 <Stack spacing={2}>
                   {carrito.length === 0 ? (
@@ -773,7 +804,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                                 size="small"
                                 onClick={() => incrementarCantidad(item.productoId)}
                                 aria-label={`Incrementar ${item.nombre}`}
-                                disabled={!cajaAbierta}
+                                disabled={!esCompra && !cajaAbierta}
                               >
                                 <AddIcon fontSize="small" />
                               </IconButton>
@@ -801,13 +832,17 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                         }
                         size="small"
                         fullWidth
-                        disabled={!puedeDescuento || carrito.length === 0 || !cajaAbierta}
+                        disabled={
+                          !puedeDescuento || carrito.length === 0 || (!esCompra && !cajaAbierta)
+                        }
                         inputProps={{ min: 0, step: "0.01" }}
                       />
                       <Button
                         variant="outlined"
                         onClick={aplicarDescuento}
-                        disabled={!puedeDescuento || carrito.length === 0 || !cajaAbierta}
+                        disabled={
+                          !puedeDescuento || carrito.length === 0 || (!esCompra && !cajaAbierta)
+                        }
                       >
                         Aplicar descuento
                       </Button>
@@ -818,7 +853,7 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                     />
                     <ResumenMonto etiqueta="IVA (16%)" valor={formatearMoneda(iva)} />
                     <ResumenMonto
-                      etiqueta="Total de la venta"
+                      etiqueta={esCompra ? "Total de la compra" : "Total de la venta"}
                       valor={formatearMoneda(totalVenta)}
                       color="#1f3a5f"
                     />
@@ -830,18 +865,20 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
                       color="warning"
                       fullWidth
                       onClick={cancelarVenta}
-                      disabled={!puedeCancelar || carrito.length === 0 || !cajaAbierta}
+                      disabled={
+                        !puedeCancelar || carrito.length === 0 || (!esCompra && !cajaAbierta)
+                      }
                     >
-                      Cancelar venta
+                      {esCompra ? "Cancelar compra" : "Cancelar venta"}
                     </Button>
                     <Button
                       variant="contained"
                       fullWidth
                       startIcon={<PointOfSaleIcon />}
                       onClick={cobrarTransaccion}
-                      disabled={carrito.length === 0 || !cajaAbierta}
+                      disabled={carrito.length === 0 || (!esCompra && !cajaAbierta)}
                     >
-                      Cobrar transacción
+                      {esCompra ? "Registrar compra" : "Cobrar transacción"}
                     </Button>
                   </Stack>
                 </Stack>
@@ -1065,15 +1102,21 @@ export function PosCajaPage({ defaultTab = 0, hideTabs = false }: PosCajaPagePro
       ) : null}
 
       <Dialog open={dialogCobroAbierto} onClose={cerrarDialogoCobro} fullWidth maxWidth="sm">
-        <DialogTitle>Transacción cobrada con éxito</DialogTitle>
+        <DialogTitle>
+          {esCompra ? "Compra registrada con éxito" : "Transacción cobrada con éxito"}
+        </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <Typography variant="body1">
-              El cobro se registró correctamente con el folio <strong>{folioCobro}</strong>.
+              {esCompra ? "La compra" : "El cobro"} se registró correctamente con el folio{" "}
+              <strong>{folioCobro}</strong>.
             </Typography>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Stack spacing={1}>
-                <ResumenMonto etiqueta="Total cobrado" valor={formatearMoneda(totalCobro)} />
+                <ResumenMonto
+                  etiqueta={esCompra ? "Total de la compra" : "Total cobrado"}
+                  valor={formatearMoneda(totalCobro)}
+                />
                 <Typography variant="body2" color="text.secondary">
                   El carrito se limpió por completo y la venta quedó registrada en el turno.
                 </Typography>
