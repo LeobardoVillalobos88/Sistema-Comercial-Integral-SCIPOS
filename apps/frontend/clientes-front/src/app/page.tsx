@@ -2,6 +2,7 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -12,7 +13,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -37,12 +37,15 @@ import {
   type Cliente,
   type Columna,
   EstadoChip,
+  EstadoCotizacionChip,
   PageHeader,
   Permiso,
   SearchableTable,
   formatearFecha,
   formatearMoneda,
+  totalCotizacion,
 } from "@scipos/frontend-commons";
+import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
 import { useState } from "react";
 import { COTIZACIONES_MOCK_HISTORIAL, VENTAS_MOCK_HISTORIAL } from "../mocks/clientesData";
 
@@ -55,6 +58,8 @@ interface ErroresFormulario {
 }
 
 export default function ClientesPage() {
+  const toast = useToast();
+
   // Estado principal de clientes (iniciado con los datos mock de commons)
   const [clientes, setClientes] = useState<Cliente[]>(CLIENTES_MOCK);
 
@@ -107,8 +112,33 @@ export default function ClientesPage() {
   };
 
   // 4. Activar/Desactivar Cliente (RF-11/RF-12 lógico)
-  const handleAlternarEstado = (cliente: Cliente) => {
+  const handleAlternarEstado = async (cliente: Cliente) => {
+    if (cliente.activo) {
+      const confirmado = await confirmar({
+        titulo: "¿Desactivar cliente?",
+        texto: `"${cliente.nombre}" quedará como inactivo.`,
+        confirmar: "Sí, desactivar",
+      });
+      if (!confirmado) {
+        return;
+      }
+    }
     setClientes((prev) => prev.map((c) => (c.id === cliente.id ? { ...c, activo: !c.activo } : c)));
+    toast.info(cliente.activo ? "Cliente desactivado." : "Cliente activado.");
+  };
+
+  // 4b. Eliminar cliente (acción destructiva, solo Admin).
+  const handleEliminarCliente = async (cliente: Cliente) => {
+    const confirmado = await confirmar({
+      titulo: "¿Eliminar cliente?",
+      texto: `"${cliente.nombre}" se eliminará permanentemente.`,
+      confirmar: "Sí, eliminar",
+    });
+    if (!confirmado) {
+      return;
+    }
+    setClientes((prev) => prev.filter((c) => c.id !== cliente.id));
+    toast.info("Cliente eliminado.");
   };
 
   // 5. Validaciones básicas del formulario
@@ -167,6 +197,7 @@ export default function ClientesPage() {
     }
 
     setModalAbierto(false);
+    toast.exito(clienteEdicion ? "Cliente actualizado correctamente." : "Cliente registrado.");
   };
 
   // Cuentas de historial asociadas al cliente seleccionado para detalle
@@ -182,7 +213,6 @@ export default function ClientesPage() {
 
   // Columnas para la tabla principal
   const columnas: Columna<Cliente>[] = [
-    { clave: "id", titulo: "ID", render: (c) => c.id },
     { clave: "nombre", titulo: "Nombre", render: (c) => c.nombre },
     {
       clave: "rfc",
@@ -226,14 +256,6 @@ export default function ClientesPage() {
           </Tooltip>
 
           <Permiso requiere="clientes:editar">
-            <Tooltip title="Editar datos">
-              <IconButton size="small" color="info" onClick={() => handleEditarCliente(c)}>
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Permiso>
-
-          <Permiso requiere="clientes:editar">
             <Tooltip title={c.activo ? "Desactivar cliente" : "Activar cliente"}>
               <IconButton
                 size="small"
@@ -241,6 +263,22 @@ export default function ClientesPage() {
                 onClick={() => handleAlternarEstado(c)}
               >
                 {c.activo ? <ToggleOnIcon fontSize="small" /> : <ToggleOffIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          </Permiso>
+
+          <Permiso requiere="clientes:editar">
+            <Tooltip title="Editar datos">
+              <IconButton size="small" color="info" onClick={() => handleEditarCliente(c)}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Permiso>
+
+          <Permiso requiere="clientes:eliminar">
+            <Tooltip title="Eliminar cliente">
+              <IconButton size="small" color="error" onClick={() => handleEliminarCliente(c)}>
+                <DeleteIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Permiso>
@@ -489,33 +527,18 @@ export default function ClientesPage() {
                               </TableCell>
                             </TableRow>
                           ) : (
-                            cotizacionesCliente.map((cot) => {
-                              const totalCot = cot.partidas.reduce(
-                                (sum, p) => sum + p.cantidad * p.precioUnitario,
-                                0,
-                              );
-                              return (
-                                <TableRow key={cot.id}>
-                                  <TableCell>{cot.folio}</TableCell>
-                                  <TableCell>{formatearFecha(cot.fecha)}</TableCell>
-                                  <TableCell>
-                                    <Chip
-                                      size="small"
-                                      label={cot.estado}
-                                      variant="outlined"
-                                      color={
-                                        cot.estado === "VENDIDA"
-                                          ? "success"
-                                          : cot.estado === "ENVIADA"
-                                            ? "info"
-                                            : "warning"
-                                      }
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right">{formatearMoneda(totalCot)}</TableCell>
-                                </TableRow>
-                              );
-                            })
+                            cotizacionesCliente.map((cot) => (
+                              <TableRow key={cot.id}>
+                                <TableCell>{cot.folio}</TableCell>
+                                <TableCell>{formatearFecha(cot.fecha)}</TableCell>
+                                <TableCell>
+                                  <EstadoCotizacionChip estado={cot.estado} />
+                                </TableCell>
+                                <TableCell align="right">
+                                  {formatearMoneda(totalCotizacion(cot))}
+                                </TableCell>
+                              </TableRow>
+                            ))
                           )}
                         </TableBody>
                       </Table>

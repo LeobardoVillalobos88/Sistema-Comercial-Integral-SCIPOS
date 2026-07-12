@@ -1,10 +1,14 @@
 export { EstadoChip } from "./EstadoChip";
 export type { EstadoChipProps } from "./EstadoChip";
+export { EstadoCotizacionChip } from "./EstadoCotizacionChip";
+export type { EstadoCotizacionChipProps } from "./EstadoCotizacionChip";
 export { PageHeader } from "./PageHeader";
 export type { PageHeaderProps } from "./PageHeader";
 export { Permiso } from "./Permiso";
 export type { PermisoProps } from "./Permiso";
 export { SearchableTable } from "./SearchableTable";
 export type { Columna, SearchableTableProps } from "./SearchableTable";
+export { SkeletonTabla } from "./SkeletonTabla";
+export type { SkeletonTablaProps } from "./SkeletonTabla";
 export { StatCard } from "./StatCard";
 export type { StatCardProps } from "./StatCard";

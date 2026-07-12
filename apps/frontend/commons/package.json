@@ -11,11 +11,15 @@
     "./theme": "./src/theme/index.ts",
     "./permisos": "./src/permisos/index.ts",
     "./components": "./src/components/index.ts",
+    "./feedback": "./src/feedback/index.ts",
     "./mocks": "./src/mocks/index.ts"
   },
   "scripts": {
     "lint": "biome check .",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "sweetalert2": "^11.14.5"
   },
   "peerDependencies": {
     "@emotion/react": "^11",

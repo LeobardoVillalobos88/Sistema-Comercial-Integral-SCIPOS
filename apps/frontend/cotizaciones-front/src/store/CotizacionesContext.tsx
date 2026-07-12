@@ -19,6 +19,7 @@ interface CotizacionesContextValue {
   crearCotizacion: (input: NuevaCotizacionInput) => Cotizacion;
   marcarEnviada: (id: string) => void;
   convertirAVenta: (id: string) => void;
+  eliminar: (id: string) => void;
 }
 
 const CotizacionesContext = createContext<CotizacionesContextValue | null>(null);
@@ -72,9 +73,20 @@ export function CotizacionesProvider({ children }: { children: React.ReactNode }
     [cotizaciones],
   );
 
+  const eliminar = useCallback((id: string) => {
+    setCotizaciones((prev) => prev.filter((cotizacion) => cotizacion.id !== id));
+  }, []);
+
   const value = useMemo<CotizacionesContextValue>(
-    () => ({ cotizaciones, obtenerPorId, crearCotizacion, marcarEnviada, convertirAVenta }),
-    [cotizaciones, obtenerPorId, crearCotizacion, marcarEnviada, convertirAVenta],
+    () => ({
+      cotizaciones,
+      obtenerPorId,
+      crearCotizacion,
+      marcarEnviada,
+      convertirAVenta,
+      eliminar,
+    }),
+    [cotizaciones, obtenerPorId, crearCotizacion, marcarEnviada, convertirAVenta, eliminar],
   );
 
   return <CotizacionesContext.Provider value={value}>{children}</CotizacionesContext.Provider>;

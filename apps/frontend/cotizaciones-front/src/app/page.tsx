@@ -2,6 +2,7 @@
 
 import AddIcon from "@mui/icons-material/Add";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeleteIcon from "@mui/icons-material/Delete";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SearchIcon from "@mui/icons-material/Search";
 import SendIcon from "@mui/icons-material/Send";
@@ -11,7 +12,6 @@ import Alert from "@mui/material/Alert";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -36,14 +36,17 @@ import {
   type Columna,
   type Cotizacion,
   type EstadoCotizacion,
+  EstadoCotizacionChip,
   PRODUCTOS_MOCK,
   PageHeader,
   Permiso,
   type Producto,
   formatearFecha,
   formatearMoneda,
+  totalCotizacion,
   usePermisos,
 } from "@scipos/frontend-commons";
+import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
 import { useMemo, useState } from "react";
 import { useCotizaciones } from "../store/CotizacionesContext";
 
@@ -54,27 +57,11 @@ const OPCIONES_ESTADO: { valor: EstadoCotizacion | "TODOS"; etiqueta: string }[]
   { valor: "VENDIDA", etiqueta: "Vendida" },
 ];
 
-const ESTADO_CHIP: Record<
-  EstadoCotizacion,
-  { etiqueta: string; color: "default" | "info" | "success" }
-> = {
-  BORRADOR: { etiqueta: "Borrador", color: "default" },
-  ENVIADA: { etiqueta: "Enviada", color: "info" },
-  VENDIDA: { etiqueta: "Vendida", color: "success" },
-};
-
 const CLIENTES_ACTIVOS = CLIENTES_MOCK.filter((c) => c.activo);
 const PRODUCTOS_ACTIVOS = PRODUCTOS_MOCK.filter((p) => p.activo);
 
 function nombreCliente(clienteId: string): string {
   return CLIENTES_MOCK.find((c) => c.id === clienteId)?.nombre ?? "Cliente no encontrado";
-}
-
-function totalCotizacion(cotizacion: Cotizacion): number {
-  return cotizacion.partidas.reduce(
-    (acc, partida) => acc + partida.cantidad * partida.precioUnitario,
-    0,
-  );
 }
 
 interface FilaPartida {
@@ -126,7 +113,7 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
     () =>
       partidas.reduce((acc, partida) => {
         const producto = PRODUCTOS_MOCK.find((p) => p.id === partida.productoId);
-        return acc + (producto?.precio ?? 0) * partida.cantidad;
+        return acc + (producto?.precioVenta ?? 0) * partida.cantidad;
       }, 0),
     [partidas],
   );
@@ -145,7 +132,7 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
       partidas: partidas.map((p) => ({
         productoId: p.productoId,
         cantidad: p.cantidad,
-        precioUnitario: PRODUCTOS_MOCK.find((prod) => prod.id === p.productoId)?.precio ?? 0,
+        precioUnitario: PRODUCTOS_MOCK.find((prod) => prod.id === p.productoId)?.precioVenta ?? 0,
       })),
     });
     reiniciar();
@@ -212,7 +199,7 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
                   ) : (
                     partidas.map((partida, index) => {
                       const producto = PRODUCTOS_MOCK.find((p) => p.id === partida.productoId);
-                      const subtotal = (producto?.precio ?? 0) * partida.cantidad;
+                      const subtotal = (producto?.precioVenta ?? 0) * partida.cantidad;
                       const opcionesDisponibles = PRODUCTOS_ACTIVOS.filter(
                         (p) =>
                           p.id === partida.productoId ||
@@ -224,7 +211,7 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
                             <Autocomplete
                               size="small"
                               options={opcionesDisponibles}
-                              getOptionLabel={(p: Producto) => `${p.clave} · ${p.nombre}`}
+                              getOptionLabel={(p: Producto) => `${p.lote} · ${p.nombre}`}
                               value={producto}
                               onChange={(_, value) =>
                                 value && actualizarPartida(index, { productoId: value.id })
@@ -234,7 +221,7 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
                             />
                           </TableCell>
                           <TableCell align="right">
-                            {formatearMoneda(producto?.precio ?? 0)}
+                            {formatearMoneda(producto?.precioVenta ?? 0)}
                           </TableCell>
                           <TableCell align="right">
                             <TextField
@@ -293,6 +280,7 @@ interface ModalDetalleCotizacionProps {
 /** Modal de detalle: partidas, total y conversión a venta sin recapturar datos. */
 function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionProps) {
   const { obtenerPorId, marcarEnviada, convertirAVenta } = useCotizaciones();
+  const toast = useToast();
   const [ventaGenerada, setVentaGenerada] = useState(false);
 
   const cotizacion = id ? obtenerPorId(id) : undefined;
@@ -308,15 +296,16 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
 
   const cliente = CLIENTES_MOCK.find((c) => c.id === cotizacion.clienteId);
   const total = totalCotizacion(cotizacion);
-  const chip = ESTADO_CHIP[cotizacion.estado];
 
   const convertir = () => {
     convertirAVenta(cotizacion.id);
     setVentaGenerada(true);
+    toast.exito("Cotización convertida a venta.");
   };
 
   const enviar = () => {
     marcarEnviada(cotizacion.id);
+    toast.info("Cotización marcada como enviada.");
   };
 
   return (
@@ -334,7 +323,7 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
             <Typography variant="body2" color="text.secondary">
               Estado:
             </Typography>
-            <Chip size="small" color={chip.color} label={chip.etiqueta} />
+            <EstadoCotizacionChip estado={cotizacion.estado} />
           </Stack>
           <Typography variant="body2" color="text.secondary">
             Cliente: {cliente?.nombre ?? "No encontrado"}
@@ -406,8 +395,22 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
  */
 export default function CotizacionesPage() {
   const { can } = usePermisos();
-  const { cotizaciones } = useCotizaciones();
+  const { cotizaciones, eliminar } = useCotizaciones();
+  const toast = useToast();
   const [clienteId, setClienteId] = useState("TODOS");
+
+  const eliminarCotizacion = async (cotizacion: Cotizacion) => {
+    const confirmado = await confirmar({
+      titulo: "¿Eliminar cotización?",
+      texto: `La cotización ${cotizacion.folio} se eliminará permanentemente.`,
+      confirmar: "Sí, eliminar",
+    });
+    if (!confirmado) {
+      return;
+    }
+    eliminar(cotizacion.id);
+    toast.info("Cotización eliminada.");
+  };
   const [estado, setEstado] = useState<EstadoCotizacion | "TODOS">("TODOS");
   const [busqueda, setBusqueda] = useState("");
   const [nuevaAbierta, setNuevaAbierta] = useState(false);
@@ -426,19 +429,33 @@ export default function CotizacionesPage() {
     {
       clave: "estado",
       titulo: "Estado",
-      render: (c) => {
-        const chip = ESTADO_CHIP[c.estado];
-        return <Chip size="small" color={chip.color} label={chip.etiqueta} />;
-      },
+      render: (c) => <EstadoCotizacionChip estado={c.estado} />,
     },
     {
       clave: "acciones",
       titulo: "Acciones",
       align: "right",
       render: (c) => (
-        <IconButton size="small" onClick={() => setDetalleId(c.id)} aria-label="Ver detalle">
-          <VisibilityIcon fontSize="small" />
-        </IconButton>
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={() => setDetalleId(c.id)}
+            aria-label="Ver detalle"
+          >
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
+          <Permiso requiere="cotizaciones:eliminar">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => eliminarCotizacion(c)}
+              aria-label="Eliminar cotización"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Permiso>
+        </Stack>
       ),
     },
   ];
@@ -577,6 +594,7 @@ export default function CotizacionesPage() {
         onCreada={(id) => {
           setNuevaAbierta(false);
           setDetalleId(id);
+          toast.exito("Cotización creada.");
         }}
       />
       <ModalDetalleCotizacion
