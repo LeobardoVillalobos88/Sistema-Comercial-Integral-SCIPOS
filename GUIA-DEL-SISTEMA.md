@@ -1,6 +1,6 @@
 # 🐺 SCIPOS — Guía del sistema (LOBOSOFT)
 
-Guía rápida para el equipo: **qué hace cada módulo** y **qué puede hacer cada rol**.
+Guía rápida: **qué hace cada módulo** y **qué puede hacer cada rol**.
 Para probar todo: `pnpm dev` y abre el shell en **http://localhost:3001**. El rol se
 cambia con el **selector de la barra superior** (arriba a la derecha).
 
@@ -13,14 +13,19 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 ```
  Productos + Clientes  ──►  Cotización  ──►  Venta (POS)  ──►  Caja (corte)
    (qué / a quién)         (presupuesto)     (cobro)          (cierre del turno)
+        ▲
+        └── Punto de compra (reabastece el inventario a precio de compra)
 ```
 
-1. **Productos** → das de alta lo que vendes.
-2. **Clientes** → das de alta a quién le vendes.
-3. **Cotización** → armas un presupuesto para un cliente.
-4. **Venta** → cobras: convirtiendo una cotización, o vendiendo directo en el **POS**.
-5. **Caja** → el cajero abre la caja, registra movimientos y hace el **corte** al cerrar.
-6. **Dashboard** → el resumen de todo, y cambia según tu rol.
+1. **Inicio** → landing con el panorama del negocio: inventario valuado a precio de
+   compra y de venta, ganancia potencial y gráficas comparativas por producto.
+2. **Productos** → das de alta lo que vendes (lote, caducidad, precio de compra y de venta).
+3. **Clientes** → das de alta a quién le vendes.
+4. **Cotización** → armas un presupuesto para un cliente.
+5. **Venta** → cobras: convirtiendo una cotización, o vendiendo directo en el **Punto de venta**.
+6. **Compra** → registras reabastecimiento en el **Punto de compra** (suma inventario).
+7. **Caja** → el cajero abre la caja, registra movimientos y hace el **corte** al cerrar.
+8. **Dashboard** → el resumen operativo, y cambia según tu rol.
 
 ---
 
@@ -28,10 +33,10 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 
 | Rol | Para qué sirve |
 |-----|----------------|
-| **Administrador** | Puede todo, sin restricción. |
+| **Administrador** | Puede todo, incluidas las acciones destructivas (eliminar). |
 | **Vendedor** | Atiende clientes: gestiona clientes, hace cotizaciones y vende en POS. |
 | **Cajero** | Opera el dinero: vende en POS y maneja la caja (abrir, movimientos, cerrar). |
-| **Supervisor** | Autoriza lo sensible: descuentos, cancelaciones, cierre de caja y ve reportes. |
+| **Supervisor** | Autoriza lo sensible: descuentos, cancelaciones, compras, cierre de caja y reportes. |
 
 > **Importante:** el sistema NO se basa solo en el rol, sino en **privilegios** por
 > acción (`modulo:accion`). El rol es solo un conjunto de privilegios. Por eso los
@@ -43,18 +48,28 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 
 | Módulo | Admin | Vendedor | Cajero | Supervisor |
 |--------|:-----:|:--------:|:------:|:----------:|
+| Inicio | ✅ | ✅ | ✅ | ✅ |
 | Dashboard | ✅ | ✅ | ✅ | ✅ |
 | Productos | ✅ | ✅ | ✅ | ✅ |
 | Clientes | ✅ | ✅ | ✅ | ✅ |
 | Cotizaciones | ✅ | ✅ | ❌ | ✅ |
 | Punto de venta | ✅ | ✅ | ✅ | ✅ |
+| Punto de compra | ✅ | ❌ | ❌ | ✅ |
 | Caja | ✅ | ❌ | ✅ | ✅ |
 
-> El **Cajero** no ve Cotizaciones y el **Vendedor** no ve Caja: no es parte de su trabajo.
+> El **Cajero** no ve Cotizaciones ni Punto de compra, y el **Vendedor** no ve Caja ni
+> Punto de compra: no es parte de su trabajo.
 
 ---
 
 ## 4. Qué se hace en cada vista (y quién puede)
+
+En las tablas, los botones de acción siguen siempre el mismo orden:
+**Ver (ojo) → Activar/Desactivar (interruptor) → Editar (lápiz azul) → Eliminar (rojo)**.
+Eliminar siempre pide confirmación.
+
+### 🏠 Inicio
+- **Todos** lo ven: resumen del negocio y gráficas de precios compra vs. venta.
 
 ### 📊 Dashboard
 - **Todos** lo ven. Las tarjetas de resumen cambian según el rol; por ejemplo, la
@@ -65,6 +80,7 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 |--------|-------------|
 | Ver, buscar y filtrar el catálogo | Todos |
 | Crear / editar / activar-desactivar producto | **Administrador, Supervisor** |
+| Eliminar producto | **Administrador** |
 
 *(El Vendedor y el Cajero solo consultan el catálogo.)*
 
@@ -73,6 +89,7 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 |--------|-------------|
 | Ver lista y detalle con historial | Todos los que ven el módulo |
 | Crear / editar / activar-desactivar cliente | **Administrador, Vendedor** |
+| Eliminar cliente | **Administrador** |
 
 ### 🧾 Cotizaciones
 | Acción | Quién puede |
@@ -81,6 +98,7 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 | Crear cotización | **Administrador, Vendedor** |
 | Marcar como enviada | **Administrador, Vendedor** |
 | Convertir a venta | **Administrador, Vendedor** |
+| Eliminar cotización | **Administrador** |
 
 **Ciclo de una cotización:** `Borrador → Enviada → Vendida`
 - **Borrador:** recién creada, en preparación.
@@ -90,9 +108,14 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 ### 🛒 Punto de venta (POS)
 | Acción | Quién puede |
 |--------|-------------|
-| Armar carrito y cobrar | Administrador, Vendedor, Cajero |
+| Armar carrito y cobrar (precio de venta, resta inventario) | Administrador, Vendedor, Cajero |
 | Aplicar descuento | **Administrador, Supervisor** |
 | Cancelar venta | **Administrador, Supervisor** |
+
+### 🛍️ Punto de compra
+| Acción | Quién puede |
+|--------|-------------|
+| Registrar compras a proveedor (precio de compra, suma inventario) | **Administrador, Supervisor** |
 
 ### 💰 Caja
 | Acción | Quién puede |
@@ -103,19 +126,22 @@ SCIPOS gestiona el **ciclo comercial** de un negocio:
 
 ---
 
-## 5. Nota importante (es un prototipo)
+## 5. Notas de uso
 
-Cada módulo funciona con **datos de ejemplo (mock)** y **no comparten estado en vivo
-todavía**: por ejemplo, convertir una cotización no suma sola a la caja. Esa conexión
-real entre módulos es trabajo del **backend** (siguiente avance). Por ahora el flujo se
-demuestra **módulo por módulo**, y cada uno se ve completo y navegable.
+- Los datos del sistema son **catálogos en memoria**: cada módulo administra su
+  propia información durante la sesión del navegador y los módulos comparten los
+  mismos IDs de clientes, productos y cotizaciones para que la información embone.
+- Al realizar acciones el sistema responde con **notificaciones** (arriba a la
+  derecha): verde = éxito, azul = información, rojo = error; y pide **confirmación**
+  antes de acciones destructivas.
 
 ---
 
 ## 6. Para desarrollar
 
-- Todo lo compartido (componentes, tema, permisos, datos) vive en `@scipos/frontend-commons`.
+- Todo lo compartido (componentes, tema, permisos, feedback, datos) vive en
+  `@scipos/frontend-commons`.
 - Cada acción sensible se protege con `usePermisos()` / `<Permiso requiere="modulo:accion">`.
-- Si tu módulo necesita un permiso nuevo, agrégalo en
+- Si un módulo necesita un permiso nuevo, agrégalo en
   `apps/frontend/commons/src/permisos/matriz.ts` a los roles que correspondan.
 - Más detalle técnico en `CLAUDE.md` y `apps/frontend/README.md`.
