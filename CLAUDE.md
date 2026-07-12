@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The defining requirement (graded above everything else): **dynamic per-module, per-action privileges**, not just roles. A user sees, hides, enables, or is blocked from each function based on privileges assigned dynamically. Roles: Administrador, Vendedor, Cajero, Supervisor. **Frontend hiding is never sufficient — the backend must validate every protected action** (RF-05/RF-06, RNF-15). The frontend privilege system below is the visible half of this; the backend half does not exist yet.
 
-The spec PDFs at the repo root (`Integradora 9C.docx.pdf`, `Avance 1 Integradora Ulises.pdf`, `SetUp General.pdf`) are the source of truth for requirements. `avance-2-plan-frontend.md` is the plan that produced the current frontend.
+The spec PDFs in `docs/pdfs/` (`Integradora 9C.docx.pdf`, `Avance 1 Integradora Ulises.pdf`, `SetUp General.pdf`) are the source of truth for requirements. `docs/readmes/avance-2-plan-frontend.md` is the plan that produced the current frontend; `docs/readmes/GUIA-DEL-SISTEMA.md` is the team-facing functional guide.
 
 ## Current state
 
