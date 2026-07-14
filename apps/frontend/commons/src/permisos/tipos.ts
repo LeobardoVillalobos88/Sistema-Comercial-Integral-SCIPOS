@@ -12,6 +12,15 @@ export type Rol = "ADMINISTRADOR" | "VENDEDOR" | "CAJERO" | "SUPERVISOR";
  */
 export type Privilegio = `${string}:${string}`;
 
+/** Usuario del sistema tal como lo entrega el servicio de seguridad. */
+export interface UsuarioSesion {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: Rol;
+  estado: "ACTIVO" | "INACTIVO";
+}
+
 export interface PermisosContextValue {
   /** Rol actualmente seleccionado. */
   rol: Rol;
@@ -19,8 +28,14 @@ export interface PermisosContextValue {
   setRol: (rol: Rol) => void;
   /** Lista de roles disponibles. */
   roles: Rol[];
-  /** ¿El rol actual tiene el privilegio indicado? */
+  /** ¿El usuario activo tiene el privilegio indicado? */
   can: (privilegio: Privilegio) => boolean;
+  /** Usuario activo resuelto contra la API (null si aún no carga o no hay API). */
+  usuario: UsuarioSesion | null;
+  /** Origen de los privilegios: "api" (backend) o "local" (matriz de respaldo). */
+  origenPermisos: "api" | "local";
+  /** true mientras se cargan usuarios o privilegios desde la API. */
+  cargandoPermisos: boolean;
 }
 
 /** Etiquetas legibles de cada rol para la UI. */
