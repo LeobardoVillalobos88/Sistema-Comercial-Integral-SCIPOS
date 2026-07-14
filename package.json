@@ -10,6 +10,9 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "infra:up": "docker compose -f infra/docker/compose/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infra/docker/compose/docker-compose.dev.yml down",
+    "setup:backend": "pnpm infra:up && pnpm --filter @scipos/backend-commons build && pnpm --filter @scipos/seguridad-service prisma:generate && pnpm --filter @scipos/seguridad-service prisma:deploy && pnpm --filter @scipos/seguridad-service seed",
     "start": "turbo run start",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

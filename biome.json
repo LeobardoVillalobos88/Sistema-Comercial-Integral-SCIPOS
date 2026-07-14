@@ -14,8 +14,7 @@
       "**/dist/**",
       "**/build/**",
       "**/.husky/_/**",
-      "**/next-env.d.ts",
-      "MICROSERVICIOS/**"
+      "**/next-env.d.ts"
     ]
   },
   "formatter": {
@@ -46,10 +45,25 @@
     }
   },
   "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
     "formatter": {
       "quoteStyle": "double",
       "trailingCommas": "all",
       "semicolons": "always"
     }
-  }
+  },
+  "overrides": [
+    {
+      "include": ["apps/backend/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ]
 }
