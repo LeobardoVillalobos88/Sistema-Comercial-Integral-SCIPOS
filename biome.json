@@ -14,7 +14,8 @@
       "**/dist/**",
       "**/build/**",
       "**/.husky/_/**",
-      "**/next-env.d.ts"
+      "**/next-env.d.ts",
+      "MICROSERVICIOS/**"
     ]
   },
   "formatter": {
