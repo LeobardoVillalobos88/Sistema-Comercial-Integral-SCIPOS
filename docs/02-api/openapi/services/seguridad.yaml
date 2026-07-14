@@ -1,0 +1,513 @@
+openapi: 3.0.3
+info:
+  title: SCIPOS - Servicio de Seguridad
+  description: >
+    Usuarios, roles y privilegios dinámicos por módulo y acción. Es la fuente de
+    verdad del sistema de privilegios: los guards de los demás servicios verifican
+    aquí cada acción protegida. La identidad del usuario viaja en el header
+    x-usuario-id.
+  version: "1.0"
+servers:
+  - url: http://localhost:4000/api/seguridad
+    description: A través del gateway
+  - url: http://localhost:4001
+    description: Directo al servicio
+
+tags:
+  - name: usuarios
+  - name: roles
+  - name: privilegios
+  - name: health
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check del servicio
+      responses:
+        "200":
+          description: Servicio disponible
+
+  /usuarios:
+    get:
+      tags: [usuarios]
+      summary: Listar usuarios
+      description: Endpoint público; el frontend puebla con él su selector de usuario activo.
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usuario"
+    post:
+      tags: [usuarios]
+      summary: Registrar un usuario
+      description: "Privilegio requerido: seguridad:crear"
+      security:
+        - identidadUsuario: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearUsuario"
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "409":
+          description: Ya existe un usuario con ese correo
+
+  /usuarios/{id}:
+    get:
+      tags: [usuarios]
+      summary: Obtener un usuario por id
+      description: Requiere identidad (header x-usuario-id).
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    patch:
+      tags: [usuarios]
+      summary: Actualizar un usuario (datos, rol o estado)
+      description: "Privilegio requerido: seguridad:editar"
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActualizarUsuario"
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /usuarios/{id}/privilegios:
+    get:
+      tags: [usuarios]
+      summary: Privilegios efectivos de un usuario
+      description: >
+        Privilegios del rol más los concedidos por usuario, menos los revocados.
+        El frontend lo consulta para mostrar u ocultar acciones.
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      responses:
+        "200":
+          description: Privilegios efectivos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivilegiosDeUsuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    post:
+      tags: [usuarios]
+      summary: Conceder o revocar un privilegio a un usuario
+      description: >
+        "Privilegio requerido: seguridad:asignar. Con concedido=true el usuario gana el
+        privilegio aunque su rol no lo tenga; con concedido=false se le revoca aunque
+        su rol sí lo tenga (RF-03)."
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AjustarPrivilegioUsuario"
+      responses:
+        "201":
+          description: Ajuste aplicado
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /usuarios/{id}/privilegios/{privilegio}:
+    delete:
+      tags: [usuarios]
+      summary: Quitar un ajuste de privilegio por usuario
+      description: >
+        "Privilegio requerido: seguridad:asignar. Elimina el ajuste; el usuario vuelve
+        a regirse por lo que dicte su rol."
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+        - $ref: "#/components/parameters/ClavePrivilegio"
+      responses:
+        "200":
+          description: Ajuste eliminado
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /roles:
+    get:
+      tags: [roles]
+      summary: Listar roles con sus privilegios
+      security:
+        - identidadUsuario: []
+      responses:
+        "200":
+          description: Roles del sistema
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rol"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+
+  /roles/{clave}/privilegios:
+    post:
+      tags: [roles]
+      summary: Asignar un privilegio a un rol
+      description: "Privilegio requerido: seguridad:asignar"
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/ClaveRol"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [privilegio]
+              properties:
+                privilegio:
+                  type: string
+                  example: "productos:crear"
+      responses:
+        "201":
+          description: Privilegio asignado al rol
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /roles/{clave}/privilegios/{privilegio}:
+    delete:
+      tags: [roles]
+      summary: Quitar un privilegio a un rol
+      description: "Privilegio requerido: seguridad:asignar"
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/ClaveRol"
+        - $ref: "#/components/parameters/ClavePrivilegio"
+      responses:
+        "200":
+          description: Privilegio revocado del rol
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /privilegios:
+    get:
+      tags: [privilegios]
+      summary: Listar el catálogo de privilegios
+      security:
+        - identidadUsuario: []
+      responses:
+        "200":
+          description: Catálogo completo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Privilegio"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+    post:
+      tags: [privilegios]
+      summary: Registrar un privilegio en el catálogo
+      description: "Privilegio requerido: seguridad:asignar"
+      security:
+        - identidadUsuario: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Privilegio"
+      responses:
+        "201":
+          description: Privilegio registrado
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /privilegios/verificar:
+    get:
+      tags: [privilegios]
+      summary: Verificar si un usuario tiene un privilegio
+      description: >
+        Endpoint de uso interno; lo consultan los guards de los demás servicios
+        en cada petición protegida.
+      parameters:
+        - name: usuarioId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: usuario-vendedor
+        - name: privilegio
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "productos:crear"
+      responses:
+        "200":
+          description: Resultado de la verificación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultadoVerificacion"
+
+components:
+  securitySchemes:
+    identidadUsuario:
+      type: apiKey
+      in: header
+      name: x-usuario-id
+      description: Identificador del usuario activo (por ejemplo usuario-administrador).
+
+  parameters:
+    UsuarioId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: usuario-vendedor
+    ClaveRol:
+      name: clave
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [ADMINISTRADOR, VENDEDOR, CAJERO, SUPERVISOR]
+      example: VENDEDOR
+    ClavePrivilegio:
+      name: privilegio
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "pos:descuento"
+
+  responses:
+    SinIdentidad:
+      description: La petición no trae el header x-usuario-id, o el usuario no existe o está inactivo
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    SinPrivilegio:
+      description: El usuario no cuenta con el privilegio requerido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    NoEncontrado:
+      description: El recurso indicado no existe
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    ErrorValidacion:
+      description: El cuerpo de la petición no pasa las validaciones
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+
+  schemas:
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: string
+          example: usuario-vendedor
+        nombre:
+          type: string
+          example: Vendedor de Mostrador
+        correo:
+          type: string
+          example: vendedor@scipos.mx
+        rol:
+          type: string
+          enum: [ADMINISTRADOR, VENDEDOR, CAJERO, SUPERVISOR]
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    CrearUsuario:
+      type: object
+      required: [nombre, correo, rol]
+      properties:
+        nombre:
+          type: string
+          example: Laura Martínez
+        correo:
+          type: string
+          example: laura@scipos.mx
+        rol:
+          type: string
+          example: VENDEDOR
+
+    ActualizarUsuario:
+      type: object
+      properties:
+        nombre:
+          type: string
+        correo:
+          type: string
+        rol:
+          type: string
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    Rol:
+      type: object
+      properties:
+        clave:
+          type: string
+          example: VENDEDOR
+        nombre:
+          type: string
+          example: Vendedor
+        accesoTotal:
+          type: boolean
+          example: false
+        privilegios:
+          type: array
+          items:
+            type: string
+          example: ["productos:ver", "clientes:ver", "pos:vender"]
+
+    Privilegio:
+      type: object
+      required: [clave, descripcion]
+      properties:
+        clave:
+          type: string
+          example: "productos:crear"
+        descripcion:
+          type: string
+          example: Registrar productos y servicios
+
+    PrivilegiosDeUsuario:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          example: usuario-vendedor
+        rol:
+          type: string
+          example: VENDEDOR
+        privilegios:
+          type: array
+          items:
+            type: string
+          example: ["productos:ver", "clientes:ver", "cotizaciones:crear"]
+
+    AjustarPrivilegioUsuario:
+      type: object
+      required: [privilegio, concedido]
+      properties:
+        privilegio:
+          type: string
+          example: "pos:descuento"
+        concedido:
+          type: boolean
+          example: false
+
+    ResultadoVerificacion:
+      type: object
+      properties:
+        tiene:
+          type: boolean
+        motivo:
+          type: string
+          enum: [USUARIO_NO_ENCONTRADO, USUARIO_INACTIVO, SIN_PRIVILEGIO]
+
+    ErrorEstandar:
+      type: object
+      properties:
+        estatus:
+          type: integer
+          example: 403
+        mensaje:
+          type: string
+          example: No cuentas con el privilegio "productos:crear".
+        error:
+          type: string
+          example: Forbidden
+        ruta:
+          type: string
+          example: /productos
+        fecha:
+          type: string
+          format: date-time

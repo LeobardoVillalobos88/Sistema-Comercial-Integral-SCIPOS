@@ -1,0 +1,146 @@
+# SCIPOS · Sistema Comercial Integral
+
+Plataforma comercial integral (productos, clientes, cotizaciones, ventas POS, caja,
+compras y reportes) con **privilegios dinámicos por módulo y acción validados en el
+backend**. Proyecto integrador del equipo **LOBOSOFT** (UTEZ, Desarrollo Web Integral).
+
+**Stack:** monorepo pnpm + Turborepo · Frontend: Next.js + TypeScript + MUI
+(microfrontends) · Backend: NestJS + Prisma (microservicios) · PostgreSQL + Redis ·
+OpenAPI/Scalar.
+
+| Documento | Para qué |
+|---|---|
+| [Guía del sistema](docs/readmes/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo (funcional) |
+| [Plan del Avance 3](docs/readmes/avance-3-plan-backend.md) | Reparto de trabajo del backend |
+| [Contratos de API](docs/02-api/README.md) | Flujo contrato-primero y OpenAPI por servicio |
+| [Plantilla de microservicio](apps/backend/services/example-service/README.md) | Cómo crear tu servicio |
+
+---
+
+# Encendido del sistema en local (dev)
+
+Guía para levantar SCIPOS completo desde cero: infraestructura (Postgres + Redis),
+backend (gateway + servicio de seguridad) y frontend (web-shell y microfrontends).
+
+## 0. Requisitos (una sola vez por máquina)
+
+| Herramienta | Versión | Verifica con |
+|---|---|---|
+| Node | ≥ 20 | `node --version` |
+| pnpm | 11 | `pnpm --version` |
+| Docker Desktop | reciente | `docker version` |
+| Git | reciente | `git --version` |
+
+> **Docker Desktop debe estar abierto** antes de empezar (icono de la ballena activo).
+> Si `pnpm` no existe: `corepack enable` y vuelve a abrir la terminal.
+
+## 1. Clonar e instalar
+
+```bash
+git clone https://github.com/LeobardoVillalobos88/Sistema-Comercial-Integral-SCIPOS.git
+cd Sistema-Comercial-Integral-SCIPOS
+git checkout develop
+pnpm install
+```
+
+## 2. Variables de entorno
+
+Cada app del backend trae un `.env.example`; cópialo como `.env` (los `.env` no se
+suben a git):
+
+```bash
+cp apps/backend/gateway/.env.example apps/backend/gateway/.env
+cp apps/backend/services/seguridad/.env.example apps/backend/services/seguridad/.env
+```
+
+Los valores por defecto ya apuntan a la infraestructura local (Postgres y Redis del
+paso 3), no hay que editar nada. El frontend no necesita `.env`: usa
+`http://localhost:4000/api` por defecto.
+
+## 3. Infraestructura + base de datos (un solo comando)
+
+```bash
+pnpm setup:backend
+```
+
+Ese comando hace, en orden: levanta los contenedores `scipos-db` (Postgres 16) y
+`scipos-redis` (Redis 5), compila `@scipos/backend-commons`, genera el cliente de
+Prisma, aplica las migraciones del servicio de seguridad y siembra la matriz de
+privilegios con los 4 usuarios semilla.
+
+Si todo salió bien, la última línea dice:
+`Semilla de seguridad aplicada: { privilegios: 27, roles: 4, usuarios: 4 }`
+
+## 4. Levantar las apps
+
+Lo mínimo para trabajar (seguridad + gateway + shell):
+
+```bash
+pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/web-shell
+```
+
+O todo el monorepo (todos los microfrontends y servicios existentes):
+
+```bash
+pnpm dev
+```
+
+### Puertos
+
+| App | URL |
+|---|---|
+| web-shell (frontend) | http://localhost:3001 |
+| API Gateway | http://localhost:4000 |
+| Servicio de seguridad | http://localhost:4001 |
+| productos / clientes / cotizaciones / ventas-caja | 4002 / 4003 / 4004 / 4005 (cuando existan) |
+
+## 5. Verificar que todo funciona
+
+1. **Salud del backend:** http://localhost:4000/health debe responder `"status": "ok"`
+   con la tabla de servicios enrutados. http://localhost:4001/health responde el
+   estado del servicio de seguridad.
+2. **Documentación de la API:** http://localhost:4001/docs (Scalar).
+3. **Frontend:** http://localhost:3001/inicio y cambia el rol en el topbar; en
+   DevTools → Network verás las llamadas a `localhost:4000/api/seguridad/...`
+   (los privilegios ya vienen del backend).
+4. **El guard en acción** (desde otra terminal):
+
+```bash
+# 200: privilegios efectivos del vendedor
+curl -H "x-usuario-id: usuario-vendedor" http://localhost:4000/api/seguridad/usuarios/usuario-vendedor/privilegios
+
+# 401: sin identidad
+curl -i http://localhost:4000/api/seguridad/roles
+
+# 403: el cajero no puede asignar privilegios
+curl -i -X POST http://localhost:4000/api/seguridad/privilegios \
+  -H "x-usuario-id: usuario-cajero" -H "Content-Type: application/json" \
+  -d '{"clave":"demo:accion","descripcion":"prueba"}'
+```
+
+### Usuarios semilla (header `x-usuario-id`)
+
+| Id | Rol |
+|---|---|
+| `usuario-administrador` | ADMINISTRADOR (acceso total) |
+| `usuario-vendedor` | VENDEDOR |
+| `usuario-cajero` | CAJERO |
+| `usuario-supervisor` | SUPERVISOR |
+
+## 6. Apagar
+
+```bash
+# Ctrl+C en la terminal de pnpm dev, y después:
+pnpm infra:down
+```
+
+## Problemas comunes
+
+| Síntoma | Causa y solución |
+|---|---|
+| `docker: error during connect ...` | Docker Desktop no está abierto. Ábrelo y reintenta. |
+| `EADDRINUSE :4000/:4001/:3001` | Ya hay algo corriendo en ese puerto (otra terminal con `pnpm dev`). Ciérrala. |
+| El frontend muestra acciones pero la API responde 403 | Es el diseño: el frontend cayó a la matriz local porque el backend estaba apagado; levanta seguridad + gateway. |
+| `P1001: Can't reach database server` | El contenedor `scipos-db` no está arriba: `pnpm infra:up`. |
+| Quiero resetear la base de datos | `docker compose -f infra/docker/compose/docker-compose.dev.yml down -v` y de nuevo `pnpm setup:backend` (el `-v` borra los datos). |
+| Redis apagado | El sistema sigue funcionando (solo pierde la caché); revisa `pnpm infra:up` si quieres la caché de privilegios. |
