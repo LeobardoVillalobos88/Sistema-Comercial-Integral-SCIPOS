@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+}
+
+/// Rol funcional del sistema. `accesoTotal` equivale a contar con todos los
+/// privilegios del catálogo (se usa para ADMINISTRADOR).
+model Rol {
+  clave       String          @id
+  nombre      String
+  accesoTotal Boolean         @default(false)
+  usuarios    Usuario[]
+  privilegios RolPrivilegio[]
+}
+
+/// Privilegio del catálogo, con formato `modulo:accion`.
+model Privilegio {
+  clave       String              @id
+  descripcion String
+  roles       RolPrivilegio[]
+  usuarios    UsuarioPrivilegio[]
+}
+
+/// Privilegios que un rol otorga por defecto a sus usuarios.
+model RolPrivilegio {
+  rolClave        String
+  privilegioClave String
+  rol             Rol        @relation(fields: [rolClave], references: [clave], onDelete: Cascade)
+  privilegio      Privilegio @relation(fields: [privilegioClave], references: [clave], onDelete: Cascade)
+
+  @@id([rolClave, privilegioClave])
+}
+
+model Usuario {
+  id          String              @id @default(uuid())
+  nombre      String
+  correo      String              @unique
+  estado      EstadoUsuario       @default(ACTIVO)
+  rolClave    String
+  rol         Rol                 @relation(fields: [rolClave], references: [clave])
+  privilegios UsuarioPrivilegio[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+/// Ajuste de privilegios por usuario sobre lo que otorga su rol:
+/// `concedido = true` agrega el privilegio, `concedido = false` lo revoca.
+model UsuarioPrivilegio {
+  usuarioId       String
+  privilegioClave String
+  concedido       Boolean
+  usuario         Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  privilegio      Privilegio @relation(fields: [privilegioClave], references: [clave], onDelete: Cascade)
+
+  @@id([usuarioId, privilegioClave])
+}
