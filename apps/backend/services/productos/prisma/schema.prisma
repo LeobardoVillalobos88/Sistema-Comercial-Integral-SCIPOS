@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TipoProducto {
+  PRODUCTO
+  SERVICIO
+}
+
+/// Catálogo de productos y servicios (RF-07, RF-08, RF-09). El precio de
+/// compra y el de venta se manejan por separado: no hay un precio único.
+model Producto {
+  id             String          @id @default(uuid())
+  lote           String
+  nombre         String
+  tipo           TipoProducto    @default(PRODUCTO)
+  precioCompra   Float
+  precioVenta    Float
+  existencia     Int             @default(0)
+  fechaCaducidad DateTime?
+  activo         Boolean         @default(true)
+  partidasCompra CompraPartida[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+/// Compra a proveedor: incrementa existencias de sus partidas en una
+/// transacción (RF-34, RF-35, RF-36).
+model Compra {
+  id        String          @id @default(uuid())
+  proveedor String?
+  fecha     DateTime        @default(now())
+  total     Float
+  partidas  CompraPartida[]
+  createdAt DateTime        @default(now())
+}
+
+/// Partida de una compra: cantidad y precio de compra pagado por esa partida
+/// (puede diferir del precioCompra vigente del producto).
+model CompraPartida {
+  id           String   @id @default(uuid())
+  compraId     String
+  compra       Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  productoId   String
+  producto     Producto @relation(fields: [productoId], references: [id])
+  cantidad     Int
+  precioCompra Float
+}

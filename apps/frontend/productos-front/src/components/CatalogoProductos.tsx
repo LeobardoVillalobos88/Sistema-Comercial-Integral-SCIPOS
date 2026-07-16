@@ -18,19 +18,21 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import {
   type Columna,
+  ErrorApi,
   EstadoChip,
-  PRODUCTOS_MOCK,
   PageHeader,
   Permiso,
   type Producto,
   SearchableTable,
+  SkeletonTabla,
   type TipoProducto,
   formatearFecha,
   formatearMoneda,
+  llamarApi,
   usePermisos,
 } from "@scipos/frontend-commons";
 import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 
 type FiltroEstado = "TODOS" | "ACTIVO" | "INACTIVO";
 type FiltroTipo = "TODOS" | TipoProducto;
@@ -80,22 +82,51 @@ function productoAFormulario(producto: Producto): FormularioProducto {
   };
 }
 
+/** Mensaje del backend si la API lo dio, o un mensaje genérico si fue un error de red u otro. */
+function mensajeError(error: unknown, mensajePorDefecto: string): string {
+  return error instanceof ErrorApi ? error.message : mensajePorDefecto;
+}
+
 /**
- * Catálogo de productos y servicios: listar, buscar, filtrar, crear, editar y
- * desactivar (RF-07, RF-08, RF-09). Las acciones se ocultan según el rol mock
- * activo (`usePermisos`) — RF-05.
+ * Catálogo de productos y servicios: listar, buscar, filtrar, crear, editar,
+ * desactivar y eliminar (RF-07, RF-08, RF-09) contra la API real del
+ * servicio de productos. Las acciones se ocultan según los privilegios del
+ * usuario activo (`usePermisos`) — RF-05/RF-06.
  */
 export function CatalogoProductos() {
   const tituloDialogoId = useId();
-  const { can } = usePermisos();
+  const { can, usuario, cargandoPermisos } = usePermisos();
   const toast = useToast();
 
-  const [productos, setProductos] = useState<Producto[]>(PRODUCTOS_MOCK);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("TODOS");
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("TODOS");
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [formulario, setFormulario] = useState<FormularioProducto>(FORMULARIO_VACIO);
   const [errores, setErrores] = useState<ErroresFormulario>({});
+
+  const cargarProductos = useCallback(async () => {
+    setCargando(true);
+    try {
+      const lista = await llamarApi<Producto[]>("/productos/productos");
+      setProductos(lista);
+    } catch (error) {
+      toast.error(mensajeError(error, "No se pudo cargar el catálogo de productos."));
+    } finally {
+      setCargando(false);
+    }
+  }, [toast]);
+
+  // Espera a que PermisosProvider resuelva el usuario activo (y por lo tanto
+  // el header x-usuario-id) antes de pedir el catálogo; si se dispara antes,
+  // el backend responde 401 y el catálogo queda vacío.
+  useEffect(() => {
+    if (cargandoPermisos || !usuario) {
+      return;
+    }
+    cargarProductos();
+  }, [cargandoPermisos, usuario, cargarProductos]);
 
   const productosFiltrados = useMemo(() => {
     return productos.filter((p) => {
@@ -120,7 +151,7 @@ export function CatalogoProductos() {
 
   const cerrarDialogo = () => setDialogoAbierto(false);
 
-  const guardar = () => {
+  const guardar = async () => {
     const precioCompra = Number(formulario.precioCompra);
     const precioVenta = Number(formulario.precioVenta);
     const existencia = Number(formulario.existencia);
@@ -147,44 +178,48 @@ export function CatalogoProductos() {
       return;
     }
 
-    const fechaCaducidad = formulario.fechaCaducidad || undefined;
+    const datos = {
+      lote: formulario.lote.trim(),
+      nombre: formulario.nombre.trim(),
+      tipo: formulario.tipo,
+      precioCompra,
+      precioVenta,
+      existencia,
+      fechaCaducidad: formulario.fechaCaducidad || undefined,
+    };
 
-    if (formulario.id) {
-      setProductos((actuales) =>
-        actuales.map((p) =>
-          p.id === formulario.id
-            ? {
-                ...p,
-                lote: formulario.lote.trim(),
-                nombre: formulario.nombre.trim(),
-                tipo: formulario.tipo,
-                precioCompra,
-                precioVenta,
-                existencia,
-                fechaCaducidad,
-                activo: formulario.activo,
-              }
-            : p,
-        ),
-      );
-    } else {
-      setProductos((actuales) => [
-        ...actuales,
-        {
-          id: `p-${Date.now()}`,
-          lote: formulario.lote.trim(),
-          nombre: formulario.nombre.trim(),
-          tipo: formulario.tipo,
-          precioCompra,
-          precioVenta,
-          existencia,
-          fechaCaducidad,
-          activo: formulario.activo,
-        },
-      ]);
+    try {
+      if (formulario.id) {
+        let productoFinal = await llamarApi<Producto>(`/productos/productos/${formulario.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(datos),
+        });
+        const original = productos.find((p) => p.id === formulario.id);
+        if (original && original.activo !== formulario.activo) {
+          productoFinal = await llamarApi<Producto>(
+            `/productos/productos/${formulario.id}/estado`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({ activo: formulario.activo }),
+            },
+          );
+        }
+        setProductos((actuales) =>
+          actuales.map((p) => (p.id === productoFinal.id ? productoFinal : p)),
+        );
+        toast.exito("Producto actualizado correctamente.");
+      } else {
+        const creado = await llamarApi<Producto>("/productos/productos", {
+          method: "POST",
+          body: JSON.stringify(datos),
+        });
+        setProductos((actuales) => [...actuales, creado]);
+        toast.exito("Producto creado.");
+      }
+      setDialogoAbierto(false);
+    } catch (error) {
+      toast.error(mensajeError(error, "No se pudo guardar el producto."));
     }
-    setDialogoAbierto(false);
-    toast.exito(formulario.id ? "Producto actualizado correctamente." : "Producto creado.");
   };
 
   const alternarActivo = useCallback(
@@ -199,10 +234,21 @@ export function CatalogoProductos() {
           return;
         }
       }
-      setProductos((actuales) =>
-        actuales.map((p) => (p.id === producto.id ? { ...p, activo: !p.activo } : p)),
-      );
-      toast.info(producto.activo ? "Producto desactivado." : "Producto activado.");
+      try {
+        const actualizado = await llamarApi<Producto>(
+          `/productos/productos/${producto.id}/estado`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({ activo: !producto.activo }),
+          },
+        );
+        setProductos((actuales) =>
+          actuales.map((p) => (p.id === actualizado.id ? actualizado : p)),
+        );
+        toast.info(producto.activo ? "Producto desactivado." : "Producto activado.");
+      } catch (error) {
+        toast.error(mensajeError(error, "No se pudo cambiar el estado del producto."));
+      }
     },
     [toast],
   );
@@ -217,8 +263,13 @@ export function CatalogoProductos() {
       if (!confirmado) {
         return;
       }
-      setProductos((actuales) => actuales.filter((p) => p.id !== producto.id));
-      toast.info("Producto eliminado.");
+      try {
+        await llamarApi(`/productos/productos/${producto.id}`, { method: "DELETE" });
+        setProductos((actuales) => actuales.filter((p) => p.id !== producto.id));
+        toast.info("Producto eliminado.");
+      } catch (error) {
+        toast.error(mensajeError(error, "No se pudo eliminar el producto."));
+      }
     },
     [toast],
   );
@@ -310,41 +361,45 @@ export function CatalogoProductos() {
         }
       />
 
-      <SearchableTable
-        filas={productosFiltrados}
-        columnas={columnas}
-        textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
-        placeholderBusqueda="Buscar producto o servicio..."
-        mensajeVacio="No hay productos que coincidan con la búsqueda y los filtros."
-        filtros={
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField
-              select
-              label="Estado"
-              size="small"
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
-              sx={{ minWidth: 160 }}
-            >
-              <MenuItem value="TODOS">Todos</MenuItem>
-              <MenuItem value="ACTIVO">Activo</MenuItem>
-              <MenuItem value="INACTIVO">Inactivo</MenuItem>
-            </TextField>
-            <TextField
-              select
-              label="Tipo"
-              size="small"
-              value={filtroTipo}
-              onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
-              sx={{ minWidth: 160 }}
-            >
-              <MenuItem value="TODOS">Todos</MenuItem>
-              <MenuItem value="PRODUCTO">Producto</MenuItem>
-              <MenuItem value="SERVICIO">Servicio</MenuItem>
-            </TextField>
-          </Stack>
-        }
-      />
+      {cargando ? (
+        <SkeletonTabla columnas={8} />
+      ) : (
+        <SearchableTable
+          filas={productosFiltrados}
+          columnas={columnas}
+          textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
+          placeholderBusqueda="Buscar producto o servicio..."
+          mensajeVacio="No hay productos que coincidan con la búsqueda y los filtros."
+          filtros={
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                select
+                label="Estado"
+                size="small"
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)}
+                sx={{ minWidth: 160 }}
+              >
+                <MenuItem value="TODOS">Todos</MenuItem>
+                <MenuItem value="ACTIVO">Activo</MenuItem>
+                <MenuItem value="INACTIVO">Inactivo</MenuItem>
+              </TextField>
+              <TextField
+                select
+                label="Tipo"
+                size="small"
+                value={filtroTipo}
+                onChange={(e) => setFiltroTipo(e.target.value as FiltroTipo)}
+                sx={{ minWidth: 160 }}
+              >
+                <MenuItem value="TODOS">Todos</MenuItem>
+                <MenuItem value="PRODUCTO">Producto</MenuItem>
+                <MenuItem value="SERVICIO">Servicio</MenuItem>
+              </TextField>
+            </Stack>
+          }
+        />
+      )}
 
       <Dialog open={dialogoAbierto} onClose={cerrarDialogo} fullWidth maxWidth="sm">
         <DialogTitle id={tituloDialogoId}>
