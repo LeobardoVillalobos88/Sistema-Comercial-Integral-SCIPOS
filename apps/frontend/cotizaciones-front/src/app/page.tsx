@@ -19,6 +19,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
+import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -31,24 +32,23 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
-  CLIENTES_MOCK,
   type Cliente,
   type Columna,
-  type Cotizacion,
+  ErrorApi,
   type EstadoCotizacion,
   EstadoCotizacionChip,
-  PRODUCTOS_MOCK,
   PageHeader,
   Permiso,
   type Producto,
   formatearFecha,
   formatearMoneda,
-  totalCotizacion,
+  llamarApi,
   usePermisos,
 } from "@scipos/frontend-commons";
 import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCotizaciones } from "../store/CotizacionesContext";
+import type { CotizacionApi } from "../tipos";
 
 const OPCIONES_ESTADO: { valor: EstadoCotizacion | "TODOS"; etiqueta: string }[] = [
   { valor: "TODOS", etiqueta: "Todos los estados" },
@@ -57,11 +57,8 @@ const OPCIONES_ESTADO: { valor: EstadoCotizacion | "TODOS"; etiqueta: string }[]
   { valor: "VENDIDA", etiqueta: "Vendida" },
 ];
 
-const CLIENTES_ACTIVOS = CLIENTES_MOCK.filter((c) => c.activo);
-const PRODUCTOS_ACTIVOS = PRODUCTOS_MOCK.filter((p) => p.activo);
-
-function nombreCliente(clienteId: string): string {
-  return CLIENTES_MOCK.find((c) => c.id === clienteId)?.nombre ?? "Cliente no encontrado";
+function mensajeError(error: unknown, mensajePorDefecto: string): string {
+  return error instanceof ErrorApi || error instanceof Error ? error.message : mensajePorDefecto;
 }
 
 interface FilaPartida {
@@ -73,14 +70,28 @@ interface ModalNuevaCotizacionProps {
   open: boolean;
   onClose: () => void;
   onCreada: (id: string) => void;
+  clientes: Cliente[];
+  productos: Producto[];
+  catalogosCargando: boolean;
 }
 
 /** Modal de alta de cotización: cliente, productos, folio y total automáticos. */
-function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionProps) {
+function ModalNuevaCotizacion({
+  open,
+  onClose,
+  onCreada,
+  clientes,
+  productos,
+  catalogosCargando,
+}: ModalNuevaCotizacionProps) {
   const { crearCotizacion } = useCotizaciones();
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [partidas, setPartidas] = useState<FilaPartida[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+
+  const clientesActivos = useMemo(() => clientes.filter((item) => item.activo), [clientes]);
+  const productosActivos = useMemo(() => productos.filter((item) => item.activo), [productos]);
 
   const reiniciar = () => {
     setCliente(null);
@@ -94,7 +105,7 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
   };
 
   const agregarPartida = () => {
-    const disponible = PRODUCTOS_ACTIVOS.find(
+    const disponible = productosActivos.find(
       (p) => !partidas.some((partida) => partida.productoId === p.id),
     );
     if (!disponible) return;
@@ -112,13 +123,13 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
   const total = useMemo(
     () =>
       partidas.reduce((acc, partida) => {
-        const producto = PRODUCTOS_MOCK.find((p) => p.id === partida.productoId);
+        const producto = productos.find((p) => p.id === partida.productoId);
         return acc + (producto?.precioVenta ?? 0) * partida.cantidad;
       }, 0),
-    [partidas],
+    [partidas, productos],
   );
 
-  const guardar = () => {
+  const guardar = async () => {
     if (!cliente) {
       setError("Selecciona un cliente.");
       return;
@@ -127,16 +138,23 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
       setError("Agrega al menos un producto con cantidad mayor a cero.");
       return;
     }
-    const nueva = crearCotizacion({
-      clienteId: cliente.id,
-      partidas: partidas.map((p) => ({
-        productoId: p.productoId,
-        cantidad: p.cantidad,
-        precioUnitario: PRODUCTOS_MOCK.find((prod) => prod.id === p.productoId)?.precioVenta ?? 0,
-      })),
-    });
-    reiniciar();
-    onCreada(nueva.id);
+    setGuardando(true);
+    setError(null);
+    try {
+      const nueva = await crearCotizacion({
+        clienteId: cliente.id,
+        partidas: partidas.map((p) => ({
+          productoId: p.productoId,
+          cantidad: p.cantidad,
+        })),
+      });
+      reiniciar();
+      onCreada(nueva.id);
+    } catch (errorGuardado) {
+      setError(mensajeError(errorGuardado, "No se pudo crear la cotización."));
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -150,10 +168,11 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
         ) : null}
         <Stack spacing={3}>
           <Autocomplete
-            options={CLIENTES_ACTIVOS}
+            options={clientesActivos}
             getOptionLabel={(c) => c.nombre}
             value={cliente}
             onChange={(_, value) => setCliente(value)}
+            loading={catalogosCargando}
             renderInput={(params) => (
               <TextField {...params} label="Cliente" placeholder="Buscar cliente..." />
             )}
@@ -171,7 +190,11 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
                 size="small"
                 startIcon={<AddIcon />}
                 onClick={agregarPartida}
-                disabled={partidas.length >= PRODUCTOS_ACTIVOS.length}
+                disabled={
+                  catalogosCargando ||
+                  productosActivos.length === 0 ||
+                  partidas.length >= productosActivos.length
+                }
               >
                 Agregar producto
               </Button>
@@ -198,9 +221,9 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
                     </TableRow>
                   ) : (
                     partidas.map((partida, index) => {
-                      const producto = PRODUCTOS_MOCK.find((p) => p.id === partida.productoId);
+                      const producto = productos.find((p) => p.id === partida.productoId);
                       const subtotal = (producto?.precioVenta ?? 0) * partida.cantidad;
-                      const opcionesDisponibles = PRODUCTOS_ACTIVOS.filter(
+                      const opcionesDisponibles = productosActivos.filter(
                         (p) =>
                           p.id === partida.productoId ||
                           !partidas.some((f) => f.productoId === p.id),
@@ -257,14 +280,17 @@ function ModalNuevaCotizacion({ open, onClose, onCreada }: ModalNuevaCotizacionP
           </Box>
 
           <Stack direction="row" justifyContent="flex-end">
-            <Typography variant="h6">Total: {formatearMoneda(total)}</Typography>
+            <Typography variant="h6">Subtotal estimado: {formatearMoneda(total)}</Typography>
           </Stack>
+          <Typography variant="caption" color="text.secondary" textAlign="right">
+            El backend confirmará precios, IVA y total al guardar.
+          </Typography>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={cerrar}>Cancelar</Button>
-        <Button variant="contained" onClick={guardar}>
-          Guardar cotización
+        <Button variant="contained" onClick={guardar} disabled={guardando || catalogosCargando}>
+          {guardando ? "Guardando..." : "Guardar cotización"}
         </Button>
       </DialogActions>
     </Dialog>
@@ -275,18 +301,22 @@ interface ModalDetalleCotizacionProps {
   open: boolean;
   id: string | null;
   onClose: () => void;
+  clientes: Cliente[];
 }
 
 /** Modal de detalle: partidas, total y conversión a venta sin recapturar datos. */
-function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionProps) {
+function ModalDetalleCotizacion({ open, id, onClose, clientes }: ModalDetalleCotizacionProps) {
   const { obtenerPorId, marcarEnviada, convertirAVenta } = useCotizaciones();
   const toast = useToast();
   const [ventaGenerada, setVentaGenerada] = useState(false);
+  const [accionEnCurso, setAccionEnCurso] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const cotizacion = id ? obtenerPorId(id) : undefined;
 
   const cerrar = () => {
     setVentaGenerada(false);
+    setError(null);
     onClose();
   };
 
@@ -294,28 +324,52 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
     return null;
   }
 
-  const cliente = CLIENTES_MOCK.find((c) => c.id === cotizacion.clienteId);
-  const total = totalCotizacion(cotizacion);
+  const cliente = clientes.find((item) => item.id === cotizacion.clienteId);
 
-  const convertir = () => {
-    convertirAVenta(cotizacion.id);
-    setVentaGenerada(true);
-    toast.exito("Cotización convertida a venta.");
+  const convertir = async () => {
+    setAccionEnCurso(true);
+    setError(null);
+    try {
+      await convertirAVenta(cotizacion.id);
+      setVentaGenerada(true);
+      toast.exito("Cotización convertida a venta.");
+    } catch (errorConversion) {
+      const mensaje = mensajeError(errorConversion, "No se pudo convertir la cotización.");
+      setError(mensaje);
+      toast.error(mensaje);
+    } finally {
+      setAccionEnCurso(false);
+    }
   };
 
-  const enviar = () => {
-    marcarEnviada(cotizacion.id);
-    toast.info("Cotización marcada como enviada.");
+  const enviar = async () => {
+    setAccionEnCurso(true);
+    setError(null);
+    try {
+      await marcarEnviada(cotizacion.id);
+      toast.info("Cotización marcada como enviada.");
+    } catch (errorEnvio) {
+      const mensaje = mensajeError(errorEnvio, "No se pudo enviar la cotización.");
+      setError(mensaje);
+      toast.error(mensaje);
+    } finally {
+      setAccionEnCurso(false);
+    }
   };
 
   return (
     <Dialog open={open} onClose={cerrar} maxWidth="md" fullWidth>
       <DialogTitle>Cotización {cotizacion.folio}</DialogTitle>
       <DialogContent dividers>
+        {error ? (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        ) : null}
         {ventaGenerada ? (
           <Alert icon={<CheckCircleIcon fontSize="inherit" />} severity="success" sx={{ mb: 3 }}>
-            Venta generada a partir de la cotización {cotizacion.folio} por {formatearMoneda(total)}
-            , sin recapturar datos.
+            Venta generada a partir de la cotización {cotizacion.folio} por{" "}
+            {formatearMoneda(cotizacion.total)}, sin recapturar datos.
           </Alert>
         ) : null}
         <Stack spacing={1} sx={{ mb: 3 }}>
@@ -326,10 +380,10 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
             <EstadoCotizacionChip estado={cotizacion.estado} />
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            Cliente: {cliente?.nombre ?? "No encontrado"}
+            Cliente: {cotizacion.clienteNombre}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Fecha: {formatearFecha(cotizacion.fecha)}
+            Fecha: {formatearFecha(cotizacion.creadaEn)}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Teléfono: {cliente?.telefono ?? "—"} · Correo: {cliente?.correo ?? "—"}
@@ -346,38 +400,47 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
               </TableRow>
             </TableHead>
             <TableBody>
-              {cotizacion.partidas.map((partida, index) => {
-                const producto = PRODUCTOS_MOCK.find((p) => p.id === partida.productoId);
+              {cotizacion.partidas.map((partida) => {
                 return (
-                  <TableRow key={`${partida.productoId}-${index}`}>
-                    <TableCell>{producto?.nombre ?? "Producto no encontrado"}</TableCell>
+                  <TableRow key={partida.id}>
+                    <TableCell>{partida.productoNombre}</TableCell>
                     <TableCell align="right">{formatearMoneda(partida.precioUnitario)}</TableCell>
                     <TableCell align="right">{partida.cantidad}</TableCell>
-                    <TableCell align="right">
-                      {formatearMoneda(partida.cantidad * partida.precioUnitario)}
-                    </TableCell>
+                    <TableCell align="right">{formatearMoneda(partida.importe)}</TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
           </Table>
         </TableContainer>
-        <Stack direction="row" justifyContent="flex-end" sx={{ mt: 2 }}>
-          <Typography variant="h6">Total: {formatearMoneda(total)}</Typography>
+        <Stack spacing={0.5} alignItems="flex-end" sx={{ mt: 2 }}>
+          <Typography variant="body2">Subtotal: {formatearMoneda(cotizacion.subtotal)}</Typography>
+          <Typography variant="body2">IVA: {formatearMoneda(cotizacion.iva)}</Typography>
+          <Typography variant="h6">Total: {formatearMoneda(cotizacion.total)}</Typography>
         </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={cerrar}>Cerrar</Button>
         {cotizacion.estado === "BORRADOR" ? (
           <Permiso requiere="cotizaciones:enviar">
-            <Button variant="outlined" startIcon={<SendIcon />} onClick={enviar}>
+            <Button
+              variant="outlined"
+              startIcon={<SendIcon />}
+              onClick={enviar}
+              disabled={accionEnCurso}
+            >
               Marcar como enviada
             </Button>
           </Permiso>
         ) : null}
-        {cotizacion.estado !== "VENDIDA" ? (
+        {cotizacion.estado === "ENVIADA" ? (
           <Permiso requiere="cotizaciones:convertir">
-            <Button variant="contained" startIcon={<SwapHorizIcon />} onClick={convertir}>
+            <Button
+              variant="contained"
+              startIcon={<SwapHorizIcon />}
+              onClick={convertir}
+              disabled={accionEnCurso}
+            >
               Convertir a venta
             </Button>
           </Permiso>
@@ -394,12 +457,51 @@ function ModalDetalleCotizacion({ open, id, onClose }: ModalDetalleCotizacionPro
  * embebe vía `@scipos/cotizaciones-front`).
  */
 export default function CotizacionesPage() {
-  const { can } = usePermisos();
-  const { cotizaciones, eliminar } = useCotizaciones();
+  const { can, usuario, cargandoPermisos } = usePermisos();
+  const { cotizaciones, cargando, errorCarga, recargar, eliminar } = useCotizaciones();
   const toast = useToast();
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [catalogosCargando, setCatalogosCargando] = useState(true);
+  const [errorCatalogos, setErrorCatalogos] = useState<string | null>(null);
   const [clienteId, setClienteId] = useState("TODOS");
 
-  const eliminarCotizacion = async (cotizacion: Cotizacion) => {
+  const cargarCatalogos = useCallback(async () => {
+    setCatalogosCargando(true);
+    setErrorCatalogos(null);
+    try {
+      const [clientesApi, productosApi] = await Promise.all([
+        llamarApi<Cliente[]>("/clientes"),
+        llamarApi<Producto[]>("/productos/productos"),
+      ]);
+      setClientes(clientesApi);
+      setProductos(productosApi);
+    } catch (error) {
+      setClientes([]);
+      setProductos([]);
+      setErrorCatalogos(
+        mensajeError(error, "No se pudieron cargar los catálogos de clientes y productos."),
+      );
+    } finally {
+      setCatalogosCargando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cargandoPermisos) {
+      return;
+    }
+    if (!usuario) {
+      setClientes([]);
+      setProductos([]);
+      setErrorCatalogos("No fue posible identificar al usuario activo contra seguridad.");
+      setCatalogosCargando(false);
+      return;
+    }
+    void cargarCatalogos();
+  }, [cargandoPermisos, usuario, cargarCatalogos]);
+
+  const eliminarCotizacion = async (cotizacion: CotizacionApi) => {
     const confirmado = await confirmar({
       titulo: "¿Eliminar cotización?",
       texto: `La cotización ${cotizacion.folio} se eliminará permanentemente.`,
@@ -408,23 +510,27 @@ export default function CotizacionesPage() {
     if (!confirmado) {
       return;
     }
-    eliminar(cotizacion.id);
-    toast.info("Cotización eliminada.");
+    try {
+      await eliminar(cotizacion.id);
+      toast.info("Cotización eliminada.");
+    } catch (error) {
+      toast.error(mensajeError(error, "No se pudo eliminar la cotización."));
+    }
   };
   const [estado, setEstado] = useState<EstadoCotizacion | "TODOS">("TODOS");
   const [busqueda, setBusqueda] = useState("");
   const [nuevaAbierta, setNuevaAbierta] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
 
-  const columnas: Columna<Cotizacion>[] = [
+  const columnas: Columna<CotizacionApi>[] = [
     { clave: "folio", titulo: "Folio", render: (c) => c.folio },
-    { clave: "cliente", titulo: "Cliente", render: (c) => nombreCliente(c.clienteId) },
-    { clave: "fecha", titulo: "Fecha", render: (c) => formatearFecha(c.fecha) },
+    { clave: "cliente", titulo: "Cliente", render: (c) => c.clienteNombre },
+    { clave: "fecha", titulo: "Fecha", render: (c) => formatearFecha(c.creadaEn) },
     {
       clave: "total",
       titulo: "Total",
       align: "right",
-      render: (c) => formatearMoneda(totalCotizacion(c)),
+      render: (c) => formatearMoneda(c.total),
     },
     {
       clave: "estado",
@@ -445,16 +551,18 @@ export default function CotizacionesPage() {
           >
             <VisibilityIcon fontSize="small" />
           </IconButton>
-          <Permiso requiere="cotizaciones:eliminar">
-            <IconButton
-              size="small"
-              color="error"
-              onClick={() => eliminarCotizacion(c)}
-              aria-label="Eliminar cotización"
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Permiso>
+          {c.estado === "BORRADOR" ? (
+            <Permiso requiere="cotizaciones:eliminar">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => eliminarCotizacion(c)}
+                aria-label="Eliminar cotización"
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Permiso>
+          ) : null}
         </Stack>
       ),
     },
@@ -466,7 +574,7 @@ export default function CotizacionesPage() {
       if (clienteId !== "TODOS" && c.clienteId !== clienteId) return false;
       if (estado !== "TODOS" && c.estado !== estado) return false;
       if (termino) {
-        const texto = `${c.folio} ${nombreCliente(c.clienteId)}`.toLowerCase();
+        const texto = `${c.folio} ${c.clienteNombre}`.toLowerCase();
         if (!texto.includes(termino)) return false;
       }
       return true;
@@ -495,6 +603,7 @@ export default function CotizacionesPage() {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setNuevaAbierta(true)}
+              disabled={catalogosCargando || Boolean(errorCatalogos)}
             >
               Nueva cotización
             </Button>
@@ -532,7 +641,7 @@ export default function CotizacionesPage() {
           sx={{ minWidth: 220 }}
         >
           <MenuItem value="TODOS">Todos los clientes</MenuItem>
-          {CLIENTES_MOCK.map((c) => (
+          {clientes.map((c) => (
             <MenuItem key={c.id} value={c.id}>
               {c.nombre}
             </MenuItem>
@@ -553,6 +662,37 @@ export default function CotizacionesPage() {
           ))}
         </TextField>
       </Stack>
+      {cargando || cargandoPermisos ? <LinearProgress sx={{ mb: 2 }} /> : null}
+      {errorCarga ? (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            usuario ? (
+              <Button color="inherit" size="small" onClick={() => void recargar()}>
+                Reintentar
+              </Button>
+            ) : undefined
+          }
+        >
+          {errorCarga}
+        </Alert>
+      ) : null}
+      {errorCatalogos ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            usuario ? (
+              <Button color="inherit" size="small" onClick={() => void cargarCatalogos()}>
+                Reintentar
+              </Button>
+            ) : undefined
+          }
+        >
+          {errorCatalogos} No se podrán crear cotizaciones hasta recuperarlos.
+        </Alert>
+      ) : null}
       <TableContainer component={Paper} variant="outlined">
         <Table>
           <TableHead>
@@ -591,6 +731,9 @@ export default function CotizacionesPage() {
       <ModalNuevaCotizacion
         open={nuevaAbierta}
         onClose={() => setNuevaAbierta(false)}
+        clientes={clientes}
+        productos={productos}
+        catalogosCargando={catalogosCargando}
         onCreada={(id) => {
           setNuevaAbierta(false);
           setDetalleId(id);
@@ -601,6 +744,7 @@ export default function CotizacionesPage() {
         open={detalleId !== null}
         id={detalleId}
         onClose={() => setDetalleId(null)}
+        clientes={clientes}
       />
     </Container>
   );
