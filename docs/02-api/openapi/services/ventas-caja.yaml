@@ -1,0 +1,547 @@
+openapi: 3.0.3
+info:
+  title: SCIPOS - Servicio de Ventas POS y Caja
+  description: >
+    Punto de venta, descuentos, cancelaciones y operación de caja (RF-18 a RF-26).
+    La identidad del usuario viaja en el header x-usuario-id; los endpoints protegidos
+    verifican privilegios contra el servicio de seguridad. A través del gateway las
+    rutas quedan bajo /api/ventas-caja.
+  version: "1.0"
+servers:
+  - url: http://localhost:4000/api/ventas-caja
+    description: A través del gateway
+  - url: http://localhost:4005
+    description: Directo al servicio
+
+tags:
+  - name: ventas
+  - name: caja
+  - name: health
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check del servicio
+      responses:
+        "200":
+          description: Servicio disponible
+
+  /ventas:
+    post:
+      tags: [ventas]
+      summary: Registrar una venta en el POS
+      description: >
+        Crea una venta con caja abierta. Calcula subtotal, IVA (16%) y total en el
+        servidor, descuenta existencias en productos y aplica descuento solo si el
+        usuario tiene el privilegio `pos:descuento`. Requiere `pos:vender`.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearVentaDto"
+      responses:
+        "201":
+          description: Venta registrada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VentaDetalle"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+    get:
+      tags: [ventas]
+      summary: Listar ventas por cliente (integración historial)
+      description: >
+        Alias de compatibilidad consumido por el servicio de clientes al armar el
+        historial. Filtra ventas completas y canceladas del cliente indicado.
+        Requiere identidad (header x-usuario-id).
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+        - name: clienteId
+          in: query
+          required: true
+          schema:
+            type: string
+            example: c-001
+      responses:
+        "200":
+          description: Ventas del cliente obtenidas con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VentaResumen"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+
+  /ventas/historial:
+    get:
+      tags: [ventas]
+      summary: Historial de ventas por cliente
+      description: >
+        Recupera las ventas asociadas a un cliente para el historial integrado
+        (RF-22). Requiere identidad (header x-usuario-id).
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+        - name: clienteId
+          in: query
+          required: true
+          schema:
+            type: string
+            example: c-001
+      responses:
+        "200":
+          description: Historial de ventas obtenido con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VentaResumen"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+
+  /ventas/convertir-cotizacion:
+    post:
+      tags: [ventas]
+      summary: Crear venta a partir de una cotización
+      description: >
+        Endpoint consumido por el servicio de cotizaciones al convertir una
+        cotización en venta (RF-17). Exige caja abierta, calcula totales en el
+        servidor y descuenta stock. Requiere identidad; el privilegio
+        `cotizaciones:convertir` se valida en el servicio de cotizaciones.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConvertirCotizacionDto"
+      responses:
+        "201":
+          description: Venta creada desde la cotización
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VentaDetalle"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+
+  /ventas/{id}/cancelar:
+    post:
+      tags: [ventas]
+      summary: Cancelar una venta y reponer stock
+      description: >
+        Marca la venta como CANCELADA y repone las existencias en productos.
+        Requiere privilegio `pos:cancelar`.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: VTA-HIST-001
+      responses:
+        "200":
+          description: Venta cancelada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VentaDetalle"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+
+  /caja/abrir:
+    post:
+      tags: [caja]
+      summary: Abrir turno de caja
+      description: >
+        Registra la apertura de caja con monto inicial. Solo puede haber una caja
+        abierta a la vez. Requiere privilegio `caja:abrir`.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AbrirCajaDto"
+      responses:
+        "201":
+          description: Caja abierta con éxito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Caja"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+
+  /caja/movimiento:
+    post:
+      tags: [caja]
+      summary: Registrar ingreso o egreso manual de caja
+      description: >
+        Registra un movimiento de caja sobre el turno abierto. Requiere privilegio
+        `caja:movimiento`.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrarMovimientoCajaDto"
+      responses:
+        "201":
+          description: Movimiento registrado con éxito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovimientoCaja"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+
+  /caja/cerrar:
+    post:
+      tags: [caja]
+      summary: Realizar corte de caja
+      description: >
+        Cierra el turno activo, calcula el monto final como monto inicial más
+        ventas en efectivo del turno más ingresos manuales menos egresos manuales.
+        Requiere privilegio `caja:cerrar`.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      responses:
+        "200":
+          description: Corte de caja realizado con éxito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumenCorteCaja"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+
+components:
+  parameters:
+    HeaderUsuarioId:
+      name: x-usuario-id
+      in: header
+      required: true
+      schema:
+        type: string
+        example: usuario-cajero
+
+  responses:
+    NoAutorizado:
+      description: No autenticado (falta header x-usuario-id o usuario inválido)
+    Prohibido:
+      description: Usuario sin el privilegio necesario
+    SolicitudInvalida:
+      description: Datos de entrada inválidos o regla de negocio incumplida
+
+  schemas:
+    PartidaVentaDto:
+      type: object
+      required:
+        - productoId
+        - cantidad
+        - precioVenta
+      properties:
+        productoId:
+          type: string
+          example: p-002
+        cantidad:
+          type: integer
+          minimum: 1
+          example: 2
+        precioVenta:
+          type: number
+          format: float
+          minimum: 0
+          example: 18
+
+    CrearVentaDto:
+      type: object
+      required:
+        - clienteId
+        - partidas
+      properties:
+        clienteId:
+          type: string
+          example: c-001
+        partidas:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PartidaVentaDto"
+        descuento:
+          type: number
+          format: float
+          minimum: 0
+          default: 0
+          example: 5
+
+    ConvertirCotizacionDto:
+      type: object
+      required:
+        - cotizacionId
+        - clienteId
+        - partidas
+      properties:
+        cotizacionId:
+          type: string
+          example: cot-001
+        clienteId:
+          type: string
+          example: c-001
+        partidas:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PartidaVentaDto"
+        descuento:
+          type: number
+          format: float
+          minimum: 0
+          default: 0
+          example: 0
+
+    PartidaVenta:
+      type: object
+      required:
+        - id
+        - productoId
+        - cantidad
+        - precioVenta
+        - subtotal
+      properties:
+        id:
+          type: string
+        productoId:
+          type: string
+          example: p-002
+        cantidad:
+          type: integer
+          example: 2
+        precioVenta:
+          type: number
+          format: float
+          example: 18
+        subtotal:
+          type: number
+          format: float
+          example: 36
+
+    VentaResumen:
+      type: object
+      required:
+        - id
+        - clienteId
+        - descuento
+        - iva
+        - total
+        - estado
+        - fecha
+      properties:
+        id:
+          type: string
+          example: VTA-HIST-001
+        clienteId:
+          type: string
+          example: c-001
+        descuento:
+          type: number
+          format: float
+          example: 5
+        iva:
+          type: number
+          format: float
+          example: 9.36
+        total:
+          type: number
+          format: float
+          example: 67.86
+        estado:
+          type: string
+          enum: [COMPLETA, CANCELADA]
+        fecha:
+          type: string
+          format: date-time
+
+    VentaDetalle:
+      allOf:
+        - $ref: "#/components/schemas/VentaResumen"
+        - type: object
+          required:
+            - cajaId
+            - subtotal
+            - partidas
+          properties:
+            cajaId:
+              type: string
+              example: CAJA-ABIERTA
+            cotizacionId:
+              type: string
+              nullable: true
+              example: cot-001
+            subtotal:
+              type: number
+              format: float
+              example: 63.5
+            partidas:
+              type: array
+              items:
+                $ref: "#/components/schemas/PartidaVenta"
+
+    AbrirCajaDto:
+      type: object
+      required:
+        - montoInicial
+      properties:
+        montoInicial:
+          type: number
+          format: float
+          minimum: 0
+          example: 1000
+
+    Caja:
+      type: object
+      required:
+        - id
+        - montoInicial
+        - fechaApertura
+        - estado
+      properties:
+        id:
+          type: string
+          example: CAJA-ABIERTA
+        montoInicial:
+          type: number
+          format: float
+          example: 1000
+        montoFinal:
+          type: number
+          format: float
+          nullable: true
+          example: null
+        fechaApertura:
+          type: string
+          format: date-time
+        fechaCierre:
+          type: string
+          format: date-time
+          nullable: true
+        estado:
+          type: string
+          enum: [ABIERTA, CERRADA]
+
+    MovimientoCaja:
+      type: object
+      required:
+        - id
+        - cajaId
+        - tipo
+        - monto
+        - motivo
+        - fecha
+      properties:
+        id:
+          type: string
+          example: MOV-001
+        cajaId:
+          type: string
+          example: CAJA-ABIERTA
+        tipo:
+          type: string
+          enum: [INGRESO, EGRESO]
+        monto:
+          type: number
+          format: float
+          example: 150
+        motivo:
+          type: string
+          example: Fondo para cambio adicional
+        fecha:
+          type: string
+          format: date-time
+
+    RegistrarMovimientoCajaDto:
+      type: object
+      required:
+        - tipo
+        - monto
+        - motivo
+      properties:
+        tipo:
+          type: string
+          enum: [INGRESO, EGRESO]
+        monto:
+          type: number
+          format: float
+          minimum: 0.01
+          example: 150
+        motivo:
+          type: string
+          minLength: 1
+          example: Fondo para cambio adicional
+
+    ResumenCorteCaja:
+      type: object
+      required:
+        - caja
+        - ventasTurno
+        - ingresosManual
+        - egresosManual
+        - totalCierre
+      properties:
+        caja:
+          $ref: "#/components/schemas/Caja"
+        ventasTurno:
+          type: number
+          format: float
+          description: Suma de totales de ventas completas del turno
+          example: 4230.75
+        ingresosManual:
+          type: number
+          format: float
+          example: 150
+        egresosManual:
+          type: number
+          format: float
+          example: 82.5
+        totalCierre:
+          type: number
+          format: float
+          description: montoInicial + ventasTurno + ingresosManual - egresosManual
+          example: 5298.25
