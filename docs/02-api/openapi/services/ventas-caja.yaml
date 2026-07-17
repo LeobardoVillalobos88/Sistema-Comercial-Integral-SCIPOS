@@ -110,6 +110,71 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutorizado"
 
+  /ventas/resumen:
+    get:
+      tags: [ventas]
+      summary: Resumen de ventas del día y estado de caja para el dashboard
+      description: Requiere identidad (header x-usuario-id).
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      responses:
+        "200":
+          description: Resumen obtenido con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ventasHoyTotal:
+                    type: number
+                    example: 1245.5
+                  ventasHoyCantidad:
+                    type: integer
+                    example: 12
+                  cajaAbierta:
+                    type: boolean
+                    example: true
+                  ultimoCorteMonto:
+                    type: number
+                    nullable: true
+                    example: 9870
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+
+  /caja/estado:
+    get:
+      tags: [caja]
+      summary: Estado del turno de caja actual
+      description: >
+        Indica si hay caja abierta y, en su caso, sus movimientos y ventas
+        acumuladas. Cualquier usuario identificado puede consultarlo: el POS lo
+        usa para hidratarse al cargar y saber si puede vender.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      responses:
+        "200":
+          description: Estado del turno obtenido con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  abierta:
+                    type: boolean
+                    example: true
+                  caja:
+                    nullable: true
+                    $ref: "#/components/schemas/Caja"
+                  movimientos:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MovimientoCaja"
+                  ventasTurno:
+                    type: number
+                    example: 41.76
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+
   /ventas/convertir-cotizacion:
     post:
       tags: [ventas]
@@ -273,10 +338,10 @@ components:
   schemas:
     PartidaVentaDto:
       type: object
+      description: El precio no viaja en la petición; el servicio lo lee del catálogo de productos.
       required:
         - productoId
         - cantidad
-        - precioVenta
       properties:
         productoId:
           type: string
@@ -285,11 +350,6 @@ components:
           type: integer
           minimum: 1
           example: 2
-        precioVenta:
-          type: number
-          format: float
-          minimum: 0
-          example: 18
 
     CrearVentaDto:
       type: object

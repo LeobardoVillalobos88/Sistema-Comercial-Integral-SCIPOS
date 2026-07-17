@@ -19,6 +19,14 @@ export class VentasController {
     return this.ventas.historialPorCliente(clienteId);
   }
 
+  @Get("resumen")
+  @RequiereIdentidad()
+  @ApiOperation({ summary: "Resumen de ventas del día y estado de caja para el dashboard" })
+  @ApiHeader({ name: HEADER_USUARIO_ID, required: true })
+  resumen() {
+    return this.ventas.resumen();
+  }
+
   @Post("convertir-cotizacion")
   @RequiereIdentidad()
   @ApiOperation({ summary: "Crear venta a partir de una cotización convertida" })
