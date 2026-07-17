@@ -51,6 +51,8 @@ suben a git):
 ```bash
 cp apps/backend/gateway/.env.example apps/backend/gateway/.env
 cp apps/backend/services/seguridad/.env.example apps/backend/services/seguridad/.env
+cp apps/backend/services/productos/.env.example apps/backend/services/productos/.env
+cp apps/backend/services/clientes/.env.example apps/backend/services/clientes/.env
 ```
 
 Los valores por defecto ya apuntan a la infraestructura local (Postgres y Redis del
@@ -64,19 +66,19 @@ pnpm setup:backend
 ```
 
 Ese comando hace, en orden: levanta los contenedores `scipos-db` (Postgres 16) y
-`scipos-redis` (Redis 5), compila `@scipos/backend-commons`, genera el cliente de
-Prisma, aplica las migraciones del servicio de seguridad y siembra la matriz de
-privilegios con los 4 usuarios semilla.
+`scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
+existente (genera el cliente de Prisma, aplica migraciones y siembra datos): la
+matriz de privilegios con los 4 usuarios semilla, el catálogo de productos y los
+clientes, con los mismos IDs que usaba el frontend simulado.
 
-Si todo salió bien, la última línea dice:
-`Semilla de seguridad aplicada: { privilegios: 27, roles: 4, usuarios: 4 }`
+Si todo salió bien, la última línea dice: `Semilla aplicada: { clientes: 10 }`
 
 ## 4. Levantar las apps
 
-Lo mínimo para trabajar (seguridad + gateway + shell):
+Lo mínimo para trabajar (seguridad + gateway + shell, más los servicios que existen):
 
 ```bash
-pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/web-shell
+pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/web-shell
 ```
 
 O todo el monorepo (todos los microfrontends y servicios existentes):
@@ -92,7 +94,9 @@ pnpm dev
 | web-shell (frontend) | http://localhost:3001 |
 | API Gateway | http://localhost:4000 |
 | Servicio de seguridad | http://localhost:4001 |
-| productos / clientes / cotizaciones / ventas-caja | 4002 / 4003 / 4004 / 4005 (cuando existan) |
+| Servicio de productos y compras | http://localhost:4002 |
+| Servicio de clientes | http://localhost:4003 |
+| cotizaciones / ventas-caja | 4004 / 4005 (cuando existan) |
 
 ## 5. Verificar que todo funciona
 
@@ -102,7 +106,8 @@ pnpm dev
 2. **Documentación de la API:** http://localhost:4001/docs (Scalar).
 3. **Frontend:** http://localhost:3001/inicio y cambia el rol en el topbar; en
    DevTools → Network verás las llamadas a `localhost:4000/api/seguridad/...`
-   (los privilegios ya vienen del backend).
+   (los privilegios ya vienen del backend). Los módulos `/productos` y `/clientes`
+   y las tarjetas del dashboard también operan contra la API real.
 4. **El guard en acción** (desde otra terminal):
 
 ```bash
