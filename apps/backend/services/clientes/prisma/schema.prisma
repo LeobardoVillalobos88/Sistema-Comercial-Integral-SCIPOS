@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Modelo que representa un Cliente en la base de datos de SCIPOS.
+model Cliente {
+  id        String   @id @default(uuid())
+  nombre    String
+  rfc       String?
+  telefono  String
+  correo    String
+  direccion String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,358 @@
+openapi: 3.0.3
+info:
+  title: SCIPOS - Servicio de Clientes
+  description: API para la gestión de clientes y consulta de su historial de compras y cotizaciones.
+  version: 1.0.0
+servers:
+  - url: http://localhost:4000/api
+    description: API Gateway
+paths:
+  /clientes:
+    get:
+      tags:
+        - Clientes
+      summary: Listar clientes con búsqueda
+      description: Recupera la lista de clientes. Permite filtrar por nombre, RFC, correo o teléfono. Requiere privilegio `clientes:ver`.
+      parameters:
+        - name: busqueda
+          in: query
+          description: Término de búsqueda (nombre, RFC, correo o teléfono)
+          required: false
+          schema:
+            type: string
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+            example: u-001
+      responses:
+        '200':
+          description: Lista de clientes obtenida con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Cliente'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+    post:
+      tags:
+        - Clientes
+      summary: Registrar nuevo cliente
+      description: Crea un nuevo cliente en el sistema. Requiere privilegio `clientes:crear`.
+      parameters:
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearClienteDto'
+      responses:
+        '201':
+          description: Cliente registrado con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cliente'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+
+  /clientes/{id}:
+    get:
+      tags:
+        - Clientes
+      summary: Obtener un cliente por ID
+      description: Recupera los detalles de un cliente específico. Requiere privilegio `clientes:ver`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cliente obtenido con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cliente'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+        '404':
+          description: Cliente no encontrado
+    patch:
+      tags:
+        - Clientes
+      summary: Actualizar un cliente
+      description: Modifica los datos de un cliente existente. Requiere privilegio `clientes:editar`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizarClienteDto'
+      responses:
+        '200':
+          description: Cliente actualizado con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cliente'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+        '404':
+          description: Cliente no encontrado
+    delete:
+      tags:
+        - Clientes
+      summary: Eliminar permanentemente un cliente
+      description: Borra definitivamente un cliente del sistema. Requiere privilegio `clientes:eliminar`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cliente eliminado con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eliminado:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+        '404':
+          description: Cliente no encontrado
+
+  /clientes/{id}/estado:
+    patch:
+      tags:
+        - Clientes
+      summary: Cambiar estado activo/inactivo de un cliente
+      description: Habilita o deshabilita lógicamente a un cliente. Requiere privilegio `clientes:editar`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - activo
+              properties:
+                activo:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Estado del cliente actualizado con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cliente'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+        '404':
+          description: Cliente no encontrado
+
+  /clientes/{id}/historial:
+    get:
+      tags:
+        - Clientes
+      summary: Obtener historial relacionado de un cliente
+      description: Consulta por REST las cotizaciones y ventas asociadas a este cliente. Requiere privilegio `clientes:ver`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Historial obtenido con éxito (puede ser parcial si un servicio falló)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistorialCliente'
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+        '403':
+          $ref: '#/components/responses/Prohibido'
+        '404':
+          description: Cliente no encontrado
+
+components:
+  responses:
+    NoAutorizado:
+      description: No autenticado (falta header x-usuario-id)
+    Prohibido:
+      description: Usuario sin el privilegio necesario
+  schemas:
+    Cliente:
+      type: object
+      required:
+        - id
+        - nombre
+        - telefono
+        - correo
+        - direccion
+        - activo
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: c-001
+        nombre:
+          type: string
+          example: María González López
+        rfc:
+          type: string
+          example: GOLM850101AB1
+        telefono:
+          type: string
+          example: "7771234567"
+        correo:
+          type: string
+          example: maria.gonzalez@correo.com
+        direccion:
+          type: string
+          example: Av. Morelos 123, Cuernavaca
+        activo:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CrearClienteDto:
+      type: object
+      required:
+        - nombre
+        - telefono
+        - correo
+        - direccion
+      properties:
+        nombre:
+          type: string
+          example: María González López
+        rfc:
+          type: string
+          example: GOLM850101AB1
+        telefono:
+          type: string
+          example: "7771234567"
+        correo:
+          type: string
+          example: maria.gonzalez@correo.com
+        direccion:
+          type: string
+          example: Av. Morelos 123, Cuernavaca
+
+    ActualizarClienteDto:
+      type: object
+      properties:
+        nombre:
+          type: string
+        rfc:
+          type: string
+        telefono:
+          type: string
+        correo:
+          type: string
+        direccion:
+          type: string
+
+    HistorialCliente:
+      type: object
+      required:
+        - clienteId
+        - cotizaciones
+        - ventas
+        - parcial
+        - fuentesFallidas
+      properties:
+        clienteId:
+          type: string
+          example: c-001
+        cotizaciones:
+          type: array
+          items:
+            type: object
+        ventas:
+          type: array
+          items:
+            type: object
+        parcial:
+          type: boolean
+          example: false
+        fuentesFallidas:
+          type: array
+          items:
+            type: string
+          example: []
