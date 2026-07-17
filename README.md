@@ -53,6 +53,8 @@ cp apps/backend/gateway/.env.example apps/backend/gateway/.env
 cp apps/backend/services/seguridad/.env.example apps/backend/services/seguridad/.env
 cp apps/backend/services/productos/.env.example apps/backend/services/productos/.env
 cp apps/backend/services/clientes/.env.example apps/backend/services/clientes/.env
+cp apps/backend/services/cotizaciones/.env.example apps/backend/services/cotizaciones/.env
+cp apps/backend/services/ventas-caja/.env.example apps/backend/services/ventas-caja/.env
 ```
 
 Los valores por defecto ya apuntan a la infraestructura local (Postgres y Redis del
@@ -67,18 +69,19 @@ pnpm setup:backend
 
 Ese comando hace, en orden: levanta los contenedores `scipos-db` (Postgres 16) y
 `scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
-existente (genera el cliente de Prisma, aplica migraciones y siembra datos): la
-matriz de privilegios con los 4 usuarios semilla, el catálogo de productos y los
-clientes, con los mismos IDs que usaba el frontend simulado.
+(genera el cliente de Prisma, aplica migraciones y siembra datos): la matriz de
+privilegios con los 4 usuarios semilla, el catálogo de productos, los clientes, unas
+cotizaciones de ejemplo y un turno de caja con ventas históricas — todo con los
+mismos IDs que usaba el frontend simulado.
 
-Si todo salió bien, la última línea dice: `Semilla aplicada: { clientes: 10 }`
+Si todo salió bien, la última línea dice algo como `Semilla aplicada: { cajas: 2, ventas: 2, movimientos: 4 }`
 
 ## 4. Levantar las apps
 
-Lo mínimo para trabajar (seguridad + gateway + shell, más los servicios que existen):
+Lo mínimo para trabajar (todo el backend + el shell):
 
 ```bash
-pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/web-shell
+pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/cotizaciones-service --filter @scipos/ventas-caja-service --filter @scipos/web-shell
 ```
 
 O todo el monorepo (todos los microfrontends y servicios existentes):
@@ -96,7 +99,8 @@ pnpm dev
 | Servicio de seguridad | http://localhost:4001 |
 | Servicio de productos y compras | http://localhost:4002 |
 | Servicio de clientes | http://localhost:4003 |
-| cotizaciones / ventas-caja | 4004 / 4005 (cuando existan) |
+| Servicio de cotizaciones | http://localhost:4004 |
+| Servicio de ventas POS y caja | http://localhost:4005 |
 
 ## 5. Verificar que todo funciona
 
@@ -106,8 +110,10 @@ pnpm dev
 2. **Documentación de la API:** http://localhost:4001/docs (Scalar).
 3. **Frontend:** http://localhost:3001/inicio y cambia el rol en el topbar; en
    DevTools → Network verás las llamadas a `localhost:4000/api/seguridad/...`
-   (los privilegios ya vienen del backend). Los módulos `/productos` y `/clientes`
-   y las tarjetas del dashboard también operan contra la API real.
+   (los privilegios ya vienen del backend). Todos los módulos de dominio
+   (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/compras`, `/caja`) y las
+   tarjetas del dashboard operan contra la API real — ya no quedan mocks salvo en
+   el módulo de ejemplo.
 4. **El guard en acción** (desde otra terminal):
 
 ```bash
