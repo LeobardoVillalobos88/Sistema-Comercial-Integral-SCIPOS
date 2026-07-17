@@ -1,0 +1,379 @@
+openapi: 3.0.3
+info:
+  title: SCIPOS - Servicio de cotizaciones
+  version: 1.0.0
+  description: >-
+    Contrato para crear y consultar cotizaciones, controlar su ciclo de vida y convertirlas a venta.
+    Los precios y totales siempre son calculados por el servidor.
+servers:
+  - url: http://localhost:4004
+    description: Microservicio directo
+  - url: http://localhost:4000/api/cotizaciones
+    description: API Gateway local
+tags:
+  - name: cotizaciones
+  - name: salud
+paths:
+  /health:
+    get:
+      tags: [salud]
+      operationId: verificarSaludCotizaciones
+      summary: Verifica servicio y PostgreSQL
+      security: []
+      responses:
+        "200":
+          description: Servicio disponible
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [estado, servicio, baseDeDatos]
+                properties:
+                  estado: { type: string, example: ok }
+                  servicio: { type: string, example: cotizaciones }
+                  baseDeDatos: { type: string, example: disponible }
+  /cotizaciones:
+    post:
+      tags: [cotizaciones]
+      operationId: crearCotizacion
+      summary: Crea una cotización
+      description: "Privilegio: `cotizaciones:crear`. Valida cliente y productos por REST."
+      x-privilegio-requerido: cotizaciones:crear
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearCotizacion"
+      responses:
+        "201":
+          description: Cotización creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cotizacion"
+        "400": { $ref: "#/components/responses/PeticionInvalida" }
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "422": { $ref: "#/components/responses/EntidadInvalida" }
+        "502": { $ref: "#/components/responses/DependenciaNoDisponible" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+    get:
+      tags: [cotizaciones]
+      operationId: listarCotizaciones
+      summary: Lista y filtra cotizaciones
+      description: "Privilegio: `cotizaciones:ver`."
+      x-privilegio-requerido: cotizaciones:ver
+      parameters:
+        - $ref: "#/components/parameters/Estado"
+        - $ref: "#/components/parameters/ClienteId"
+        - $ref: "#/components/parameters/Busqueda"
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Lista de cotizaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cotizacion"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+  /cotizaciones/resumen:
+    get:
+      tags: [cotizaciones]
+      operationId: resumirCotizaciones
+      summary: Obtiene conteos por estado y monto vendido
+      description: "Privilegio: `cotizaciones:ver`."
+      x-privilegio-requerido: cotizaciones:ver
+      parameters:
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Resumen para dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumenCotizaciones"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+  /cotizaciones/cliente/{clienteId}:
+    get:
+      tags: [cotizaciones]
+      operationId: listarCotizacionesPorCliente
+      summary: Obtiene el historial de cotizaciones de un cliente
+      description: "Privilegio: `cotizaciones:ver`."
+      x-privilegio-requerido: cotizaciones:ver
+      parameters:
+        - name: clienteId
+          in: path
+          required: true
+          schema: { type: string, maxLength: 40 }
+          example: c-001
+        - $ref: "#/components/parameters/Estado"
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Historial de cotizaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Cotizacion"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+  /cotizaciones/{id}:
+    get:
+      tags: [cotizaciones]
+      operationId: obtenerCotizacion
+      summary: Obtiene el detalle de una cotización
+      description: "Privilegio: `cotizaciones:ver`."
+      x-privilegio-requerido: cotizaciones:ver
+      parameters:
+        - $ref: "#/components/parameters/CotizacionId"
+      responses:
+        "200":
+          description: Detalle de la cotización
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cotizacion"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+    delete:
+      tags: [cotizaciones]
+      operationId: eliminarCotizacion
+      summary: Elimina una cotización BORRADOR
+      description: "Privilegio: `cotizaciones:eliminar`."
+      x-privilegio-requerido: cotizaciones:eliminar
+      parameters:
+        - $ref: "#/components/parameters/CotizacionId"
+      responses:
+        "200":
+          description: Cotización eliminada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cotizacion"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/EstadoInvalido" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+  /cotizaciones/{id}/enviar:
+    patch:
+      tags: [cotizaciones]
+      operationId: enviarCotizacion
+      summary: Cambia BORRADOR a ENVIADA
+      description: "Privilegio: `cotizaciones:enviar`."
+      x-privilegio-requerido: cotizaciones:enviar
+      parameters:
+        - $ref: "#/components/parameters/CotizacionId"
+      responses:
+        "200":
+          description: Cotización enviada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cotizacion"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/EstadoInvalido" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+  /cotizaciones/{id}/convertir:
+    post:
+      tags: [cotizaciones]
+      operationId: convertirCotizacion
+      summary: Convierte una cotización ENVIADA en venta
+      description: >-
+        Privilegio: `cotizaciones:convertir`. Solo cambia el estado a VENDIDA después de recibir
+        un identificador de venta.
+      x-privilegio-requerido: cotizaciones:convertir
+      parameters:
+        - $ref: "#/components/parameters/CotizacionId"
+      responses:
+        "200":
+          description: Cotización vendida; repetir la llamada devuelve la misma conversión
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cotizacion"
+        "401": { $ref: "#/components/responses/NoAutenticado" }
+        "403": { $ref: "#/components/responses/SinPrivilegio" }
+        "404": { $ref: "#/components/responses/NoEncontrado" }
+        "409": { $ref: "#/components/responses/EstadoInvalido" }
+        "502": { $ref: "#/components/responses/DependenciaNoDisponible" }
+        "503": { $ref: "#/components/responses/SeguridadNoDisponible" }
+components:
+  securitySchemes:
+    UsuarioHeader:
+      type: apiKey
+      in: header
+      name: x-usuario-id
+      description: Identificador propagado por el gateway; se reemplazará por JWT sin cambiar el dominio.
+  parameters:
+    CotizacionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, maxLength: 40 }
+      example: cot-001
+    Estado:
+      name: estado
+      in: query
+      schema:
+        $ref: "#/components/schemas/EstadoCotizacion"
+    ClienteId:
+      name: clienteId
+      in: query
+      schema: { type: string, maxLength: 40 }
+    Busqueda:
+      name: busqueda
+      in: query
+      description: Coincidencia parcial, sin distinguir mayúsculas, en folio o nombre de cliente.
+      schema: { type: string, maxLength: 100 }
+    Desde:
+      name: desde
+      in: query
+      schema: { type: string, format: date }
+    Hasta:
+      name: hasta
+      in: query
+      schema: { type: string, format: date }
+  schemas:
+    EstadoCotizacion:
+      type: string
+      enum: [BORRADOR, ENVIADA, VENDIDA]
+    CrearPartidaCotizacion:
+      type: object
+      additionalProperties: false
+      required: [productoId, cantidad]
+      properties:
+        productoId: { type: string, maxLength: 40, example: p-001 }
+        cantidad: { type: integer, minimum: 1, maximum: 9999, example: 2 }
+    CrearCotizacion:
+      type: object
+      additionalProperties: false
+      required: [clienteId, partidas]
+      properties:
+        clienteId: { type: string, maxLength: 40, example: c-001 }
+        partidas:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CrearPartidaCotizacion"
+    PartidaCotizacion:
+      type: object
+      required: [id, productoId, productoNombre, cantidad, precioUnitario, importe]
+      properties:
+        id: { type: string }
+        productoId: { type: string, example: p-001 }
+        productoNombre: { type: string, example: Abarrote surtido 1kg }
+        cantidad: { type: integer, example: 2 }
+        precioUnitario: { type: number, format: double, example: 45.5 }
+        importe: { type: number, format: double, example: 91 }
+    Cotizacion:
+      type: object
+      required:
+        - id
+        - folio
+        - clienteId
+        - clienteNombre
+        - estado
+        - subtotal
+        - iva
+        - total
+        - creadaEn
+        - actualizadaEn
+        - partidas
+      properties:
+        id: { type: string, example: cot-001 }
+        folio: { type: string, example: COT-000001 }
+        clienteId: { type: string, example: c-001 }
+        clienteNombre: { type: string, example: María González López }
+        estado:
+          $ref: "#/components/schemas/EstadoCotizacion"
+        subtotal: { type: number, format: double, example: 145 }
+        iva: { type: number, format: double, example: 23.2 }
+        total: { type: number, format: double, example: 168.2 }
+        ventaId: { type: string, nullable: true, example: v-001 }
+        creadaEn: { type: string, format: date-time }
+        actualizadaEn: { type: string, format: date-time }
+        partidas:
+          type: array
+          items:
+            $ref: "#/components/schemas/PartidaCotizacion"
+    ResumenCotizaciones:
+      type: object
+      required: [borrador, enviadas, vendidas, total, montoVendido]
+      properties:
+        borrador: { type: integer, example: 4 }
+        enviadas: { type: integer, example: 3 }
+        vendidas: { type: integer, example: 7 }
+        total: { type: integer, example: 14 }
+        montoVendido: { type: number, format: double, example: 23450.8 }
+    Error:
+      type: object
+      additionalProperties: true
+      required: [estatus, mensaje, error, ruta, fecha]
+      properties:
+        estatus: { type: integer, example: 403 }
+        mensaje: { type: string, example: No cuentas con el privilegio cotizaciones:crear }
+        error: { type: string, example: Forbidden }
+        ruta: { type: string, example: /cotizaciones }
+        fecha: { type: string, format: date-time }
+  responses:
+    PeticionInvalida:
+      description: La petición no cumple el contrato
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NoAutenticado:
+      description: Falta x-usuario-id
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    SinPrivilegio:
+      description: El usuario no tiene el privilegio requerido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NoEncontrado:
+      description: No existe la cotización
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    EstadoInvalido:
+      description: La transición no es válida para el estado actual
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    EntidadInvalida:
+      description: Cliente o producto inactivo, inexistente o con precio inválido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    DependenciaNoDisponible:
+      description: Clientes, productos o ventas-caja falló
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    SeguridadNoDisponible:
+      description: No fue posible comprobar privilegios
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+security:
+  - UsuarioHeader: []
