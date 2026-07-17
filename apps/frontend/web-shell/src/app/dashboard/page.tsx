@@ -13,19 +13,78 @@ import {
   PageHeader,
   StatCard,
   formatearMoneda,
+  llamarApi,
   usePermisos,
 } from "@scipos/frontend-commons";
+import { useEffect, useState } from "react";
 
 const VENTAS_HOY = 12450.5;
 const COTIZACIONES_ACTIVAS = 8;
 const UTILIDAD_HOY = 3180.75;
 const ULTIMO_CORTE = 9870.0;
 
-export default function DashboardPage() {
-  const { can } = usePermisos();
+interface ResumenProductos {
+  productosActivos: number;
+  stockBajo: number;
+  proximosACaducar: number;
+}
 
-  const productosActivos = PRODUCTOS_MOCK.filter((p) => p.activo).length;
-  const clientesRegistrados = CLIENTES_MOCK.length;
+interface ResumenClientes {
+  clientesActivos: number;
+  clientesNuevos: number;
+}
+
+export default function DashboardPage() {
+  const { can, usuario, cargandoPermisos } = usePermisos();
+
+  const [resumenProductos, setResumenProductos] = useState<ResumenProductos | null>(null);
+  const [resumenClientes, setResumenClientes] = useState<ResumenClientes | null>(null);
+
+  // Descarga los resúmenes reales; si un servicio no responde, la tarjeta
+  // conserva el valor de respaldo calculado con los datos locales.
+  useEffect(() => {
+    if (cargandoPermisos || !usuario) {
+      return;
+    }
+    let vigente = true;
+    llamarApi<ResumenProductos>("/productos/productos/resumen")
+      .then((resumen) => {
+        if (vigente) {
+          setResumenProductos(resumen);
+        }
+      })
+      .catch(() => {
+        if (vigente) {
+          setResumenProductos(null);
+        }
+      });
+    llamarApi<ResumenClientes>("/clientes/resumen")
+      .then((resumen) => {
+        if (vigente) {
+          setResumenClientes(resumen);
+        }
+      })
+      .catch(() => {
+        if (vigente) {
+          setResumenClientes(null);
+        }
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [cargandoPermisos, usuario]);
+
+  const productosActivos =
+    resumenProductos?.productosActivos ?? PRODUCTOS_MOCK.filter((p) => p.activo).length;
+  const detalleProductos = resumenProductos
+    ? `${resumenProductos.stockBajo} con stock bajo · ${resumenProductos.proximosACaducar} por caducar`
+    : `${PRODUCTOS_MOCK.length} en catálogo`;
+
+  const clientesActivos =
+    resumenClientes?.clientesActivos ?? CLIENTES_MOCK.filter((c) => c.activo).length;
+  const detalleClientes = resumenClientes
+    ? `${resumenClientes.clientesNuevos} nuevos en los últimos 30 días`
+    : "Cartera total";
 
   return (
     <Box>
@@ -66,16 +125,16 @@ export default function DashboardPage() {
         <StatCard
           titulo="Productos activos"
           valor={productosActivos}
-          detalle={`${PRODUCTOS_MOCK.length} en catálogo`}
+          detalle={detalleProductos}
           icono={<InventoryIcon />}
           color="primary"
         />
 
         {can("clientes:ver") && (
           <StatCard
-            titulo="Clientes registrados"
-            valor={clientesRegistrados}
-            detalle="Cartera total"
+            titulo="Clientes activos"
+            valor={clientesActivos}
+            detalle={detalleClientes}
             icono={<PeopleIcon />}
             color="secondary"
           />
