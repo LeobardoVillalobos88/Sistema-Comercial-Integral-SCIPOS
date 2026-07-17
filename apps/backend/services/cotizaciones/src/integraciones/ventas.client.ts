@@ -37,7 +37,7 @@ export class VentasClient {
     usuarioId: string,
   ): Promise<VentaCreada> {
     const venta = await this.http.post<VentaCreada>(
-      `${this.urlBase}/ventas/desde-cotizacion`,
+      `${this.urlBase}/ventas/convertir-cotizacion`,
       entrada,
       { usuarioId, timeoutMs: 5000 },
     );
