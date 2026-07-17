@@ -58,12 +58,19 @@ export interface ResumenCorteApi {
 
 export interface CrearVentaPayload {
   clienteId: string;
+  // El precio no se envía: el backend lo toma del catálogo de productos.
   partidas: Array<{
     productoId: string;
     cantidad: number;
-    precioVenta: number;
   }>;
   descuento?: number;
+}
+
+export interface EstadoCajaApi {
+  abierta: boolean;
+  caja: CajaApi | null;
+  movimientos: MovimientoCajaApi[];
+  ventasTurno: number;
 }
 
 export interface CrearCompraPayload {
@@ -165,6 +172,10 @@ export async function crearCompra(payload: CrearCompraPayload): Promise<unknown>
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function consultarEstadoCaja(): Promise<EstadoCajaApi> {
+  return llamarApi<EstadoCajaApi>("/ventas-caja/caja/estado");
 }
 
 export async function abrirCaja(montoInicial: number): Promise<CajaApi> {

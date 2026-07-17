@@ -57,6 +57,7 @@ import {
   abrirCaja as abrirCajaApi,
   cargarHistorialVentas,
   cerrarCaja as cerrarCajaApi,
+  consultarEstadoCaja,
   crearCompra,
   crearVenta,
   listarClientesActivos,
@@ -255,6 +256,7 @@ export function PosCajaPage({
     fechaApertura,
     movimientos,
     ventasAcumuladas,
+    hidratarDesdeEstado,
     sincronizarApertura,
     sincronizarMovimiento,
     agregarVentaAcumulada,
@@ -340,8 +342,21 @@ export function PosCajaPage({
     cargarProductos();
     if (!esCompra) {
       cargarClientes();
+      // Restaura el turno de caja que ya estuviera abierto en el backend.
+      consultarEstadoCaja()
+        .then(hidratarDesdeEstado)
+        .catch(() => {
+          // Sin estado disponible: la UI arranca con la caja cerrada.
+        });
     }
-  }, [permisos.cargandoPermisos, permisos.usuario, cargarProductos, cargarClientes, esCompra]);
+  }, [
+    permisos.cargandoPermisos,
+    permisos.usuario,
+    cargarProductos,
+    cargarClientes,
+    hidratarDesdeEstado,
+    esCompra,
+  ]);
 
   useEffect(() => {
     if (permisos.cargandoPermisos || !permisos.usuario || activeTab !== 1 || esCompra) {
@@ -546,7 +561,6 @@ export function PosCajaPage({
           partidas: carrito.map((item) => ({
             productoId: item.productoId,
             cantidad: item.cantidad,
-            precioVenta: item.precioUnitario,
           })),
         });
         agregarVentaAcumulada(venta.total);

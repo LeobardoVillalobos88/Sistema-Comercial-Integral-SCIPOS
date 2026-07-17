@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { CajaApi, MovimientoCajaApi } from "../api/posApi";
+import type { CajaApi, EstadoCajaApi, MovimientoCajaApi } from "../api/posApi";
 import { movimientoApiAUi } from "../api/posApi";
 import type { MovimientoCaja, TipoMovimientoCajaUi } from "../types/pos";
 
@@ -17,6 +17,7 @@ export interface CajaState {
 }
 
 export interface CajaContextValue extends CajaState {
+  hidratarDesdeEstado: (estado: EstadoCajaApi) => void;
   sincronizarApertura: (caja: CajaApi) => void;
   sincronizarMovimiento: (movimiento: MovimientoCajaApi) => void;
   agregarVentaAcumulada: (total: number) => void;
@@ -36,6 +37,26 @@ export function CajaProvider({ children }: CajaProviderProps) {
   const [fechaApertura, setFechaApertura] = useState<string | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCaja[]>([]);
   const [ventasAcumuladas, setVentasAcumuladas] = useState(0);
+
+  // Restaura el turno abierto que ya existía en el backend al cargar la página,
+  // para que recargar no "pierda" la caja abierta (el estado no vive solo en el navegador).
+  const hidratarDesdeEstado = useCallback((estado: EstadoCajaApi) => {
+    if (!estado.abierta || !estado.caja) {
+      setCajaAbierta(false);
+      setCajaId(null);
+      setMontoInicial(0);
+      setFechaApertura(null);
+      setMovimientos([]);
+      setVentasAcumuladas(0);
+      return;
+    }
+    setCajaAbierta(true);
+    setCajaId(estado.caja.id);
+    setMontoInicial(estado.caja.montoInicial);
+    setFechaApertura(estado.caja.fechaApertura);
+    setMovimientos(estado.movimientos.map(movimientoApiAUi));
+    setVentasAcumuladas(estado.ventasTurno);
+  }, []);
 
   const sincronizarApertura = useCallback((caja: CajaApi) => {
     setCajaAbierta(true);
@@ -71,6 +92,7 @@ export function CajaProvider({ children }: CajaProviderProps) {
       fechaApertura,
       movimientos,
       ventasAcumuladas,
+      hidratarDesdeEstado,
       sincronizarApertura,
       sincronizarMovimiento,
       agregarVentaAcumulada,
@@ -82,6 +104,7 @@ export function CajaProvider({ children }: CajaProviderProps) {
       cajaId,
       fechaApertura,
       finalizarTurno,
+      hidratarDesdeEstado,
       montoInicial,
       movimientos,
       sincronizarApertura,
