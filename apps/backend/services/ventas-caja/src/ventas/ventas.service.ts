@@ -23,6 +23,14 @@ interface OpcionesCrearVenta {
   usuarioId: string;
 }
 
+/** Datos del producto que entrega el servicio de productos. */
+interface ProductoRemoto {
+  id: string;
+  nombre: string;
+  precioVenta: number;
+  activo: boolean;
+}
+
 @Injectable()
 export class VentasService {
   constructor(
@@ -38,6 +46,15 @@ export class VentasService {
   }
 
   async convertirCotizacion(dto: ConvertirCotizacionDto, usuarioId: string) {
+    // Idempotencia: si la cotización ya generó una venta, se devuelve esa
+    // misma en lugar de duplicarla (reintentos del servicio de cotizaciones).
+    const existente = await this.prisma.venta.findUnique({
+      where: { cotizacionId: dto.cotizacionId },
+      include: { partidas: true },
+    });
+    if (existente) {
+      return this.mapearVentaDetalle(existente);
+    }
     return this.registrarVenta(dto, { usuarioId, cotizacionId: dto.cotizacionId });
   }
 
@@ -65,6 +82,32 @@ export class VentasService {
     return this.mapearVentaDetalle(ventaCancelada);
   }
 
+  /** Resumen para el dashboard: ventas del día y estado del turno de caja. */
+  async resumen() {
+    const inicioDelDia = new Date();
+    inicioDelDia.setHours(0, 0, 0, 0);
+
+    const [ventasHoy, cajaAbierta, ultimoCorte] = await Promise.all([
+      this.prisma.venta.aggregate({
+        where: { estado: "COMPLETA", fecha: { gte: inicioDelDia } },
+        _sum: { total: true },
+        _count: { _all: true },
+      }),
+      this.caja.obtenerCajaAbierta(),
+      this.prisma.caja.findFirst({
+        where: { estado: "CERRADA" },
+        orderBy: { fechaCierre: "desc" },
+      }),
+    ]);
+
+    return {
+      ventasHoyTotal: ventasHoy._sum.total ?? 0,
+      ventasHoyCantidad: ventasHoy._count._all,
+      cajaAbierta: cajaAbierta !== null,
+      ultimoCorteMonto: ultimoCorte?.montoFinal ?? null,
+    };
+  }
+
   async historialPorCliente(clienteId: string) {
     const ventas = await this.prisma.venta.findMany({
       where: { clienteId },
@@ -86,7 +129,25 @@ export class VentasService {
       await this.validarPrivilegioDescuento(opciones.usuarioId);
     }
 
-    const totales = calcularTotalesVenta(dto.partidas, descuentoSolicitado);
+    // Los precios se leen del servicio de productos: lo que mande el cliente
+    // en la petición no puede alterar el importe cobrado.
+    const productos = await this.obtenerProductos(dto.partidas, opciones.usuarioId);
+    const partidasConPrecio = dto.partidas.map((partida) => {
+      const producto = productos.get(partida.productoId);
+      if (!producto) {
+        throw new NotFoundException(`El producto "${partida.productoId}" no existe.`);
+      }
+      if (!producto.activo) {
+        throw new BadRequestException(`El producto "${producto.nombre}" está inactivo.`);
+      }
+      return {
+        productoId: partida.productoId,
+        cantidad: partida.cantidad,
+        precioVenta: producto.precioVenta,
+      };
+    });
+
+    const totales = calcularTotalesVenta(partidasConPrecio, descuentoSolicitado);
     await this.descontarStock(dto.partidas, opciones.usuarioId);
 
     const venta = await this.prisma.venta.create({
@@ -121,6 +182,20 @@ export class VentasService {
 
   private urlProductos() {
     return this.config.get<string>("PRODUCTOS_URL") ?? "http://localhost:4002";
+  }
+
+  private async obtenerProductos(
+    partidas: PartidaVentaDto[],
+    usuarioId: string,
+  ): Promise<Map<string, ProductoRemoto>> {
+    const base = this.urlProductos();
+    const idsUnicos = [...new Set(partidas.map((partida) => partida.productoId))];
+    const productos = await Promise.all(
+      idsUnicos.map((id) =>
+        this.http.get<ProductoRemoto>(`${base}/productos/${id}`, { usuarioId }),
+      ),
+    );
+    return new Map(productos.map((producto) => [producto.id, producto]));
   }
 
   private async descontarStock(partidas: PartidaVentaDto[], usuarioId: string) {

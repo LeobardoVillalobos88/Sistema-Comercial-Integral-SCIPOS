@@ -42,7 +42,7 @@ model Venta {
   cajaId        String
   caja          Caja          @relation(fields: [cajaId], references: [id])
   clienteId     String
-  cotizacionId  String?
+  cotizacionId  String?       @unique
   descuento     Float         @default(0)
   iva           Float
   total         Float

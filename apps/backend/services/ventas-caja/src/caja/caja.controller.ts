@@ -1,6 +1,6 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { HEADER_USUARIO_ID, RequierePrivilegio } from "@scipos/backend-commons";
+import { HEADER_USUARIO_ID, RequiereIdentidad, RequierePrivilegio } from "@scipos/backend-commons";
 import { CajaService } from "./caja.service";
 import { AbrirCajaDto } from "./dto/abrir-caja.dto";
 import { RegistrarMovimientoCajaDto } from "./dto/registrar-movimiento.dto";
@@ -9,6 +9,18 @@ import { RegistrarMovimientoCajaDto } from "./dto/registrar-movimiento.dto";
 @Controller("caja")
 export class CajaController {
   constructor(private readonly caja: CajaService) {}
+
+  @Get("estado")
+  @RequiereIdentidad()
+  @ApiOperation({
+    summary: "Estado del turno de caja actual",
+    description:
+      "Indica si hay caja abierta y, en su caso, sus movimientos y ventas acumuladas. Cualquier usuario identificado puede consultarlo (el POS lo necesita para saber si puede vender).",
+  })
+  @ApiHeader({ name: HEADER_USUARIO_ID, required: true })
+  estado() {
+    return this.caja.estado();
+  }
 
   @Post("abrir")
   @RequierePrivilegio("caja:abrir")

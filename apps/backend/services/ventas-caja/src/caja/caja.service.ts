@@ -16,6 +16,33 @@ export class CajaService {
     });
   }
 
+  /**
+   * Estado del turno actual: si hay caja abierta, incluye sus movimientos y
+   * el acumulado de ventas. Lo usa el frontend para hidratarse al cargar.
+   */
+  async estado() {
+    const caja = await this.obtenerCajaAbierta();
+    if (!caja) {
+      return { abierta: false, caja: null, movimientos: [], ventasTurno: 0 };
+    }
+    const [movimientos, ventas] = await Promise.all([
+      this.prisma.movimientoCaja.findMany({
+        where: { cajaId: caja.id },
+        orderBy: { fecha: "desc" },
+      }),
+      this.prisma.venta.aggregate({
+        where: { cajaId: caja.id, estado: "COMPLETA" },
+        _sum: { total: true },
+      }),
+    ]);
+    return {
+      abierta: true,
+      caja,
+      movimientos,
+      ventasTurno: redondearMoneda(ventas._sum.total ?? 0),
+    };
+  }
+
   /** Exige que exista una caja abierta; lanza 400 si no hay turno activo. */
   async exigirCajaAbierta() {
     const caja = await this.obtenerCajaAbierta();
