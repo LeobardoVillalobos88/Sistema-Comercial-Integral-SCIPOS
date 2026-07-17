@@ -20,6 +20,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Grid2 from "@mui/material/Grid2";
 import IconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Tab from "@mui/material/Tab";
 import Table from "@mui/material/Table";
@@ -33,7 +34,6 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
-  CLIENTES_MOCK,
   type Cliente,
   type Columna,
   EstadoChip,
@@ -43,11 +43,11 @@ import {
   SearchableTable,
   formatearFecha,
   formatearMoneda,
-  totalCotizacion,
+  llamarApi,
+  usePermisos,
 } from "@scipos/frontend-commons";
 import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
-import { useState } from "react";
-import { COTIZACIONES_MOCK_HISTORIAL, VENTAS_MOCK_HISTORIAL } from "../mocks/clientesData";
+import { useCallback, useEffect, useState } from "react";
 
 interface ErroresFormulario {
   nombre?: string;
@@ -57,11 +57,29 @@ interface ErroresFormulario {
   direccion?: string;
 }
 
+interface CotizacionHistorial {
+  id: string;
+  folio: string;
+  fecha: string;
+  estado: "BORRADOR" | "ENVIADA" | "VENDIDA";
+  total: number;
+}
+
+interface VentaHistorial {
+  id: string;
+  folio: string;
+  fecha: string;
+  metodoPago: string;
+  total: number;
+}
+
 export default function ClientesPage() {
   const toast = useToast();
+  const { cargandoPermisos } = usePermisos();
 
-  // Estado principal de clientes (iniciado con los datos mock de commons)
-  const [clientes, setClientes] = useState<Cliente[]>(CLIENTES_MOCK);
+  // Estado principal de clientes (cargado desde la API)
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [cargando, setCargando] = useState(true);
 
   // Estados para modales
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -72,6 +90,12 @@ export default function ClientesPage() {
   const [clienteEdicion, setClienteEdicion] = useState<Cliente | null>(null);
   const [clienteDetalle, setClienteDetalle] = useState<Cliente | null>(null);
 
+  // Estados del historial del cliente (cargados dinámicamente)
+  const [cotizacionesCliente, setCotizacionesCliente] = useState<CotizacionHistorial[]>([]);
+  const [ventasCliente, setVentasCliente] = useState<VentaHistorial[]>([]);
+  const [historialCargando, setHistorialCargando] = useState(false);
+  const [historialError, setHistorialError] = useState<string | null>(null);
+
   // Campos de formulario
   const [nombre, setNombre] = useState("");
   const [rfc, setRfc] = useState("");
@@ -79,6 +103,75 @@ export default function ClientesPage() {
   const [correo, setCorreo] = useState("");
   const [direccion, setDireccion] = useState("");
   const [errores, setErrores] = useState<ErroresFormulario>({});
+
+  // Cargar lista de clientes desde la API
+  const cargarClientes = useCallback(async () => {
+    try {
+      setCargando(true);
+      const data = await llamarApi<Cliente[]>("/clientes");
+      setClientes(data);
+    } catch (error: unknown) {
+      const mensaje =
+        error instanceof Error ? error.message : "Error al cargar la lista de clientes.";
+      toast.error(mensaje);
+    } finally {
+      setCargando(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (!cargandoPermisos) {
+      cargarClientes();
+    }
+  }, [cargandoPermisos, cargarClientes]);
+
+  // Cargar historial del cliente al abrir el modal de detalles
+  useEffect(() => {
+    if (!clienteDetalle) {
+      setCotizacionesCliente([]);
+      setVentasCliente([]);
+      setHistorialError(null);
+      return;
+    }
+
+    let activo = true;
+    setHistorialCargando(true);
+    setHistorialError(null);
+
+    llamarApi<{
+      cotizaciones: CotizacionHistorial[];
+      ventas: VentaHistorial[];
+      parcial: boolean;
+      fuentesFallidas: string[];
+    }>(`/clientes/${clienteDetalle.id}/historial`)
+      .then((data) => {
+        if (activo) {
+          setCotizacionesCliente(data.cotizaciones);
+          setVentasCliente(data.ventas);
+          if (data.parcial) {
+            setHistorialError(
+              `Historial parcial. No se pudo conectar con el servicio de: ${data.fuentesFallidas.join(", ")}.`,
+            );
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        if (activo) {
+          const mensaje =
+            error instanceof Error ? error.message : "Error al cargar el historial del cliente.";
+          setHistorialError(mensaje);
+        }
+      })
+      .finally(() => {
+        if (activo) {
+          setHistorialCargando(false);
+        }
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [clienteDetalle]);
 
   // 1. Abrir Modal para crear un nuevo cliente
   const handleNuevoCliente = () => {
@@ -123,8 +216,18 @@ export default function ClientesPage() {
         return;
       }
     }
-    setClientes((prev) => prev.map((c) => (c.id === cliente.id ? { ...c, activo: !c.activo } : c)));
-    toast.info(cliente.activo ? "Cliente desactivado." : "Cliente activado.");
+    try {
+      const actualizado = await llamarApi<Cliente>(`/clientes/${cliente.id}/estado`, {
+        method: "PATCH",
+        body: JSON.stringify({ activo: !cliente.activo }),
+      });
+      setClientes((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
+      toast.info(actualizado.activo ? "Cliente activado." : "Cliente desactivado.");
+    } catch (error: unknown) {
+      const mensaje =
+        error instanceof Error ? error.message : "Error al cambiar el estado del cliente.";
+      toast.error(mensaje);
+    }
   };
 
   // 4b. Eliminar cliente (acción destructiva, solo Admin).
@@ -137,8 +240,16 @@ export default function ClientesPage() {
     if (!confirmado) {
       return;
     }
-    setClientes((prev) => prev.filter((c) => c.id !== cliente.id));
-    toast.info("Cliente eliminado.");
+    try {
+      await llamarApi(`/clientes/${cliente.id}`, {
+        method: "DELETE",
+      });
+      setClientes((prev) => prev.filter((c) => c.id !== cliente.id));
+      toast.exito("Cliente eliminado permanentemente.");
+    } catch (error: unknown) {
+      const mensaje = error instanceof Error ? error.message : "Error al eliminar el cliente.";
+      toast.error(mensaje);
+    }
   };
 
   // 5. Validaciones básicas del formulario
@@ -169,46 +280,48 @@ export default function ClientesPage() {
   };
 
   // 6. Guardar formulario (Crear o Editar)
-  const handleGuardar = (e: React.FormEvent) => {
+  const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validarFormulario()) return;
 
-    if (clienteEdicion) {
-      // Editar
-      setClientes((prev) =>
-        prev.map((c) =>
-          c.id === clienteEdicion.id
-            ? { ...c, nombre, rfc: rfc || undefined, telefono, correo, direccion }
-            : c,
-        ),
-      );
-    } else {
-      // Crear
-      const nuevo: Cliente = {
-        id: `c-${String(clientes.length + 1).padStart(3, "0")}`,
-        nombre,
-        rfc: rfc || undefined,
-        telefono,
-        correo,
-        direccion,
-        activo: true,
-      };
-      setClientes((prev) => [...prev, nuevo]);
+    try {
+      if (clienteEdicion) {
+        // Editar
+        const actualizado = await llamarApi<Cliente>(`/clientes/${clienteEdicion.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            nombre,
+            rfc: rfc.trim() || null,
+            telefono: telefono.replace(/[-\s]/g, ""),
+            correo,
+            direccion,
+          }),
+        });
+        setClientes((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
+        toast.exito("Cliente actualizado correctamente.");
+      } else {
+        // Crear
+        const nuevo = await llamarApi<Cliente>("/clientes", {
+          method: "POST",
+          body: JSON.stringify({
+            nombre,
+            rfc: rfc.trim() || null,
+            telefono: telefono.replace(/[-\s]/g, ""),
+            correo,
+            direccion,
+          }),
+        });
+        setClientes((prev) => [...prev, nuevo]);
+        toast.exito("Cliente registrado.");
+      }
+      setModalAbierto(false);
+    } catch (error: unknown) {
+      const mensaje = error instanceof Error ? error.message : "Error al guardar el cliente.";
+      toast.error(mensaje);
     }
-
-    setModalAbierto(false);
-    toast.exito(clienteEdicion ? "Cliente actualizado correctamente." : "Cliente registrado.");
   };
 
   // Cuentas de historial asociadas al cliente seleccionado para detalle
-  const cotizacionesCliente = clienteDetalle
-    ? COTIZACIONES_MOCK_HISTORIAL.filter((cot) => cot.clienteId === clienteDetalle.id)
-    : [];
-
-  const ventasCliente = clienteDetalle
-    ? VENTAS_MOCK_HISTORIAL.filter((vta) => vta.clienteId === clienteDetalle.id)
-    : [];
-
   const montoTotalComprado = ventasCliente.reduce((sum, vta) => sum + vta.total, 0);
 
   // Columnas para la tabla principal
@@ -303,6 +416,7 @@ export default function ClientesPage() {
 
       {/* Tabla de Clientes con Búsqueda Integrada */}
       <Box sx={{ mt: 1 }}>
+        {(cargando || cargandoPermisos) && <LinearProgress sx={{ mb: 2 }} />}
         <SearchableTable
           filas={clientes}
           columnas={columnas}
@@ -434,6 +548,14 @@ export default function ClientesPage() {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
+          {historialCargando && <LinearProgress sx={{ mb: 2 }} />}
+          {historialError && (
+            <Box sx={{ mb: 2, p: 2, bgcolor: "warning.light", borderRadius: 1 }}>
+              <Typography variant="body2" color="warning.contrastText" fontWeight="bold">
+                ⚠️ {historialError}
+              </Typography>
+            </Box>
+          )}
           {clienteDetalle && (
             <Grid2 container spacing={3}>
               {/* Resumen e información del cliente */}
@@ -534,9 +656,7 @@ export default function ClientesPage() {
                                 <TableCell>
                                   <EstadoCotizacionChip estado={cot.estado} />
                                 </TableCell>
-                                <TableCell align="right">
-                                  {formatearMoneda(totalCotizacion(cot))}
-                                </TableCell>
+                                <TableCell align="right">{formatearMoneda(cot.total)}</TableCell>
                               </TableRow>
                             ))
                           )}

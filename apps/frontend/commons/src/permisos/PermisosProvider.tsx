@@ -39,6 +39,7 @@ export function PermisosProvider({
   const [usuarios, setUsuarios] = useState<UsuarioSesion[]>([]);
   const [privilegios, setPrivilegios] = useState<Privilegio[] | null>(null);
   const [cargandoPermisos, setCargandoPermisos] = useState(true);
+  const [cargandoUsuarios, setCargandoUsuarios] = useState(true);
 
   // Carga la lista de usuarios una sola vez al montar.
   useEffect(() => {
@@ -51,7 +52,12 @@ export function PermisosProvider({
       })
       .catch(() => {
         if (vigente) {
-          setCargandoPermisos(false);
+          setUsuarios([]);
+        }
+      })
+      .finally(() => {
+        if (vigente) {
+          setCargandoUsuarios(false);
         }
       });
     return () => {
@@ -69,6 +75,9 @@ export function PermisosProvider({
     establecerUsuarioActivoId(usuario?.id ?? null);
     if (!usuario) {
       setPrivilegios(null);
+      if (!cargandoUsuarios) {
+        setCargandoPermisos(false);
+      }
       return;
     }
     let vigente = true;
@@ -92,7 +101,7 @@ export function PermisosProvider({
     return () => {
       vigente = false;
     };
-  }, [usuario]);
+  }, [usuario, cargandoUsuarios]);
 
   const can = useCallback(
     (privilegio: Privilegio) =>
