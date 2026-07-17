@@ -18,10 +18,8 @@ import {
 } from "@scipos/frontend-commons";
 import { useEffect, useState } from "react";
 
-const VENTAS_HOY = 12450.5;
-const COTIZACIONES_ACTIVAS = 8;
+/** Utilidad: aún no existe el módulo de reportes; se muestra un estimado fijo. */
 const UTILIDAD_HOY = 3180.75;
-const ULTIMO_CORTE = 9870.0;
 
 interface ResumenProductos {
   productosActivos: number;
@@ -34,45 +32,61 @@ interface ResumenClientes {
   clientesNuevos: number;
 }
 
+interface ResumenCotizaciones {
+  borrador: number;
+  enviadas: number;
+  vendidas: number;
+  total: number;
+  montoVendido: number;
+}
+
+interface ResumenVentas {
+  ventasHoyTotal: number;
+  ventasHoyCantidad: number;
+  cajaAbierta: boolean;
+  ultimoCorteMonto: number | null;
+}
+
 export default function DashboardPage() {
   const { can, usuario, cargandoPermisos } = usePermisos();
 
   const [resumenProductos, setResumenProductos] = useState<ResumenProductos | null>(null);
   const [resumenClientes, setResumenClientes] = useState<ResumenClientes | null>(null);
+  const [resumenCotizaciones, setResumenCotizaciones] = useState<ResumenCotizaciones | null>(null);
+  const [resumenVentas, setResumenVentas] = useState<ResumenVentas | null>(null);
 
   // Descarga los resúmenes reales; si un servicio no responde, la tarjeta
-  // conserva el valor de respaldo calculado con los datos locales.
+  // correspondiente se oculta o muestra un valor neutro en vez de datos falsos.
   useEffect(() => {
     if (cargandoPermisos || !usuario) {
       return;
     }
     let vigente = true;
+
     llamarApi<ResumenProductos>("/productos/productos/resumen")
-      .then((resumen) => {
-        if (vigente) {
-          setResumenProductos(resumen);
-        }
-      })
-      .catch(() => {
-        if (vigente) {
-          setResumenProductos(null);
-        }
-      });
+      .then((resumen) => vigente && setResumenProductos(resumen))
+      .catch(() => vigente && setResumenProductos(null));
+
     llamarApi<ResumenClientes>("/clientes/resumen")
-      .then((resumen) => {
-        if (vigente) {
-          setResumenClientes(resumen);
-        }
-      })
-      .catch(() => {
-        if (vigente) {
-          setResumenClientes(null);
-        }
-      });
+      .then((resumen) => vigente && setResumenClientes(resumen))
+      .catch(() => vigente && setResumenClientes(null));
+
+    if (can("cotizaciones:ver")) {
+      llamarApi<ResumenCotizaciones>("/cotizaciones/cotizaciones/resumen")
+        .then((resumen) => vigente && setResumenCotizaciones(resumen))
+        .catch(() => vigente && setResumenCotizaciones(null));
+    }
+
+    if (can("pos:ver") || can("caja:ver")) {
+      llamarApi<ResumenVentas>("/ventas-caja/ventas/resumen")
+        .then((resumen) => vigente && setResumenVentas(resumen))
+        .catch(() => vigente && setResumenVentas(null));
+    }
+
     return () => {
       vigente = false;
     };
-  }, [cargandoPermisos, usuario]);
+  }, [cargandoPermisos, usuario, can]);
 
   const productosActivos =
     resumenProductos?.productosActivos ?? PRODUCTOS_MOCK.filter((p) => p.activo).length;
@@ -85,6 +99,19 @@ export default function DashboardPage() {
   const detalleClientes = resumenClientes
     ? `${resumenClientes.clientesNuevos} nuevos en los últimos 30 días`
     : "Cartera total";
+
+  const cotizacionesPendientes = resumenCotizaciones
+    ? resumenCotizaciones.borrador + resumenCotizaciones.enviadas
+    : null;
+  const detalleCotizaciones = resumenCotizaciones
+    ? `${resumenCotizaciones.borrador} en borrador · ${resumenCotizaciones.vendidas} vendidas`
+    : "Sin datos disponibles";
+
+  const detalleCaja = resumenVentas?.cajaAbierta
+    ? "Turno en curso"
+    : resumenVentas
+      ? "Caja cerrada"
+      : "Sin datos disponibles";
 
   return (
     <Box>
@@ -105,8 +132,12 @@ export default function DashboardPage() {
         {(can("pos:ver") || can("caja:ver")) && (
           <StatCard
             titulo="Ventas de hoy"
-            valor={formatearMoneda(VENTAS_HOY)}
-            detalle="12 tickets emitidos"
+            valor={formatearMoneda(resumenVentas?.ventasHoyTotal ?? 0)}
+            detalle={
+              resumenVentas
+                ? `${resumenVentas.ventasHoyCantidad} tickets emitidos`
+                : "Sin datos disponibles"
+            }
             icono={<PointOfSaleIcon />}
             color="primary"
           />
@@ -114,9 +145,9 @@ export default function DashboardPage() {
 
         {can("cotizaciones:ver") && (
           <StatCard
-            titulo="Cotizaciones activas"
-            valor={COTIZACIONES_ACTIVAS}
-            detalle="2 por vencer"
+            titulo="Cotizaciones pendientes"
+            valor={cotizacionesPendientes ?? 0}
+            detalle={detalleCotizaciones}
             icono={<DescriptionIcon />}
             color="secondary"
           />
@@ -144,8 +175,8 @@ export default function DashboardPage() {
         {can("caja:ver") && (
           <StatCard
             titulo="Último corte de caja"
-            valor={formatearMoneda(ULTIMO_CORTE)}
-            detalle="Turno anterior"
+            valor={formatearMoneda(resumenVentas?.ultimoCorteMonto ?? 0)}
+            detalle={detalleCaja}
             icono={<SavingsIcon />}
             color="success"
           />
