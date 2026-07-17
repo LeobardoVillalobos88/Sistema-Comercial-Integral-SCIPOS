@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoCaja {
+  ABIERTA
+  CERRADA
+}
+
+enum EstadoVenta {
+  COMPLETA
+  CANCELADA
+}
+
+enum TipoMovimientoCaja {
+  INGRESO
+  EGRESO
+}
+
+/// Turno de caja: apertura, movimientos y corte (RF-23, RF-25, RF-26).
+model Caja {
+  id             String             @id @default(uuid())
+  montoInicial   Float
+  montoFinal     Float?
+  fechaApertura  DateTime           @default(now())
+  fechaCierre    DateTime?
+  estado         EstadoCaja         @default(ABIERTA)
+  ventas         Venta[]
+  movimientos    MovimientoCaja[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+/// Venta registrada en el POS (RF-18, RF-19, RF-20, RF-21).
+model Venta {
+  id            String        @id @default(uuid())
+  cajaId        String
+  caja          Caja          @relation(fields: [cajaId], references: [id])
+  clienteId     String
+  cotizacionId  String?       @unique
+  descuento     Float         @default(0)
+  iva           Float
+  total         Float
+  estado        EstadoVenta   @default(COMPLETA)
+  fecha         DateTime      @default(now())
+  partidas      PartidaVenta[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+/// Línea de una venta con precio de venta y subtotal calculado en backend.
+model PartidaVenta {
+  id          String @id @default(uuid())
+  ventaId     String
+  venta       Venta  @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  productoId  String
+  cantidad    Int
+  precioVenta Float
+  subtotal    Float
+}
+
+/// Ingreso o egreso manual registrado durante un turno de caja (RF-24).
+model MovimientoCaja {
+  id      String             @id @default(uuid())
+  cajaId  String
+  caja    Caja               @relation(fields: [cajaId], references: [id], onDelete: Cascade)
+  tipo    TipoMovimientoCaja
+  monto   Float
+  motivo  String
+  fecha   DateTime           @default(now())
+}
