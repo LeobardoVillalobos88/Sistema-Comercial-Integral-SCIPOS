@@ -7,6 +7,36 @@ servers:
   - url: http://localhost:4000/api
     description: API Gateway
 paths:
+  /clientes/resumen:
+    get:
+      tags:
+        - Clientes
+      summary: Resumen de clientes para el dashboard
+      description: Total de clientes activos y clientes nuevos (últimos 30 días). Requiere identidad (header x-usuario-id).
+      parameters:
+        - name: x-usuario-id
+          in: header
+          required: true
+          schema:
+            type: string
+            example: usuario-administrador
+      responses:
+        '200':
+          description: Resumen obtenido con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clientesActivos:
+                    type: integer
+                    example: 9
+                  clientesNuevos:
+                    type: integer
+                    example: 2
+        '401':
+          $ref: '#/components/responses/NoAutorizado'
+
   /clientes:
     get:
       tags:

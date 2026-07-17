@@ -8,6 +8,8 @@ import type { ActualizarEstadoDto } from "./dto/actualizar-estado.dto";
 import type { CrearClienteDto } from "./dto/crear-cliente.dto";
 
 const CLAVE_CACHE_LISTA = "clientes:lista";
+/** Ventana de días para considerar a un cliente "nuevo" en el resumen. */
+const DIAS_CLIENTE_NUEVO = 30;
 
 @Injectable()
 export class ClientesService {
@@ -85,6 +87,17 @@ export class ClientesService {
     await this.prisma.cliente.delete({ where: { id } });
     await this.redis.del(CLAVE_CACHE_LISTA);
     return { eliminado: true };
+  }
+
+  /** Resumen para el dashboard: clientes activos y clientes nuevos. */
+  async resumen() {
+    const desde = new Date();
+    desde.setDate(desde.getDate() - DIAS_CLIENTE_NUEVO);
+    const [clientesActivos, clientesNuevos] = await Promise.all([
+      this.prisma.cliente.count({ where: { activo: true } }),
+      this.prisma.cliente.count({ where: { createdAt: { gte: desde } } }),
+    ]);
+    return { clientesActivos, clientesNuevos };
   }
 
   async obtenerHistorial(id: string, usuarioId: string) {

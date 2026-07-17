@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiTags } from "@nestjs/swagger";
-import { HEADER_USUARIO_ID, RequierePrivilegio } from "@scipos/backend-commons";
+import { HEADER_USUARIO_ID, RequiereIdentidad, RequierePrivilegio } from "@scipos/backend-commons";
 import { ClientesService } from "./clientes.service";
 import { ActualizarClienteDto } from "./dto/actualizar-cliente.dto";
 import { ActualizarEstadoDto } from "./dto/actualizar-estado.dto";
@@ -10,6 +10,15 @@ import { CrearClienteDto } from "./dto/crear-cliente.dto";
 @Controller()
 export class ClientesController {
   constructor(private readonly clientes: ClientesService) {}
+
+  // Declarado antes de las rutas con ":id" para que la ruta dinámica no lo capture.
+  @Get("resumen")
+  @RequiereIdentidad()
+  @ApiOperation({ summary: "Resumen de clientes para el dashboard" })
+  @ApiHeader({ name: HEADER_USUARIO_ID, required: true })
+  resumen() {
+    return this.clientes.resumen();
+  }
 
   @Get()
   @RequierePrivilegio("clientes:ver")
