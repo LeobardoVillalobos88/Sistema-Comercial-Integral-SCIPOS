@@ -24,6 +24,7 @@ import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
+import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
@@ -44,25 +45,30 @@ import {
   PageHeader,
   type PermisosContextValue,
   type Rol,
+  SkeletonTabla,
   formatearFechaConHora,
   formatearMoneda,
   usePermisos,
 } from "@scipos/frontend-commons";
+import { useToast } from "@scipos/frontend-commons/feedback";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { CajaProvider, type MovimientoCaja, useCaja } from "./context/CajaContext";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CORTES_CAJA_MOCK,
-  type CorteCaja,
-  type ItemCarrito,
-  PRODUCTOS_MOCK,
-  type Producto,
-  VENTAS_POS_MOCK,
-  type VentaPOS,
-} from "./mocks/posData";
-
-type SeveridadMensaje = "success" | "info" | "warning" | "error";
-type TipoFlujoForm = MovimientoCaja["tipo"];
+  abrirCaja as abrirCajaApi,
+  cargarHistorialVentas,
+  cerrarCaja as cerrarCajaApi,
+  consultarEstadoCaja,
+  crearCompra,
+  crearVenta,
+  listarClientesActivos,
+  listarProductosPos,
+  mensajeErrorApi,
+  registrarMovimientoCaja,
+  resumenCorteAUi,
+  ventaApiAUi,
+} from "./api/posApi";
+import { CajaProvider, type TipoMovimientoCaja, useCaja } from "./context/CajaContext";
+import type { CorteCaja, ItemCarrito, ProductoPos, VentaPOS } from "./types/pos";
 
 /** "venta" usa el precio de venta y resta inventario; "compra" usa el precio de compra y suma. */
 export type ModoPos = "venta" | "compra";
@@ -71,11 +77,6 @@ export interface PosCajaPageProps {
   defaultTab?: number;
   hideTabs?: boolean;
   modo?: ModoPos;
-}
-
-interface MensajeSistema {
-  texto: string;
-  severidad: SeveridadMensaje;
 }
 
 interface PanelSeccionProps {
@@ -93,15 +94,11 @@ interface ResumenMontoProps {
 
 const IVA = 0.16;
 
-function generarFolio(prefijo: string) {
-  return `${prefijo}-${Math.floor(10000 + Math.random() * 90000)}`;
-}
-
-function precioSegunModo(producto: Producto, modo: ModoPos): number {
+function precioSegunModo(producto: ProductoPos, modo: ModoPos): number {
   return modo === "compra" ? producto.precioCompra : producto.precioVenta;
 }
 
-function crearItemCarrito(producto: Producto, modo: ModoPos): ItemCarrito {
+function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarrito {
   const precio = precioSegunModo(producto, modo);
   return {
     productoId: producto.id,
@@ -145,6 +142,16 @@ function ResumenMonto({ etiqueta, valor, color }: ResumenMontoProps) {
 }
 
 function TablaVentasHistoricas({ ventas }: { ventas: VentaPOS[] }) {
+  if (ventas.length === 0) {
+    return (
+      <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
+        <Typography variant="body2" color="text.secondary">
+          Aún no hay ventas registradas en el sistema.
+        </Typography>
+      </Paper>
+    );
+  }
+
   return (
     <TableContainer component={Paper} variant="outlined">
       <Table size="small">
@@ -176,6 +183,16 @@ function TablaVentasHistoricas({ ventas }: { ventas: VentaPOS[] }) {
 }
 
 function TablaCortesHistoricos({ cortes }: { cortes: CorteCaja[] }) {
+  if (cortes.length === 0) {
+    return (
+      <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
+        <Typography variant="body2" color="text.secondary">
+          Los cortes cerrados en esta sesión aparecerán aquí.
+        </Typography>
+      </Paper>
+    );
+  }
+
   return (
     <TableContainer component={Paper} variant="outlined">
       <Table size="small">
@@ -232,37 +249,45 @@ export function PosCajaPage({
 }: PosCajaPageProps) {
   const esCompra = modo === "compra";
   const permisos = usePermisos();
+  const toast = useToast();
   const {
     cajaAbierta,
     montoInicial,
     fechaApertura,
     movimientos,
     ventasAcumuladas,
-    abrirCaja: abrirCajaGlobal,
-    registrarMovimiento: registrarMovimientoGlobal,
+    hidratarDesdeEstado,
+    sincronizarApertura,
+    sincronizarMovimiento,
     agregarVentaAcumulada,
-    cerrarCaja: cerrarCajaGlobal,
+    finalizarTurno,
   } = useCaja();
-  const [activeTab, setActiveTab] = useState<number>(defaultTab === 1 ? 1 : 0);
 
-  useEffect(() => {
-    setActiveTab(defaultTab === 1 ? 1 : 0);
-  }, [defaultTab]);
-  const [inventario, setInventario] = useState<Producto[]>(PRODUCTOS_MOCK);
+  const [activeTab, setActiveTab] = useState<number>(defaultTab === 1 ? 1 : 0);
+  const [inventario, setInventario] = useState<ProductoPos[]>([]);
+  const [cargandoProductos, setCargandoProductos] = useState(true);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [descuentoCaptura, setDescuentoCaptura] = useState("0");
   const [descuentoAplicado, setDescuentoAplicado] = useState(0);
   const [montoInicialCaptura, setMontoInicialCaptura] = useState("0");
-  const [cortesCaja, setCortesCaja] = useState<CorteCaja[]>(CORTES_CAJA_MOCK);
-  const [tipoFlujo, setTipoFlujo] = useState<TipoFlujoForm>("Ingreso");
+  const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
+  const [clienteId, setClienteId] = useState("");
+  const [ventasHistorial, setVentasHistorial] = useState<VentaPOS[]>([]);
+  const [cortesCaja, setCortesCaja] = useState<CorteCaja[]>([]);
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [tipoFlujo, setTipoFlujo] = useState<TipoMovimientoCaja>("Ingreso");
   const [conceptoMovimiento, setConceptoMovimiento] = useState("");
   const [montoMovimiento, setMontoMovimiento] = useState("0");
-  const [mensajeSistema, setMensajeSistema] = useState<MensajeSistema | null>(null);
   const [dialogCobroAbierto, setDialogCobroAbierto] = useState(false);
   const [folioCobro, setFolioCobro] = useState("");
   const [totalCobro, setTotalCobro] = useState(0);
   const [dialogCorteAbierto, setDialogCorteAbierto] = useState(false);
+  const [procesando, setProcesando] = useState(false);
+
+  useEffect(() => {
+    setActiveTab(defaultTab === 1 ? 1 : 0);
+  }, [defaultTab]);
 
   const rolActual = permisos.rol;
   const puedeDescuento = permisos.can("pos:descuento");
@@ -270,6 +295,75 @@ export function PosCajaPage({
   const puedeAbrirCaja = permisos.can("caja:abrir");
   const puedeRegistrarMovimiento = permisos.can("caja:movimiento");
   const puedeCerrarCaja = permisos.can("caja:cerrar");
+
+  const cargarProductos = useCallback(async () => {
+    setCargandoProductos(true);
+    try {
+      const productos = await listarProductosPos();
+      setInventario(productos);
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo cargar el catálogo de productos."));
+    } finally {
+      setCargandoProductos(false);
+    }
+  }, [toast]);
+
+  const cargarClientes = useCallback(async () => {
+    try {
+      const lista = await listarClientesActivos();
+      setClientes(lista.map((cliente) => ({ id: cliente.id, nombre: cliente.nombre })));
+      if (lista.length > 0) {
+        const primerCliente = lista[0];
+        if (primerCliente) {
+          setClienteId((actual) => actual || primerCliente.id);
+        }
+      }
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo cargar la lista de clientes."));
+    }
+  }, [toast]);
+
+  const cargarHistorial = useCallback(async () => {
+    setCargandoHistorial(true);
+    try {
+      const ventasApi = await cargarHistorialVentas();
+      setVentasHistorial(ventasApi.map((venta) => ventaApiAUi(venta, inventario)));
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo cargar el historial de ventas."));
+    } finally {
+      setCargandoHistorial(false);
+    }
+  }, [inventario, toast]);
+
+  useEffect(() => {
+    if (permisos.cargandoPermisos || !permisos.usuario) {
+      return;
+    }
+    cargarProductos();
+    if (!esCompra) {
+      cargarClientes();
+      // Restaura el turno de caja que ya estuviera abierto en el backend.
+      consultarEstadoCaja()
+        .then(hidratarDesdeEstado)
+        .catch(() => {
+          // Sin estado disponible: la UI arranca con la caja cerrada.
+        });
+    }
+  }, [
+    permisos.cargandoPermisos,
+    permisos.usuario,
+    cargarProductos,
+    cargarClientes,
+    hidratarDesdeEstado,
+    esCompra,
+  ]);
+
+  useEffect(() => {
+    if (permisos.cargandoPermisos || !permisos.usuario || activeTab !== 1 || esCompra) {
+      return;
+    }
+    cargarHistorial();
+  }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarHistorial]);
 
   const subtotalCarrito = useMemo(
     () => carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0),
@@ -316,27 +410,19 @@ export function PosCajaPage({
     });
   }, [busqueda, inventario]);
 
-  const mostrarMensaje = (texto: string, severidad: SeveridadMensaje) => {
-    setMensajeSistema({ texto, severidad });
-  };
-
-  const limpiarMensaje = () => {
-    setMensajeSistema(null);
-  };
-
   const cantidadEnCarrito = (productoId: string) =>
     carrito.find((item) => item.productoId === productoId)?.cantidad ?? 0;
 
-  const agregarProducto = (producto: Producto) => {
+  const agregarProducto = (producto: ProductoPos) => {
     if (!esCompra && !cajaAbierta) {
-      mostrarMensaje("Primero debes abrir la caja para registrar ventas.", "warning");
+      toast.info("Primero debes abrir la caja para registrar ventas.");
       setActiveTab(1);
       return;
     }
 
     const cantidadActual = cantidadEnCarrito(producto.id);
     if (!esCompra && cantidadActual >= producto.existencia) {
-      mostrarMensaje(`No hay más existencia disponible para ${producto.nombre}.`, "error");
+      toast.error(`No hay más existencia disponible para ${producto.nombre}.`);
       return;
     }
 
@@ -358,7 +444,7 @@ export function PosCajaPage({
       );
     });
 
-    mostrarMensaje(`Se agregó ${producto.nombre} al carrito.`, "success");
+    toast.exito(`Se agregó ${producto.nombre} al carrito.`);
   };
 
   const incrementarCantidad = (productoId: string) => {
@@ -370,7 +456,7 @@ export function PosCajaPage({
     }
 
     if (!esCompra && partida.cantidad >= producto.existencia) {
-      mostrarMensaje(`La existencia máxima de ${producto.nombre} ya fue alcanzada.`, "warning");
+      toast.info(`La existencia máxima de ${producto.nombre} ya fue alcanzada.`);
       return;
     }
 
@@ -409,81 +495,100 @@ export function PosCajaPage({
 
   const aplicarDescuento = () => {
     if (!puedeDescuento) {
-      mostrarMensaje("Tu rol no tiene permiso para aplicar descuentos.", "warning");
+      toast.info("Tu rol no tiene permiso para aplicar descuentos.");
       return;
     }
 
     const descuento = Number.parseFloat(descuentoCaptura);
     if (Number.isNaN(descuento) || descuento < 0) {
-      mostrarMensaje("Ingresa un descuento válido.", "error");
+      toast.error("Ingresa un descuento válido.");
       return;
     }
 
     setDescuentoAplicado(Math.min(descuento, subtotalCarrito));
-    mostrarMensaje("Descuento aplicado correctamente.", "success");
+    toast.exito("Descuento aplicado correctamente.");
   };
 
   const cancelarVenta = () => {
     if (!puedeCancelar) {
-      mostrarMensaje("Tu rol no tiene permiso para cancelar ventas.", "warning");
+      toast.info("Tu rol no tiene permiso para cancelar ventas.");
       return;
     }
 
     setCarrito([]);
     setDescuentoAplicado(0);
     setDescuentoCaptura("0");
-    mostrarMensaje("La venta fue cancelada y el carrito se limpió.", "info");
+    toast.info("La venta fue cancelada y el carrito se limpió.");
   };
 
-  const cobrarTransaccion = () => {
+  const cobrarTransaccion = async () => {
     if (!esCompra && !cajaAbierta) {
-      mostrarMensaje("La caja debe estar abierta para cobrar una transacción.", "warning");
+      toast.info("La caja debe estar abierta para cobrar una transacción.");
       return;
     }
 
     if (carrito.length === 0) {
-      mostrarMensaje(
+      toast.info(
         esCompra
           ? "Agrega productos al carrito antes de registrar la compra."
           : "Agrega productos al carrito antes de cobrar.",
-        "warning",
       );
       return;
     }
 
-    const folio = generarFolio(esCompra ? "COM" : "VTA");
-    if (!esCompra) {
-      agregarVentaAcumulada(totalVenta);
+    if (!esCompra && !clienteId) {
+      toast.error("Selecciona un cliente para registrar la venta.");
+      return;
     }
-    setInventario((inventarioActual) =>
-      inventarioActual.map((producto) => {
-        const partida = carrito.find((item) => item.productoId === producto.id);
 
-        if (!partida) {
-          return producto;
-        }
+    setProcesando(true);
+    try {
+      if (esCompra) {
+        await crearCompra({
+          partidas: carrito.map((item) => ({
+            productoId: item.productoId,
+            cantidad: item.cantidad,
+            precioCompra: item.precioUnitario,
+          })),
+        });
+        setFolioCobro(`COM-${Date.now()}`);
+        setTotalCobro(totalVenta);
+        toast.exito("La compra fue registrada y el inventario se actualizó.");
+      } else {
+        const venta = await crearVenta({
+          clienteId,
+          descuento: descuentoEfectivo,
+          partidas: carrito.map((item) => ({
+            productoId: item.productoId,
+            cantidad: item.cantidad,
+          })),
+        });
+        agregarVentaAcumulada(venta.total);
+        setFolioCobro(venta.id);
+        setTotalCobro(venta.total);
+        toast.exito("La transacción fue cobrada correctamente.");
+      }
 
-        return {
-          ...producto,
-          existencia: esCompra
-            ? producto.existencia + partida.cantidad
-            : Math.max(producto.existencia - partida.cantidad, 0),
-        };
-      }),
-    );
-
-    setFolioCobro(folio);
-    setTotalCobro(totalVenta);
-    setDialogCobroAbierto(true);
-    setCarrito([]);
-    setDescuentoAplicado(0);
-    setDescuentoCaptura("0");
-    mostrarMensaje(
-      esCompra
-        ? "La compra fue registrada y el inventario se actualizó."
-        : "La transacción fue cobrada correctamente.",
-      "success",
-    );
+      setDialogCobroAbierto(true);
+      setCarrito([]);
+      setDescuentoAplicado(0);
+      setDescuentoCaptura("0");
+      await cargarProductos();
+      if (activeTab === 1) {
+        await cargarHistorial();
+      }
+    } catch (error) {
+      toast.error(
+        mensajeErrorApi(
+          error,
+          esCompra
+            ? "No se pudo registrar la compra."
+            : "No se pudo registrar la venta en el punto de venta.",
+        ),
+      );
+    } finally {
+      setProcesando(false);
+    }
   };
 
   const cerrarDialogoCobro = () => {
@@ -492,31 +597,39 @@ export function PosCajaPage({
     setTotalCobro(0);
   };
 
-  const abrirCaja = () => {
+  const abrirCaja = async () => {
     if (!puedeAbrirCaja) {
-      mostrarMensaje("Tu rol no tiene permiso para abrir la caja.", "warning");
+      toast.info("Tu rol no tiene permiso para abrir la caja.");
       return;
     }
 
     const monto = Number.parseFloat(montoInicialCaptura);
 
     if (Number.isNaN(monto) || monto < 0) {
-      mostrarMensaje("Ingresa un monto inicial válido para abrir la caja.", "error");
+      toast.error("Ingresa un monto inicial válido para abrir la caja.");
       return;
     }
 
-    abrirCajaGlobal(monto);
-    mostrarMensaje(`Caja abierta con ${formatearMoneda(monto)} de fondo inicial.`, "success");
+    setProcesando(true);
+    try {
+      const caja = await abrirCajaApi(monto);
+      sincronizarApertura(caja);
+      toast.exito(`Caja abierta con ${formatearMoneda(monto)} de fondo inicial.`);
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo abrir la caja."));
+    } finally {
+      setProcesando(false);
+    }
   };
 
-  const registrarMovimiento = () => {
+  const registrarMovimiento = async () => {
     if (!puedeRegistrarMovimiento) {
-      mostrarMensaje("Tu rol no tiene permiso para registrar movimientos de caja.", "warning");
+      toast.info("Tu rol no tiene permiso para registrar movimientos de caja.");
       return;
     }
 
     if (!cajaAbierta) {
-      mostrarMensaje("Primero abre la caja para registrar movimientos.", "warning");
+      toast.info("Primero abre la caja para registrar movimientos.");
       return;
     }
 
@@ -524,69 +637,74 @@ export function PosCajaPage({
     const concepto = conceptoMovimiento.trim();
 
     if (!concepto) {
-      mostrarMensaje("Escribe el concepto del movimiento.", "error");
+      toast.error("Escribe el concepto del movimiento.");
       return;
     }
 
     if (Number.isNaN(monto) || monto <= 0) {
-      mostrarMensaje("El monto del movimiento debe ser mayor a cero.", "error");
+      toast.error("El monto del movimiento debe ser mayor a cero.");
       return;
     }
 
-    registrarMovimientoGlobal(concepto, monto, tipoFlujo);
-    setConceptoMovimiento("");
-    setMontoMovimiento("0");
-    mostrarMensaje(
-      `Movimiento de caja registrado como ${tipoFlujo === "Ingreso" ? "ingreso" : "egreso"}.`,
-      "success",
-    );
+    setProcesando(true);
+    try {
+      const movimiento = await registrarMovimientoCaja({
+        tipo: tipoFlujo === "Ingreso" ? "INGRESO" : "EGRESO",
+        monto,
+        motivo: concepto,
+      });
+      sincronizarMovimiento(movimiento);
+      setConceptoMovimiento("");
+      setMontoMovimiento("0");
+      toast.exito(
+        `Movimiento de caja registrado como ${tipoFlujo === "Ingreso" ? "ingreso" : "egreso"}.`,
+      );
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo registrar el movimiento de caja."));
+    } finally {
+      setProcesando(false);
+    }
   };
 
   const abrirDialogoCorte = () => {
     if (!puedeCerrarCaja) {
-      mostrarMensaje("Tu rol no tiene permiso para cerrar la caja.", "warning");
+      toast.info("Tu rol no tiene permiso para cerrar la caja.");
       return;
     }
 
     if (!cajaAbierta) {
-      mostrarMensaje("La caja debe estar abierta para realizar un corte.", "warning");
+      toast.info("La caja debe estar abierta para realizar un corte.");
       return;
     }
 
     if (carrito.length > 0) {
-      mostrarMensaje("Cobra o cancela la venta antes de cerrar la caja.", "warning");
+      toast.info("Cobra o cancela la venta antes de cerrar la caja.");
       return;
     }
 
     setDialogCorteAbierto(true);
   };
 
-  const cerrarCaja = () => {
+  const cerrarCaja = async () => {
     if (!cajaAbierta) {
       return;
     }
 
-    const fechaAperturaRegistro = fechaApertura ?? new Date().toISOString();
-    const fechaCierre = new Date().toISOString();
-
-    const corte: CorteCaja = {
-      id: `CORTE-${Date.now()}`,
-      folio: generarFolio("COR"),
-      fechaApertura: fechaAperturaRegistro,
-      fechaCierre,
-      montoInicial,
-      ventasTurno: ventasTurnoTotal,
-      ingresosManual,
-      egresosManual,
-      totalCierre: balanceCaja,
-      responsable: ETIQUETAS_ROL[rolActual],
-    };
-
-    setCortesCaja((cortesActuales) => [corte, ...cortesActuales]);
-    cerrarCajaGlobal();
-    setMontoInicialCaptura("0");
-    setDialogCorteAbierto(false);
-    mostrarMensaje(`Caja cerrada. Corte final: ${formatearMoneda(balanceCaja)}.`, "success");
+    setProcesando(true);
+    try {
+      const resumen = await cerrarCajaApi();
+      const corte = resumenCorteAUi(resumen, ETIQUETAS_ROL[rolActual]);
+      setCortesCaja((cortesActuales) => [corte, ...cortesActuales]);
+      finalizarTurno();
+      setMontoInicialCaptura("0");
+      setDialogCorteAbierto(false);
+      toast.exito(`Caja cerrada. Corte final: ${formatearMoneda(resumen.totalCierre)}.`);
+      await cargarHistorial();
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo realizar el corte de caja."));
+    } finally {
+      setProcesando(false);
+    }
   };
 
   return (
@@ -611,12 +729,6 @@ export function PosCajaPage({
           </Stack>
         }
       />
-
-      {mensajeSistema ? (
-        <Alert severity={mensajeSistema.severidad} onClose={limpiarMensaje} sx={{ mb: 3 }}>
-          {mensajeSistema.texto}
-        </Alert>
-      ) : null}
 
       {hideTabs ? null : (
         <Paper variant="outlined" sx={{ mb: 3 }}>
@@ -667,6 +779,7 @@ export function PosCajaPage({
                     placeholder="Buscar por clave o nombre"
                     size="small"
                     fullWidth
+                    disabled={cargandoProductos}
                     slotProps={{
                       input: {
                         startAdornment: (
@@ -678,62 +791,68 @@ export function PosCajaPage({
                     }}
                   />
 
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Clave</TableCell>
-                          <TableCell>Nombre</TableCell>
-                          <TableCell align="right">Precio</TableCell>
-                          <TableCell align="right">Existencia</TableCell>
-                          <TableCell>Estado</TableCell>
-                          <TableCell align="center">Acción</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {productosFiltrados.length === 0 ? (
+                  {cargandoProductos ? (
+                    <SkeletonTabla filas={6} columnas={6} />
+                  ) : (
+                    <TableContainer component={Paper} variant="outlined">
+                      <Table size="small">
+                        <TableHead>
                           <TableRow>
-                            <TableCell colSpan={6} align="center">
-                              <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                                No hay productos que coincidan con la búsqueda.
-                              </Typography>
-                            </TableCell>
+                            <TableCell>Clave</TableCell>
+                            <TableCell>Nombre</TableCell>
+                            <TableCell align="right">Precio</TableCell>
+                            <TableCell align="right">Existencia</TableCell>
+                            <TableCell>Estado</TableCell>
+                            <TableCell align="center">Acción</TableCell>
                           </TableRow>
-                        ) : (
-                          productosFiltrados.map((producto) => {
-                            const cantidadActual = cantidadEnCarrito(producto.id);
-                            const sinExistencia =
-                              !esCompra && cantidadActual >= producto.existencia;
+                        </TableHead>
+                        <TableBody>
+                          {productosFiltrados.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} align="center">
+                                <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
+                                  No hay productos que coincidan con la búsqueda.
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            productosFiltrados.map((producto) => {
+                              const cantidadActual = cantidadEnCarrito(producto.id);
+                              const sinExistencia =
+                                !esCompra && cantidadActual >= producto.existencia;
 
-                            return (
-                              <TableRow key={producto.id} hover>
-                                <TableCell>{producto.clave}</TableCell>
-                                <TableCell>{producto.nombre}</TableCell>
-                                <TableCell align="right">
-                                  {formatearMoneda(precioSegunModo(producto, modo))}
-                                </TableCell>
-                                <TableCell align="right">{producto.existencia}</TableCell>
-                                <TableCell>
-                                  <EstadoChip activo={producto.estado === "Activo"} />
-                                </TableCell>
-                                <TableCell align="center">
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={<AddIcon />}
-                                    onClick={() => agregarProducto(producto)}
-                                    disabled={(!esCompra && !cajaAbierta) || sinExistencia}
-                                  >
-                                    Agregar
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                              return (
+                                <TableRow key={producto.id} hover>
+                                  <TableCell>{producto.clave}</TableCell>
+                                  <TableCell>{producto.nombre}</TableCell>
+                                  <TableCell align="right">
+                                    {formatearMoneda(precioSegunModo(producto, modo))}
+                                  </TableCell>
+                                  <TableCell align="right">{producto.existencia}</TableCell>
+                                  <TableCell>
+                                    <EstadoChip activo={producto.estado === "Activo"} />
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<AddIcon />}
+                                      onClick={() => agregarProducto(producto)}
+                                      disabled={
+                                        procesando || (!esCompra && !cajaAbierta) || sinExistencia
+                                      }
+                                    >
+                                      Agregar
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  )}
                 </Stack>
               </PanelSeccion>
             </Grid>
@@ -748,6 +867,25 @@ export function PosCajaPage({
                 }
               >
                 <Stack spacing={2}>
+                  {!esCompra ? (
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="cliente-pos-label">Cliente</InputLabel>
+                      <Select
+                        labelId="cliente-pos-label"
+                        label="Cliente"
+                        value={clienteId}
+                        onChange={(event) => setClienteId(event.target.value)}
+                        disabled={clientes.length === 0 || procesando}
+                      >
+                        {clientes.map((cliente) => (
+                          <MenuItem key={cliente.id} value={cliente.id}>
+                            {cliente.nombre}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  ) : null}
+
                   {carrito.length === 0 ? (
                     <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
                       <Typography variant="body2" color="text.secondary">
@@ -775,6 +913,7 @@ export function PosCajaPage({
                               color="error"
                               onClick={() => eliminarPartida(item.productoId)}
                               aria-label={`Eliminar ${item.nombre}`}
+                              disabled={procesando}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -791,6 +930,7 @@ export function PosCajaPage({
                                 size="small"
                                 onClick={() => decrementarCantidad(item.productoId)}
                                 aria-label={`Disminuir ${item.nombre}`}
+                                disabled={procesando}
                               >
                                 <RemoveIcon fontSize="small" />
                               </IconButton>
@@ -804,7 +944,7 @@ export function PosCajaPage({
                                 size="small"
                                 onClick={() => incrementarCantidad(item.productoId)}
                                 aria-label={`Incrementar ${item.nombre}`}
-                                disabled={!esCompra && !cajaAbierta}
+                                disabled={procesando || (!esCompra && !cajaAbierta)}
                               >
                                 <AddIcon fontSize="small" />
                               </IconButton>
@@ -822,36 +962,40 @@ export function PosCajaPage({
 
                   <Stack spacing={1.25}>
                     <ResumenMonto etiqueta="Subtotal" valor={formatearMoneda(subtotalCarrito)} />
-                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                      <TextField
-                        label="Descuento manual"
-                        type="number"
-                        value={descuentoCaptura}
-                        onChange={(event) =>
-                          setDescuentoCaptura(event.target.value.replace(/[^\d.]/g, ""))
-                        }
-                        size="small"
-                        fullWidth
-                        disabled={
-                          !puedeDescuento || carrito.length === 0 || (!esCompra && !cajaAbierta)
-                        }
-                        inputProps={{ min: 0, step: "0.01" }}
-                      />
-                      <Button
-                        variant="outlined"
-                        onClick={aplicarDescuento}
-                        disabled={
-                          !puedeDescuento || carrito.length === 0 || (!esCompra && !cajaAbierta)
-                        }
-                      >
-                        Aplicar descuento
-                      </Button>
-                    </Stack>
-                    <ResumenMonto
-                      etiqueta="Descuento aplicado"
-                      valor={formatearMoneda(descuentoEfectivo)}
-                    />
-                    <ResumenMonto etiqueta="IVA (16%)" valor={formatearMoneda(iva)} />
+                    {!esCompra ? (
+                      <>
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                          <TextField
+                            label="Descuento manual"
+                            type="number"
+                            value={descuentoCaptura}
+                            onChange={(event) =>
+                              setDescuentoCaptura(event.target.value.replace(/[^\d.]/g, ""))
+                            }
+                            size="small"
+                            fullWidth
+                            disabled={
+                              procesando || !puedeDescuento || carrito.length === 0 || !cajaAbierta
+                            }
+                            inputProps={{ min: 0, step: "0.01" }}
+                          />
+                          <Button
+                            variant="outlined"
+                            onClick={aplicarDescuento}
+                            disabled={
+                              procesando || !puedeDescuento || carrito.length === 0 || !cajaAbierta
+                            }
+                          >
+                            Aplicar descuento
+                          </Button>
+                        </Stack>
+                        <ResumenMonto
+                          etiqueta="Descuento aplicado"
+                          valor={formatearMoneda(descuentoEfectivo)}
+                        />
+                        <ResumenMonto etiqueta="IVA (16%)" valor={formatearMoneda(iva)} />
+                      </>
+                    ) : null}
                     <ResumenMonto
                       etiqueta={esCompra ? "Total de la compra" : "Total de la venta"}
                       valor={formatearMoneda(totalVenta)}
@@ -860,25 +1004,31 @@ export function PosCajaPage({
                   </Stack>
 
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                    <Button
-                      variant="outlined"
-                      color="warning"
-                      fullWidth
-                      onClick={cancelarVenta}
-                      disabled={
-                        !puedeCancelar || carrito.length === 0 || (!esCompra && !cajaAbierta)
-                      }
-                    >
-                      {esCompra ? "Cancelar compra" : "Cancelar venta"}
-                    </Button>
+                    {!esCompra ? (
+                      <Button
+                        variant="outlined"
+                        color="warning"
+                        fullWidth
+                        onClick={cancelarVenta}
+                        disabled={
+                          procesando || !puedeCancelar || carrito.length === 0 || !cajaAbierta
+                        }
+                      >
+                        Cancelar venta
+                      </Button>
+                    ) : null}
                     <Button
                       variant="contained"
                       fullWidth
                       startIcon={<PointOfSaleIcon />}
-                      onClick={cobrarTransaccion}
-                      disabled={carrito.length === 0 || (!esCompra && !cajaAbierta)}
+                      onClick={() => void cobrarTransaccion()}
+                      disabled={procesando || carrito.length === 0 || (!esCompra && !cajaAbierta)}
                     >
-                      {esCompra ? "Registrar compra" : "Cobrar transacción"}
+                      {procesando
+                        ? "Procesando..."
+                        : esCompra
+                          ? "Registrar compra"
+                          : "Cobrar transacción"}
                     </Button>
                   </Stack>
                 </Stack>
@@ -913,9 +1063,13 @@ export function PosCajaPage({
                     }
                     fullWidth
                     inputProps={{ min: 0, step: "0.01" }}
-                    disabled={cajaAbierta}
+                    disabled={cajaAbierta || procesando}
                   />
-                  <Button variant="contained" onClick={abrirCaja} disabled={cajaAbierta}>
+                  <Button
+                    variant="contained"
+                    onClick={() => void abrirCaja()}
+                    disabled={cajaAbierta || procesando}
+                  >
                     Abrir caja
                   </Button>
                   <Typography variant="body2" color="text.secondary">
@@ -939,7 +1093,8 @@ export function PosCajaPage({
                   <FormControl fullWidth size="small">
                     <Select
                       value={tipoFlujo}
-                      onChange={(event) => setTipoFlujo(event.target.value as TipoFlujoForm)}
+                      onChange={(event) => setTipoFlujo(event.target.value as TipoMovimientoCaja)}
+                      disabled={!cajaAbierta || procesando}
                     >
                       <MenuItem value="Ingreso">Ingreso</MenuItem>
                       <MenuItem value="Egreso">Egreso</MenuItem>
@@ -951,7 +1106,7 @@ export function PosCajaPage({
                     value={conceptoMovimiento}
                     onChange={(event) => setConceptoMovimiento(event.target.value)}
                     fullWidth
-                    disabled={!cajaAbierta}
+                    disabled={!cajaAbierta || procesando}
                   />
 
                   <TextField
@@ -963,10 +1118,14 @@ export function PosCajaPage({
                     }
                     fullWidth
                     inputProps={{ min: 0, step: "0.01" }}
-                    disabled={!cajaAbierta}
+                    disabled={!cajaAbierta || procesando}
                   />
 
-                  <Button variant="outlined" onClick={registrarMovimiento} disabled={!cajaAbierta}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => void registrarMovimiento()}
+                    disabled={!cajaAbierta || procesando}
+                  >
                     Registrar movimiento
                   </Button>
 
@@ -1034,14 +1193,14 @@ export function PosCajaPage({
             <Grid item xs={12}>
               <PanelSeccion
                 titulo="Cierre con corte"
-                descripcion="Balance totalizado calculado en el front: apertura + ventas + ingresos - egresos."
+                descripcion="Balance totalizado del turno: apertura + ventas + ingresos − egresos."
                 acciones={
                   <Button
                     variant="contained"
                     color="secondary"
                     startIcon={<AttachMoneyIcon />}
                     onClick={abrirDialogoCorte}
-                    disabled={!cajaAbierta || carrito.length > 0}
+                    disabled={!cajaAbierta || carrito.length > 0 || procesando}
                   >
                     Cierre de caja
                   </Button>
@@ -1083,16 +1242,20 @@ export function PosCajaPage({
             <Grid item xs={12} md={6}>
               <PanelSeccion
                 titulo="Historial de ventas previas"
-                descripcion="Ventas registradas en turnos anteriores."
+                descripcion="Ventas registradas en el sistema."
               >
-                <TablaVentasHistoricas ventas={VENTAS_POS_MOCK} />
+                {cargandoHistorial ? (
+                  <SkeletonTabla filas={4} columnas={6} />
+                ) : (
+                  <TablaVentasHistoricas ventas={ventasHistorial} />
+                )}
               </PanelSeccion>
             </Grid>
 
             <Grid item xs={12} md={6}>
               <PanelSeccion
                 titulo="Cortes de caja previos"
-                descripcion="Cortes de caja de turnos anteriores."
+                descripcion="Cortes realizados en esta sesión."
               >
                 <TablaCortesHistoricos cortes={cortesCaja} />
               </PanelSeccion>
@@ -1118,7 +1281,7 @@ export function PosCajaPage({
                   valor={formatearMoneda(totalCobro)}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  El carrito se limpió por completo y la venta quedó registrada en el turno.
+                  El carrito se limpió por completo y la operación quedó registrada.
                 </Typography>
               </Stack>
             </Paper>
@@ -1169,8 +1332,13 @@ export function PosCajaPage({
           <Button onClick={() => setDialogCorteAbierto(false)} variant="outlined">
             Cancelar
           </Button>
-          <Button onClick={cerrarCaja} variant="contained" color="secondary">
-            Cerrar caja
+          <Button
+            onClick={() => void cerrarCaja()}
+            variant="contained"
+            color="secondary"
+            disabled={procesando}
+          >
+            {procesando ? "Cerrando..." : "Cerrar caja"}
           </Button>
         </DialogActions>
       </Dialog>
