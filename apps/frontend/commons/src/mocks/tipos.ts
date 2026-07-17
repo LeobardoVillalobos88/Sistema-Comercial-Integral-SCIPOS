@@ -31,19 +31,5 @@ export interface Cliente {
   activo: boolean;
 }
 
-export interface PartidaCotizacion {
-  productoId: string;
-  cantidad: number;
-  precioUnitario: number;
-}
-
+/** Estados del ciclo de vida de una cotización (RF-13→17). */
 export type EstadoCotizacion = "BORRADOR" | "ENVIADA" | "VENDIDA";
-
-export interface Cotizacion {
-  id: string;
-  folio: string;
-  clienteId: string;
-  fecha: string;
-  estado: EstadoCotizacion;
-  partidas: PartidaCotizacion[];
-}
