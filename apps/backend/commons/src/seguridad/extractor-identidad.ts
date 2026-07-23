@@ -1,6 +1,3 @@
-import { Injectable } from "@nestjs/common";
-import { HEADER_USUARIO_ID } from "../contratos/identidad";
-
 /** Token de inyección del extractor de identidad. */
 export const EXTRACTOR_IDENTIDAD = "EXTRACTOR_IDENTIDAD";
 
@@ -16,16 +13,4 @@ export interface PeticionConCabeceras {
  */
 export interface ExtractorIdentidad {
   extraer(peticion: PeticionConCabeceras): string | null;
-}
-
-/** Obtiene la identidad del usuario desde el header `x-usuario-id`. */
-@Injectable()
-export class ExtractorIdentidadHeader implements ExtractorIdentidad {
-  extraer(peticion: PeticionConCabeceras): string | null {
-    const valor = peticion.headers[HEADER_USUARIO_ID];
-    if (typeof valor !== "string" || valor.trim() === "") {
-      return null;
-    }
-    return valor.trim();
-  }
 }

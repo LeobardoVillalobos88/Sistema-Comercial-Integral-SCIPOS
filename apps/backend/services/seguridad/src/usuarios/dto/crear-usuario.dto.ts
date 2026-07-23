@@ -15,4 +15,9 @@ export class CrearUsuarioDto {
   @IsString()
   @MinLength(1, { message: "El rol es obligatorio." })
   rol!: string;
+
+  @ApiProperty({ example: "Vendedor1234", description: "Contraseña de acceso" })
+  @IsString()
+  @MinLength(8, { message: "La contraseña debe tener al menos 8 caracteres." })
+  contrasena!: string;
 }

@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
 import { ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
-import { RequiereIdentidad, RequierePrivilegio } from "@scipos/backend-commons";
+import { RequiereIdentidad, RequierePrivilegio, UsuarioActual } from "@scipos/backend-commons";
 import { PrivilegiosService } from "../privilegios/privilegios.service";
 import { ActualizarUsuarioDto } from "./dto/actualizar-usuario.dto";
 import { AjustarPrivilegioUsuarioDto } from "./dto/ajustar-privilegio-usuario.dto";
@@ -16,9 +16,10 @@ export class UsuariosController {
   ) {}
 
   @Get()
+  @RequierePrivilegio("seguridad:ver")
   @ApiOperation({
     summary: "Listar usuarios",
-    description: "Endpoint público: el frontend lo usa para poblar el selector de usuario activo.",
+    description: "Solo para administración de usuarios (privilegio seguridad:ver).",
   })
   listar() {
     return this.usuarios.listar();
@@ -65,6 +66,14 @@ export class UsuariosController {
   @ApiParam({ name: "id", example: "usuario-vendedor" })
   ajustarPrivilegio(@Param("id") id: string, @Body() dto: AjustarPrivilegioUsuarioDto) {
     return this.usuarios.ajustarPrivilegio(id, dto);
+  }
+
+  @Delete(":id")
+  @RequierePrivilegio("seguridad:eliminar")
+  @ApiOperation({ summary: "Eliminar definitivamente un usuario" })
+  @ApiParam({ name: "id", example: "usuario-vendedor" })
+  eliminar(@Param("id") id: string, @UsuarioActual() solicitanteId: string) {
+    return this.usuarios.eliminar(id, solicitanteId);
   }
 
   @Delete(":id/privilegios/:privilegio")

@@ -1,5 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { UsuarioSesion } from "@scipos/backend-commons";
+import { hash } from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
 import { PrivilegiosService } from "../privilegios/privilegios.service";
 import type { ActualizarUsuarioDto } from "./dto/actualizar-usuario.dto";
@@ -35,7 +41,12 @@ export class UsuariosService {
       throw new ConflictException(`Ya existe un usuario con el correo "${dto.correo}".`);
     }
     const usuario = await this.prisma.usuario.create({
-      data: { nombre: dto.nombre, correo: dto.correo, rolClave: dto.rol },
+      data: {
+        nombre: dto.nombre,
+        correo: dto.correo,
+        rolClave: dto.rol,
+        contrasenaHash: await hash(dto.contrasena, 10),
+      },
     });
     return this.aSesion(usuario);
   }
@@ -52,10 +63,22 @@ export class UsuariosService {
         correo: dto.correo,
         rolClave: dto.rol,
         estado: dto.estado,
+        contrasenaHash: dto.contrasena ? await hash(dto.contrasena, 10) : undefined,
       },
     });
     await this.privilegios.invalidarUsuario(id);
     return this.aSesion(usuario);
+  }
+
+  /** Elimina definitivamente un usuario; nadie puede eliminarse a sí mismo. */
+  async eliminar(id: string, solicitanteId: string) {
+    await this.obtener(id);
+    if (id === solicitanteId) {
+      throw new BadRequestException("No puedes eliminar tu propio usuario.");
+    }
+    await this.prisma.usuario.delete({ where: { id } });
+    await this.privilegios.invalidarUsuario(id);
+    return { eliminado: true };
   }
 
   /** Concede o revoca un privilegio específico a un usuario (RF-03). */

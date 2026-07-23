@@ -22,4 +22,10 @@ export class ActualizarUsuarioDto {
   @IsOptional()
   @IsIn(["ACTIVO", "INACTIVO"], { message: "El estado debe ser ACTIVO o INACTIVO." })
   estado?: "ACTIVO" | "INACTIVO";
+
+  @ApiPropertyOptional({ example: "NuevaClave1234", description: "Nueva contraseña de acceso" })
+  @IsOptional()
+  @IsString()
+  @MinLength(8, { message: "La contraseña debe tener al menos 8 caracteres." })
+  contrasena?: string;
 }

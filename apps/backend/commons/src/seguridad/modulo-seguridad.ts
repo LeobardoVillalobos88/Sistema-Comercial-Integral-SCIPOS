@@ -1,7 +1,8 @@
 import { type DynamicModule, Module, type Type } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { PROVEEDOR_PRIVILEGIOS, type ProveedorPrivilegios } from "../contratos/privilegios";
-import { EXTRACTOR_IDENTIDAD, ExtractorIdentidadHeader } from "./extractor-identidad";
+import { EXTRACTOR_IDENTIDAD, type ExtractorIdentidad } from "./extractor-identidad";
+import { ExtractorIdentidadJwt } from "./extractor-identidad-jwt";
 import { GuardPrivilegios } from "./guard-privilegios";
 import { ProveedorPrivilegiosHttp } from "./proveedor-privilegios-http";
 
@@ -12,6 +13,12 @@ export interface OpcionesModuloSeguridad {
    * aquí su implementación local para no llamarse a sí mismo.
    */
   proveedorPrivilegios?: Type<ProveedorPrivilegios>;
+  /**
+   * Estrategia de identidad. Por defecto se usa ExtractorIdentidadJwt:
+   * token Bearer para peticiones externas y header x-usuario-id para las
+   * llamadas entre servicios.
+   */
+  extractorIdentidad?: Type<ExtractorIdentidad>;
 }
 
 /**
@@ -30,7 +37,10 @@ export class ModuloSeguridad {
       module: ModuloSeguridad,
       global: true,
       providers: [
-        { provide: EXTRACTOR_IDENTIDAD, useClass: ExtractorIdentidadHeader },
+        {
+          provide: EXTRACTOR_IDENTIDAD,
+          useClass: opciones.extractorIdentidad ?? ExtractorIdentidadJwt,
+        },
         {
           provide: PROVEEDOR_PRIVILEGIOS,
           useClass: opciones.proveedorPrivilegios ?? ProveedorPrivilegiosHttp,

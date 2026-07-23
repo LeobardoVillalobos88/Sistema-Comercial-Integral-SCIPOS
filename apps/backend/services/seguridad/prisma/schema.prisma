@@ -41,10 +41,12 @@ model RolPrivilegio {
 }
 
 model Usuario {
-  id          String              @id @default(uuid())
-  nombre      String
-  correo      String              @unique
-  estado      EstadoUsuario       @default(ACTIVO)
+  id            String              @id @default(uuid())
+  nombre        String
+  correo        String              @unique
+  /// Hash bcrypt de la contraseña; vacío mientras el usuario no tenga acceso con credenciales.
+  contrasenaHash String             @default("")
+  estado        EstadoUsuario       @default(ACTIVO)
   rolClave    String
   rol         Rol                 @relation(fields: [rolClave], references: [clave])
   privilegios UsuarioPrivilegio[]

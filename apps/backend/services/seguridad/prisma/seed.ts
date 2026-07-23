@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashSync } from "bcryptjs";
 import { PrismaClient } from ".prisma/client";
 
 /**
@@ -36,8 +37,10 @@ const CATALOGO_PRIVILEGIOS: Array<{ clave: string; descripcion: string }> = [
   { clave: "caja:movimiento", descripcion: "Registrar ingresos y egresos de caja" },
   { clave: "caja:cerrar", descripcion: "Cerrar la caja y generar el corte" },
   { clave: "reportes:ver", descripcion: "Consultar reportes comerciales" },
+  { clave: "seguridad:ver", descripcion: "Ver la administración de usuarios" },
   { clave: "seguridad:crear", descripcion: "Registrar usuarios del sistema" },
   { clave: "seguridad:editar", descripcion: "Editar usuarios del sistema" },
+  { clave: "seguridad:eliminar", descripcion: "Eliminar usuarios definitivamente" },
   { clave: "seguridad:asignar", descripcion: "Asignar o revocar privilegios a roles y usuarios" },
 ];
 
@@ -90,30 +93,37 @@ const MATRIZ_ROLES: Record<string, string[]> = {
   ],
 };
 
-/** Usuarios semilla, uno por rol, con IDs fijos conocidos por todo el equipo. */
+/**
+ * Usuarios semilla, uno por rol, con IDs fijos y credenciales de demostración
+ * conocidas por todo el equipo (misma tabla que CREDENCIALES_DEMO del frontend).
+ */
 const USUARIOS_SEMILLA = [
   {
     id: "usuario-administrador",
     nombre: "Administrador General",
-    correo: "administrador@scipos.mx",
+    correo: "admin@scipos.com",
+    contrasena: "Admin1234",
     rolClave: "ADMINISTRADOR",
   },
   {
     id: "usuario-vendedor",
     nombre: "Vendedor de Mostrador",
-    correo: "vendedor@scipos.mx",
+    correo: "vendedor@scipos.com",
+    contrasena: "Vendedor1234",
     rolClave: "VENDEDOR",
   },
   {
     id: "usuario-cajero",
     nombre: "Cajero Principal",
-    correo: "cajero@scipos.mx",
+    correo: "cajero@scipos.com",
+    contrasena: "Cajero1234",
     rolClave: "CAJERO",
   },
   {
     id: "usuario-supervisor",
     nombre: "Supervisor de Tienda",
-    correo: "supervisor@scipos.mx",
+    correo: "supervisor@scipos.com",
+    contrasena: "Supervisor1234",
     rolClave: "SUPERVISOR",
   },
 ];
@@ -151,10 +161,16 @@ async function main() {
   }
 
   for (const usuario of USUARIOS_SEMILLA) {
+    const datos = {
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      rolClave: usuario.rolClave,
+      contrasenaHash: hashSync(usuario.contrasena, 10),
+    };
     await prisma.usuario.upsert({
       where: { id: usuario.id },
-      update: { nombre: usuario.nombre, correo: usuario.correo, rolClave: usuario.rolClave },
-      create: usuario,
+      update: datos,
+      create: { id: usuario.id, ...datos },
     });
   }
 
