@@ -4,8 +4,8 @@ import { PrismaClient } from ".prisma/client";
 
 /**
  * Semilla del servicio de productos. Usa los mismos IDs que
- * `PRODUCTOS_MOCK` en `apps/frontend/commons/src/mocks/productos.ts` para
- * que la demo embone igual que con los mocks del frontend.
+ * `PRODUCTOS_MOCK` en `apps/frontend/commons/src/mocks/productos.ts`, que
+ * los servicios de cotizaciones y ventas referencian en sus semillas.
  */
 const PRODUCTOS = [
   {
@@ -28,17 +28,6 @@ const PRODUCTOS = [
     precioVenta: 18.0,
     existencia: 240,
     fechaCaducidad: "2026-09-15",
-    activo: true,
-  },
-  {
-    id: "p-003",
-    lote: "BEB-011",
-    nombre: "Agua embotellada 1L",
-    tipo: "PRODUCTO",
-    precioCompra: 7.8,
-    precioVenta: 12.0,
-    existencia: 300,
-    fechaCaducidad: "2027-01-20",
     activo: true,
   },
   {
@@ -75,17 +64,6 @@ const PRODUCTOS = [
     activo: true,
   },
   {
-    id: "p-007",
-    lote: "LIM-041",
-    nombre: "Jabón de tocador",
-    tipo: "PRODUCTO",
-    precioCompra: 9.4,
-    precioVenta: 14.5,
-    existencia: 150,
-    fechaCaducidad: "2028-01-15",
-    activo: true,
-  },
-  {
     id: "p-008",
     lote: "PAP-050",
     nombre: "Papel higiénico 4 rollos",
@@ -97,50 +75,6 @@ const PRODUCTOS = [
     activo: true,
   },
   {
-    id: "p-009",
-    lote: "SNK-060",
-    nombre: "Frituras 45g",
-    tipo: "PRODUCTO",
-    precioCompra: 10.4,
-    precioVenta: 16.0,
-    existencia: 200,
-    fechaCaducidad: "2026-10-12",
-    activo: true,
-  },
-  {
-    id: "p-010",
-    lote: "SNK-061",
-    nombre: "Galletas surtidas",
-    tipo: "PRODUCTO",
-    precioCompra: 14.3,
-    precioVenta: 22.0,
-    existencia: 110,
-    fechaCaducidad: "2026-12-01",
-    activo: true,
-  },
-  {
-    id: "p-011",
-    lote: "ENL-070",
-    nombre: "Atún en lata",
-    tipo: "PRODUCTO",
-    precioCompra: 16.2,
-    precioVenta: 24.9,
-    existencia: 70,
-    fechaCaducidad: "2027-05-18",
-    activo: true,
-  },
-  {
-    id: "p-012",
-    lote: "ENL-071",
-    nombre: "Frijoles refritos lata",
-    tipo: "PRODUCTO",
-    precioCompra: 12.9,
-    precioVenta: 19.9,
-    existencia: 65,
-    fechaCaducidad: "2027-04-22",
-    activo: false,
-  },
-  {
     id: "p-013",
     lote: "SRV-100",
     nombre: "Servicio de paquetería",
@@ -149,59 +83,6 @@ const PRODUCTOS = [
     precioVenta: 65.0,
     existencia: 0,
     activo: true,
-  },
-  {
-    id: "p-014",
-    lote: "SRV-101",
-    nombre: "Recarga de tiempo aire",
-    tipo: "SERVICIO",
-    precioCompra: 0,
-    precioVenta: 50.0,
-    existencia: 0,
-    activo: true,
-  },
-  {
-    id: "p-015",
-    lote: "SRV-102",
-    nombre: "Pago de servicios",
-    tipo: "SERVICIO",
-    precioCompra: 0,
-    precioVenta: 10.0,
-    existencia: 0,
-    activo: true,
-  },
-  {
-    id: "p-016",
-    lote: "DUL-080",
-    nombre: "Dulces a granel 100g",
-    tipo: "PRODUCTO",
-    precioCompra: 6.2,
-    precioVenta: 9.5,
-    existencia: 500,
-    fechaCaducidad: "2026-09-30",
-    activo: true,
-  },
-  {
-    id: "p-017",
-    lote: "CAF-090",
-    nombre: "Café soluble 200g",
-    tipo: "PRODUCTO",
-    precioCompra: 50.7,
-    precioVenta: 78.0,
-    existencia: 40,
-    fechaCaducidad: "2027-11-11",
-    activo: true,
-  },
-  {
-    id: "p-018",
-    lote: "HIG-110",
-    nombre: "Cepillo dental",
-    tipo: "PRODUCTO",
-    precioCompra: 13.7,
-    precioVenta: 21.0,
-    existencia: 0,
-    fechaCaducidad: "2029-01-01",
-    activo: false,
   },
 ] as const;
 

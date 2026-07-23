@@ -3,8 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from ".prisma/client";
 
 /**
- * Semilla del servicio ventas-caja. Usa los mismos IDs que los mocks del
- * frontend (`VENTAS_POS_MOCK`, `CORTES_CAJA_MOCK` en pos-caja-front) y los
+ * Semilla del servicio ventas-caja. Usa IDs fijos conocidos por el equipo y los
  * IDs de productos del servicio de productos (`p-00x`).
  */
 const CAJA_HISTORICA = {
