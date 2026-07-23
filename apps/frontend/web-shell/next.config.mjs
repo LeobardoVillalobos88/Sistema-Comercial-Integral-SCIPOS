@@ -8,6 +8,7 @@ const nextConfig = {
     "@scipos/clientes-front",
     "@scipos/cotizaciones-front",
     "@scipos/pos-caja-front",
+    "@scipos/reportes-front",
   ],
 };
 

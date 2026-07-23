@@ -38,11 +38,16 @@ export function serviciosEnrutados(): ServicioEnrutado[] {
       nombre: "Servicio de ventas POS y caja",
       url: process.env.VENTAS_CAJA_URL ?? "http://localhost:4005",
     },
+    {
+      ruta: "reportes",
+      nombre: "Servicio de reportes y utilidad",
+      url: process.env.REPORTES_URL ?? "http://localhost:4006",
+    },
   ];
 }
 
 /** Orígenes del frontend autorizados para consumir el gateway. */
 export function origenesPermitidos(): string[] {
-  const puertos = [3001, 3002, 3003, 3004, 3005, 3006];
+  const puertos = [3001, 3002, 3003, 3004, 3005, 3006, 3007];
   return puertos.flatMap((puerto) => [`http://localhost:${puerto}`, `http://127.0.0.1:${puerto}`]);
 }
