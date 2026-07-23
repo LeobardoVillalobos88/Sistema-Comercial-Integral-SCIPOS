@@ -14,7 +14,9 @@ export interface ItemNavegacion {
     | "description"
     | "point_of_sale"
     | "shopping_cart"
-    | "savings";
+    | "savings"
+    | "assessment"
+    | "manage_accounts";
   /** Privilegio necesario para ver el módulo (si aplica). */
   privilegio?: Privilegio;
 }
@@ -61,5 +63,17 @@ export const NAVEGACION: ItemNavegacion[] = [
     ruta: "/caja",
     icono: "savings",
     privilegio: "caja:ver",
+  },
+  {
+    etiqueta: "Reportes",
+    ruta: "/reportes",
+    icono: "assessment",
+    privilegio: "reportes:ver",
+  },
+  {
+    etiqueta: "Usuarios",
+    ruta: "/usuarios",
+    icono: "manage_accounts",
+    privilegio: "seguridad:ver",
   },
 ];

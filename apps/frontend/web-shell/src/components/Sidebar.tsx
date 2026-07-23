@@ -1,10 +1,12 @@
 "use client";
 
 import { NAVEGACION } from "@/config/navegacion";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InsightsIcon from "@mui/icons-material/Insights";
 import InventoryIcon from "@mui/icons-material/Inventory2";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PeopleIcon from "@mui/icons-material/People";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import SavingsIcon from "@mui/icons-material/Savings";
@@ -28,6 +30,8 @@ const ICONOS = {
   point_of_sale: PointOfSaleIcon,
   shopping_cart: ShoppingCartIcon,
   savings: SavingsIcon,
+  assessment: AssessmentIcon,
+  manage_accounts: ManageAccountsIcon,
 } as const;
 
 interface SidebarProps {
