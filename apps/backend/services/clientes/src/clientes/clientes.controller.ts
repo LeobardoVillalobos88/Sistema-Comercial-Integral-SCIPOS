@@ -1,6 +1,11 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiParam, ApiQuery, ApiTags } from "@nestjs/swagger";
-import { HEADER_USUARIO_ID, RequiereIdentidad, RequierePrivilegio } from "@scipos/backend-commons";
+import {
+  HEADER_USUARIO_ID,
+  RequiereIdentidad,
+  RequierePrivilegio,
+  UsuarioActual,
+} from "@scipos/backend-commons";
 import { ClientesService } from "./clientes.service";
 import { ActualizarClienteDto } from "./dto/actualizar-cliente.dto";
 import { ActualizarEstadoDto } from "./dto/actualizar-estado.dto";
@@ -47,7 +52,7 @@ export class ClientesController {
   @ApiOperation({ summary: "Obtener historial de cotizaciones y ventas de un cliente" })
   @ApiParam({ name: "id", example: "c-001" })
   @ApiHeader({ name: HEADER_USUARIO_ID, required: true })
-  obtenerHistorial(@Param("id") id: string, @Headers(HEADER_USUARIO_ID) usuarioId: string) {
+  obtenerHistorial(@Param("id") id: string, @UsuarioActual() usuarioId: string) {
     return this.clientes.obtenerHistorial(id, usuarioId);
   }
 

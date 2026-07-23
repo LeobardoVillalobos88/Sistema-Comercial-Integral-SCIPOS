@@ -25,7 +25,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { HEADER_USUARIO_ID, RequierePrivilegio } from "@scipos/backend-commons";
+import { HEADER_USUARIO_ID, RequierePrivilegio, UsuarioActual } from "@scipos/backend-commons";
 
 import { CotizacionesService } from "./cotizaciones.service";
 import { CrearCotizacionDto } from "./dto/crear-cotizacion.dto";
@@ -48,7 +48,7 @@ export class CotizacionesController {
   @ApiBadRequestResponse({ description: "Datos de entrada inválidos" })
   crear(
     @Body() dto: CrearCotizacionDto,
-    @Headers(HEADER_USUARIO_ID) usuarioId: string,
+    @UsuarioActual() usuarioId: string,
   ): Promise<CotizacionRespuestaDto> {
     return this.cotizaciones.crear(dto, usuarioId);
   }
@@ -107,7 +107,7 @@ export class CotizacionesController {
   @ApiConflictResponse({ description: "La cotización no está ENVIADA" })
   convertir(
     @Param("id") id: string,
-    @Headers(HEADER_USUARIO_ID) usuarioId: string,
+    @UsuarioActual() usuarioId: string,
   ): Promise<CotizacionRespuestaDto> {
     return this.cotizaciones.convertir(id, usuarioId);
   }
