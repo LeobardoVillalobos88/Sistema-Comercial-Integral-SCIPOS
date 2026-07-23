@@ -1,4 +1,10 @@
-import { type Cliente, ErrorApi, type Producto, llamarApi } from "@scipos/frontend-commons";
+import {
+  type Cliente,
+  ErrorApi,
+  type Producto,
+  descargarArchivo,
+  llamarApi,
+} from "@scipos/frontend-commons";
 import type {
   CorteCaja,
   ItemCarrito,
@@ -176,6 +182,16 @@ export async function crearCompra(payload: CrearCompraPayload): Promise<unknown>
 
 export async function consultarEstadoCaja(): Promise<EstadoCajaApi> {
   return llamarApi<EstadoCajaApi>("/ventas-caja/caja/estado");
+}
+
+/** Abre en otra pestaña el comprobante PDF no fiscal de una venta. */
+export async function abrirComprobanteVenta(ventaId: string): Promise<void> {
+  const blob = await descargarArchivo(
+    `/ventas-caja/ventas/${encodeURIComponent(ventaId)}/comprobante`,
+  );
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 export async function abrirCaja(montoInicial: number): Promise<CajaApi> {

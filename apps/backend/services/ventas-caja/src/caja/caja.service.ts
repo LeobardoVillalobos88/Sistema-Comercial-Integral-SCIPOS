@@ -8,6 +8,14 @@ import type { RegistrarMovimientoCajaDto } from "./dto/registrar-movimiento.dto"
 export class CajaService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Cortes realizados: turnos de caja ya cerrados, del más reciente al más antiguo. */
+  async listarCortes() {
+    return this.prisma.caja.findMany({
+      where: { estado: "CERRADA" },
+      orderBy: { fechaCierre: "desc" },
+    });
+  }
+
   /** Obtiene el turno de caja actualmente abierto, si existe. */
   async obtenerCajaAbierta() {
     return this.prisma.caja.findFirst({

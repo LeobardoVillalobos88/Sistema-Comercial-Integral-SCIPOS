@@ -4,6 +4,7 @@ import AddIcon from "@mui/icons-material/Add";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CreditScoreIcon from "@mui/icons-material/CreditScore";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SearchIcon from "@mui/icons-material/Search";
@@ -38,6 +39,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   ETIQUETAS_ROL,
@@ -55,6 +57,7 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   abrirCaja as abrirCajaApi,
+  abrirComprobanteVenta,
   cargarHistorialVentas,
   cerrarCaja as cerrarCajaApi,
   consultarEstadoCaja,
@@ -141,7 +144,13 @@ function ResumenMonto({ etiqueta, valor, color }: ResumenMontoProps) {
   );
 }
 
-function TablaVentasHistoricas({ ventas }: { ventas: VentaPOS[] }) {
+function TablaVentasHistoricas({
+  ventas,
+  onComprobante,
+}: {
+  ventas: VentaPOS[];
+  onComprobante: (ventaId: string) => void;
+}) {
   if (ventas.length === 0) {
     return (
       <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
@@ -163,6 +172,7 @@ function TablaVentasHistoricas({ ventas }: { ventas: VentaPOS[] }) {
             <TableCell align="right">Descuento</TableCell>
             <TableCell align="right">IVA</TableCell>
             <TableCell align="right">Total</TableCell>
+            <TableCell align="center">Comprobante</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -174,6 +184,18 @@ function TablaVentasHistoricas({ ventas }: { ventas: VentaPOS[] }) {
               <TableCell align="right">{formatearMoneda(venta.descuento)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.iva)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.total)}</TableCell>
+              <TableCell align="center">
+                <Tooltip title="Ver comprobante PDF">
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => onComprobante(venta.id)}
+                    aria-label={`Comprobante de la venta ${venta.folio}`}
+                  >
+                    <PictureAsPdfIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -334,6 +356,17 @@ export function PosCajaPage({
       setCargandoHistorial(false);
     }
   }, [inventario, toast]);
+
+  const verComprobante = useCallback(
+    async (ventaId: string) => {
+      try {
+        await abrirComprobanteVenta(ventaId);
+      } catch (error) {
+        toast.error(mensajeErrorApi(error, "No se pudo abrir el comprobante."));
+      }
+    },
+    [toast],
+  );
 
   useEffect(() => {
     if (permisos.cargandoPermisos || !permisos.usuario) {
@@ -1245,9 +1278,9 @@ export function PosCajaPage({
                 descripcion="Ventas registradas en el sistema."
               >
                 {cargandoHistorial ? (
-                  <SkeletonTabla filas={4} columnas={6} />
+                  <SkeletonTabla filas={4} columnas={7} />
                 ) : (
-                  <TablaVentasHistoricas ventas={ventasHistorial} />
+                  <TablaVentasHistoricas ventas={ventasHistorial} onComprobante={verComprobante} />
                 )}
               </PanelSeccion>
             </Grid>

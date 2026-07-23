@@ -22,6 +22,18 @@ export class CajaController {
     return this.caja.estado();
   }
 
+  @Get("cortes")
+  @RequiereIdentidad()
+  @ApiOperation({
+    summary: "Cortes de caja realizados",
+    description:
+      "Turnos cerrados con su monto inicial y final; lo consume el servicio de reportes.",
+  })
+  @ApiHeader({ name: HEADER_USUARIO_ID, required: false })
+  cortes() {
+    return this.caja.listarCortes();
+  }
+
   @Post("abrir")
   @RequierePrivilegio("caja:abrir")
   @ApiOperation({ summary: "Abrir turno de caja" })

@@ -109,8 +109,18 @@ export class VentasService {
   }
 
   async historialPorCliente(clienteId: string) {
+    return this.listar({ clienteId });
+  }
+
+  /** Lista ventas con filtros opcionales de cliente y rango de fechas. */
+  async listar(filtros: { clienteId?: string; desde?: string; hasta?: string }) {
+    const desde = filtros.desde ? new Date(`${filtros.desde}T00:00:00.000`) : undefined;
+    const hasta = filtros.hasta ? new Date(`${filtros.hasta}T23:59:59.999`) : undefined;
     const ventas = await this.prisma.venta.findMany({
-      where: { clienteId },
+      where: {
+        clienteId: filtros.clienteId || undefined,
+        fecha: desde || hasta ? { gte: desde, lte: hasta } : undefined,
+      },
       orderBy: { fecha: "desc" },
       include: { partidas: true },
     });
