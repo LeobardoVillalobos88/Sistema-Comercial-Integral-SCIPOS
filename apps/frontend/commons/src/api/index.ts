@@ -1,7 +1,1 @@
-export {
-  ErrorApi,
-  URL_API,
-  establecerUsuarioActivoId,
-  llamarApi,
-  obtenerUsuarioActivoId,
-} from "./clienteApi";
+export { ErrorApi, URL_API, descargarArchivo, establecerToken, llamarApi } from "./clienteApi";

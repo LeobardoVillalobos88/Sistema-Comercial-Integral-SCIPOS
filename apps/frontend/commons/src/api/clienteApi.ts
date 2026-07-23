@@ -1,24 +1,17 @@
 /**
  * Cliente HTTP del frontend. Todas las llamadas van al API Gateway y llevan
- * el header `x-usuario-id` con el usuario activo, que es como el backend
- * identifica y valida los privilegios de cada petición.
+ * el token JWT de la sesión activa (`Authorization: Bearer <token>`), que es
+ * como el backend identifica al usuario y valida sus privilegios.
  */
 
 /** URL base del gateway (configurable con NEXT_PUBLIC_API_URL). */
 export const URL_API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
-const HEADER_USUARIO_ID = "x-usuario-id";
+let tokenSesion: string | null = null;
 
-let usuarioActivoId: string | null = null;
-
-/** Define el usuario activo cuyas peticiones firmará el cliente. */
-export function establecerUsuarioActivoId(id: string | null): void {
-  usuarioActivoId = id;
-}
-
-/** Id del usuario activo (null si aún no se resuelve contra la API). */
-export function obtenerUsuarioActivoId(): string | null {
-  return usuarioActivoId;
+/** Define el token JWT con el que el cliente firmará las peticiones. */
+export function establecerToken(token: string | null): void {
+  tokenSesion = token;
 }
 
 /** Error de la API con el estatus HTTP y el mensaje del backend. */
@@ -39,13 +32,13 @@ interface CuerpoErrorBackend {
 
 /**
  * Llama a la API a través del gateway. `ruta` es relativa a la base, por
- * ejemplo `llamarApi("/seguridad/usuarios")`.
+ * ejemplo `llamarApi("/seguridad/auth/perfil")`.
  */
 export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T> {
   const encabezados = new Headers(init?.headers);
   encabezados.set("Content-Type", "application/json");
-  if (usuarioActivoId) {
-    encabezados.set(HEADER_USUARIO_ID, usuarioActivoId);
+  if (tokenSesion) {
+    encabezados.set("Authorization", `Bearer ${tokenSesion}`);
   }
 
   const respuesta = await fetch(`${URL_API}${ruta}`, { ...init, headers: encabezados });
@@ -59,4 +52,20 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
     throw new ErrorApi(respuesta.status, mensaje);
   }
   return datos as T;
+}
+
+/**
+ * Descarga un recurso binario (por ejemplo un PDF) con la sesión activa y
+ * devuelve el blob listo para abrirse o guardarse.
+ */
+export async function descargarArchivo(ruta: string): Promise<Blob> {
+  const encabezados = new Headers();
+  if (tokenSesion) {
+    encabezados.set("Authorization", `Bearer ${tokenSesion}`);
+  }
+  const respuesta = await fetch(`${URL_API}${ruta}`, { headers: encabezados });
+  if (!respuesta.ok) {
+    throw new ErrorApi(respuesta.status, `No se pudo descargar el archivo (${respuesta.status}).`);
+  }
+  return respuesta.blob();
 }

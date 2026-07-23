@@ -48,6 +48,26 @@ export const temaScipos = createTheme({
         root: { backgroundImage: "none" },
       },
     },
+    // En pantallas chicas los diálogos ocupan casi todo el viewport para que
+    // los formularios se puedan operar cómodamente desde un celular.
+    MuiDialog: {
+      styleOverrides: {
+        paper: ({ theme }) => ({
+          [theme.breakpoints.down("sm")]: {
+            margin: theme.spacing(1),
+            width: `calc(100% - ${theme.spacing(2)})`,
+            maxWidth: `calc(100% - ${theme.spacing(2)})`,
+            maxHeight: `calc(100% - ${theme.spacing(2)})`,
+          },
+        }),
+      },
+    },
+    // Las tablas siempre pueden desplazarse horizontalmente si no caben.
+    MuiTableContainer: {
+      styleOverrides: {
+        root: { overflowX: "auto" },
+      },
+    },
   },
 });
 

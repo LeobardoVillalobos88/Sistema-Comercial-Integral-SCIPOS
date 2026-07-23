@@ -55,6 +55,7 @@ cp apps/backend/services/productos/.env.example apps/backend/services/productos/
 cp apps/backend/services/clientes/.env.example apps/backend/services/clientes/.env
 cp apps/backend/services/cotizaciones/.env.example apps/backend/services/cotizaciones/.env
 cp apps/backend/services/ventas-caja/.env.example apps/backend/services/ventas-caja/.env
+cp apps/backend/services/reportes/.env.example apps/backend/services/reportes/.env
 ```
 
 Los valores por defecto ya apuntan a la infraestructura local (Postgres y Redis del
@@ -81,7 +82,7 @@ Si todo salió bien, la última línea dice algo como `Semilla aplicada: { cajas
 Lo mínimo para trabajar (todo el backend + el shell):
 
 ```bash
-pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/cotizaciones-service --filter @scipos/ventas-caja-service --filter @scipos/web-shell
+pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/cotizaciones-service --filter @scipos/ventas-caja-service --filter @scipos/reportes-service --filter @scipos/web-shell
 ```
 
 O todo el monorepo (todos los microfrontends y servicios existentes):
@@ -101,6 +102,7 @@ pnpm dev
 | Servicio de clientes | http://localhost:4003 |
 | Servicio de cotizaciones | http://localhost:4004 |
 | Servicio de ventas POS y caja | http://localhost:4005 |
+| Servicio de reportes y utilidad | http://localhost:4006 |
 
 ## 5. Verificar que todo funciona
 
@@ -111,32 +113,40 @@ pnpm dev
 3. **Frontend:** http://localhost:3001/inicio y cambia el rol en el topbar; en
    DevTools → Network verás las llamadas a `localhost:4000/api/seguridad/...`
    (los privilegios ya vienen del backend). Todos los módulos de dominio
-   (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/compras`, `/caja`) y las
-   tarjetas del dashboard operan contra la API real — ya no quedan mocks salvo en
-   el módulo de ejemplo.
-4. **El guard en acción** (desde otra terminal):
+   (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/compras`, `/caja`,
+   `/reportes` y `/usuarios`) y las tarjetas del dashboard operan contra la API
+   real — ya no quedan mocks salvo en el módulo de ejemplo.
+4. **La autenticación y el guard en acción** (desde otra terminal):
 
 ```bash
-# 200: privilegios efectivos del vendedor
-curl -H "x-usuario-id: usuario-vendedor" http://localhost:4000/api/seguridad/usuarios/usuario-vendedor/privilegios
+# Iniciar sesión: devuelve el token JWT, el usuario y sus privilegios
+curl -X POST http://localhost:4000/api/seguridad/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"vendedor@scipos.com","contrasena":"Vendedor1234"}'
 
-# 401: sin identidad
+# 200 con el token (sustituye <TOKEN> por el del paso anterior)
+curl -H "Authorization: Bearer <TOKEN>" http://localhost:4000/api/productos/productos
+
+# 401: sin token (el gateway descarta cualquier x-usuario-id externo)
 curl -i http://localhost:4000/api/seguridad/roles
 
-# 403: el cajero no puede asignar privilegios
-curl -i -X POST http://localhost:4000/api/seguridad/privilegios \
-  -H "x-usuario-id: usuario-cajero" -H "Content-Type: application/json" \
-  -d '{"clave":"demo:accion","descripcion":"prueba"}'
+# 403: el vendedor no puede eliminar productos aunque fuerce la petición
+curl -i -X DELETE -H "Authorization: Bearer <TOKEN>" \
+  http://localhost:4000/api/productos/productos/p-001
 ```
 
-### Usuarios semilla (header `x-usuario-id`)
+### Credenciales semilla (una cuenta por rol)
 
-| Id | Rol |
-|---|---|
-| `usuario-administrador` | ADMINISTRADOR (acceso total) |
-| `usuario-vendedor` | VENDEDOR |
-| `usuario-cajero` | CAJERO |
-| `usuario-supervisor` | SUPERVISOR |
+| Correo | Contraseña | Rol |
+|---|---|---|
+| `admin@scipos.com` | `Admin1234` | ADMINISTRADOR (acceso total) |
+| `vendedor@scipos.com` | `Vendedor1234` | VENDEDOR |
+| `cajero@scipos.com` | `Cajero1234` | CAJERO |
+| `supervisor@scipos.com` | `Supervisor1234` | SUPERVISOR |
+
+El selector de rol del topbar inicia sesión con estas cuentas tras bambalinas,
+así todo el tráfico viaja con token desde el primer clic. La pantalla de login
+puede construirse encima llamando a `iniciarSesion()` del contexto de permisos.
 
 ## 6. Apagar
 

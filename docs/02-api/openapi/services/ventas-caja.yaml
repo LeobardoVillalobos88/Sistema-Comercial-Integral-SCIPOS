@@ -58,19 +58,32 @@ paths:
           $ref: "#/components/responses/Prohibido"
     get:
       tags: [ventas]
-      summary: Listar ventas por cliente (integración historial)
+      summary: Listar ventas con filtros opcionales
       description: >
-        Alias de compatibilidad consumido por el servicio de clientes al armar el
-        historial. Filtra ventas completas y canceladas del cliente indicado.
-        Requiere identidad (header x-usuario-id).
+        Lo consumen el servicio de clientes (historial por cliente) y el de
+        reportes (rango de fechas). Requiere identidad.
       parameters:
         - $ref: "#/components/parameters/HeaderUsuarioId"
         - name: clienteId
           in: query
-          required: true
+          required: false
           schema:
             type: string
             example: c-001
+        - name: desde
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2026-07-01"
+        - name: hasta
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2026-07-31"
       responses:
         "200":
           description: Ventas del cliente obtenidas con éxito
@@ -205,6 +218,56 @@ paths:
           $ref: "#/components/responses/NoAutorizado"
         "403":
           $ref: "#/components/responses/Prohibido"
+
+  /ventas/{id}/comprobante:
+    get:
+      tags: [ventas]
+      summary: Comprobante PDF no fiscal de una venta
+      description: >
+        "Privilegio requerido: pos:ver. Documento con folio, fecha, cliente,
+        partidas y totales (RF-27, RF-28); la facturación es simulada, sin
+        timbrado fiscal (RF-29)."
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: VTA-HIST-001
+      responses:
+        "200":
+          description: Documento PDF del comprobante
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "404":
+          description: La venta no existe
+
+  /caja/cortes:
+    get:
+      tags: [caja]
+      summary: Cortes de caja realizados
+      description: Turnos cerrados con su monto inicial y final; lo consume el servicio de reportes.
+      parameters:
+        - $ref: "#/components/parameters/HeaderUsuarioId"
+      responses:
+        "200":
+          description: Lista de cortes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Caja"
+        "401":
+          $ref: "#/components/responses/NoAutorizado"
 
   /ventas/{id}/cancelar:
     post:

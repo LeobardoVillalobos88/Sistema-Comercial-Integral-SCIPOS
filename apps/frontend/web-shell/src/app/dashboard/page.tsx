@@ -18,9 +18,6 @@ import {
 } from "@scipos/frontend-commons";
 import { useEffect, useState } from "react";
 
-/** Utilidad: aún no existe el módulo de reportes; se muestra un estimado fijo. */
-const UTILIDAD_HOY = 3180.75;
-
 interface ResumenProductos {
   productosActivos: number;
   stockBajo: number;
@@ -47,6 +44,19 @@ interface ResumenVentas {
   ultimoCorteMonto: number | null;
 }
 
+interface ResumenUtilidad {
+  utilidadBruta: number;
+  margenPorcentaje: number;
+}
+
+/** Fecha local de hoy en formato AAAA-MM-DD para el filtro del reporte. */
+function fechaDeHoy(): string {
+  const ahora = new Date();
+  const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+  const dia = String(ahora.getDate()).padStart(2, "0");
+  return `${ahora.getFullYear()}-${mes}-${dia}`;
+}
+
 export default function DashboardPage() {
   const { can, usuario, cargandoPermisos } = usePermisos();
 
@@ -54,6 +64,7 @@ export default function DashboardPage() {
   const [resumenClientes, setResumenClientes] = useState<ResumenClientes | null>(null);
   const [resumenCotizaciones, setResumenCotizaciones] = useState<ResumenCotizaciones | null>(null);
   const [resumenVentas, setResumenVentas] = useState<ResumenVentas | null>(null);
+  const [resumenUtilidad, setResumenUtilidad] = useState<ResumenUtilidad | null>(null);
 
   // Descarga los resúmenes reales; si un servicio no responde, la tarjeta
   // correspondiente se oculta o muestra un valor neutro en vez de datos falsos.
@@ -81,6 +92,13 @@ export default function DashboardPage() {
       llamarApi<ResumenVentas>("/ventas-caja/ventas/resumen")
         .then((resumen) => vigente && setResumenVentas(resumen))
         .catch(() => vigente && setResumenVentas(null));
+    }
+
+    if (can("reportes:ver")) {
+      const hoy = fechaDeHoy();
+      llamarApi<ResumenUtilidad>(`/reportes/reportes/utilidad?desde=${hoy}&hasta=${hoy}`)
+        .then((resumen) => vigente && setResumenUtilidad(resumen))
+        .catch(() => vigente && setResumenUtilidad(null));
     }
 
     return () => {
@@ -186,8 +204,12 @@ export default function DashboardPage() {
         {can("reportes:ver") && (
           <StatCard
             titulo="Utilidad de hoy"
-            valor={formatearMoneda(UTILIDAD_HOY)}
-            detalle="Margen estimado"
+            valor={formatearMoneda(resumenUtilidad?.utilidadBruta ?? 0)}
+            detalle={
+              resumenUtilidad
+                ? `Margen ${resumenUtilidad.margenPorcentaje}%`
+                : "Sin datos disponibles"
+            }
             icono={<TrendingUpIcon />}
             color="success"
           />

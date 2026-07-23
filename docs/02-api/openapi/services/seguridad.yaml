@@ -14,6 +14,7 @@ servers:
     description: Directo al servicio
 
 tags:
+  - name: auth
   - name: usuarios
   - name: roles
   - name: privilegios
@@ -28,11 +29,79 @@ paths:
         "200":
           description: Servicio disponible
 
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Iniciar sesión con correo y contraseña
+      description: >
+        Devuelve un token JWT firmado (usarlo en Authorization: Bearer), el
+        usuario y sus privilegios efectivos (RF-01). El gateway elimina el
+        header x-usuario-id de las peticiones externas, así que el token es la
+        única forma de identidad desde fuera.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, contrasena]
+              properties:
+                correo:
+                  type: string
+                  example: admin@scipos.com
+                contrasena:
+                  type: string
+                  example: Admin1234
+      responses:
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  usuario:
+                    $ref: "#/components/schemas/Usuario"
+                  privilegios:
+                    type: array
+                    items:
+                      type: string
+        "401":
+          description: Correo o contraseña incorrectos, o usuario inactivo
+
+  /auth/perfil:
+    get:
+      tags: [auth]
+      summary: Usuario y privilegios del token vigente
+      description: Restaura la sesión al recargar la página sin pedir credenciales de nuevo.
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Perfil de la sesión
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario:
+                    $ref: "#/components/schemas/Usuario"
+                  privilegios:
+                    type: array
+                    items:
+                      type: string
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+
   /usuarios:
     get:
       tags: [usuarios]
       summary: Listar usuarios
-      description: Endpoint público; el frontend puebla con él su selector de usuario activo.
+      description: "Privilegio requerido: seguridad:ver (administración de usuarios)."
+      security:
+        - tokenJwt: []
       responses:
         "200":
           description: Lista de usuarios
@@ -111,6 +180,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Usuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    delete:
+      tags: [usuarios]
+      summary: Eliminar definitivamente un usuario
+      description: "Privilegio requerido: seguridad:eliminar. Nadie puede eliminar su propio usuario."
+      security:
+        - tokenJwt: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      responses:
+        "200":
+          description: Usuario eliminado
+        "400":
+          description: Intento de eliminar el propio usuario
         "401":
           $ref: "#/components/responses/SinIdentidad"
         "403":
@@ -326,11 +414,16 @@ paths:
 
 components:
   securitySchemes:
+    tokenJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token emitido por POST /auth/login. Es la identidad para peticiones externas.
     identidadUsuario:
       type: apiKey
       in: header
       name: x-usuario-id
-      description: Identificador del usuario activo (por ejemplo usuario-administrador).
+      description: Canal interno entre servicios; el gateway lo elimina de peticiones externas.
 
   parameters:
     UsuarioId:
@@ -404,17 +497,20 @@ components:
 
     CrearUsuario:
       type: object
-      required: [nombre, correo, rol]
+      required: [nombre, correo, rol, contrasena]
       properties:
         nombre:
           type: string
           example: Laura Martínez
         correo:
           type: string
-          example: laura@scipos.mx
+          example: laura@scipos.com
         rol:
           type: string
           example: VENDEDOR
+        contrasena:
+          type: string
+          example: Vendedor1234
 
     ActualizarUsuario:
       type: object
@@ -428,6 +524,9 @@ components:
         estado:
           type: string
           enum: [ACTIVO, INACTIVO]
+        contrasena:
+          type: string
+          description: Nueva contraseña (opcional)
 
     Rol:
       type: object

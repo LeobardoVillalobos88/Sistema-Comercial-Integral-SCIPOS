@@ -49,11 +49,23 @@ export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
           <MenuIcon />
         </IconButton>
 
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Typography
+          variant="h6"
+          component="div"
+          noWrap
+          sx={{ flexGrow: 1, display: { xs: "none", sm: "block" } }}
+        >
           Sistema Comercial Integral
         </Typography>
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{ flexGrow: 1, display: { xs: "block", sm: "none" } }}
+        >
+          SCIPOS
+        </Typography>
 
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 150, sm: 200 } }}>
           <Select
             value={rol}
             onChange={(e) => setRol(e.target.value as Rol)}

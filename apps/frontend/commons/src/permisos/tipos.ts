@@ -24,18 +24,22 @@ export interface UsuarioSesion {
 export interface PermisosContextValue {
   /** Rol actualmente seleccionado. */
   rol: Rol;
-  /** Cambia el rol activo (lo usa el selector del topbar). */
+  /** Cambia el rol activo iniciando sesión demo con ese rol (selector del topbar). */
   setRol: (rol: Rol) => void;
   /** Lista de roles disponibles. */
   roles: Rol[];
   /** ¿El usuario activo tiene el privilegio indicado? */
   can: (privilegio: Privilegio) => boolean;
-  /** Usuario activo resuelto contra la API (null si aún no carga o no hay API). */
+  /** Usuario con sesión iniciada (null si no hay sesión o la API no responde). */
   usuario: UsuarioSesion | null;
   /** Origen de los privilegios: "api" (backend) o "local" (matriz de respaldo). */
   origenPermisos: "api" | "local";
-  /** true mientras se cargan usuarios o privilegios desde la API. */
+  /** true mientras se inicia o restaura la sesión. */
   cargandoPermisos: boolean;
+  /** Inicia sesión contra la API con correo y contraseña (lo consume la pantalla de login). */
+  iniciarSesion: (correo: string, contrasena: string) => Promise<void>;
+  /** Cierra la sesión activa y descarta el token. */
+  cerrarSesion: () => void;
 }
 
 /** Etiquetas legibles de cada rol para la UI. */
