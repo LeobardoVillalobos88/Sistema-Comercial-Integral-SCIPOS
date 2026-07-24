@@ -50,4 +50,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       // Sin caché disponible; no hay nada que invalidar.
     }
   }
+
+  /**
+   * Marca una clave con el valor crudo "1" y un TTL (segundos), sin serializar.
+   * Lo usa la denylist de tokens: el verificador de commons compara contra "1".
+   */
+  async marcar(clave: string, ttlSegundos: number): Promise<void> {
+    try {
+      if (ttlSegundos > 0) {
+        await this.client.set(clave, "1", "EX", ttlSegundos);
+      }
+    } catch {
+      // Sin Redis no se puede revocar al instante; el token expirará por sí solo.
+    }
+  }
 }

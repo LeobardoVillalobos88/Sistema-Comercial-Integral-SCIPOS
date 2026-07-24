@@ -50,6 +50,7 @@ model Usuario {
   rolClave    String
   rol         Rol                 @relation(fields: [rolClave], references: [clave])
   privilegios UsuarioPrivilegio[]
+  refreshTokens RefreshToken[]
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 }
@@ -64,4 +65,23 @@ model UsuarioPrivilegio {
   privilegio      Privilegio @relation(fields: [privilegioClave], references: [clave], onDelete: Cascade)
 
   @@id([usuarioId, privilegioClave])
+}
+
+/// Refresh token de larga vida (rotativo). Se guarda solo el hash: si se filtra
+/// la base, el token en claro no es recuperable. `familyId` agrupa la cadena de
+/// rotaciones de una sesión: reusar un token ya consumido revoca toda la familia
+/// (defensa ante robo de refresh tokens).
+model RefreshToken {
+  id        String    @id @default(uuid())
+  usuarioId String
+  tokenHash String    @unique
+  familyId  String
+  usadoEn   DateTime?
+  revocadoEn DateTime?
+  expiraEn  DateTime
+  createdAt DateTime  @default(now())
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([usuarioId])
 }
