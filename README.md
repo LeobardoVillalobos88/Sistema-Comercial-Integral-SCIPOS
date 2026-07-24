@@ -68,8 +68,9 @@ paso 3), no hay que editar nada. El frontend no necesita `.env`: usa
 pnpm setup:backend
 ```
 
-Ese comando hace, en orden: levanta los contenedores `scipos-db` (Postgres 16) y
-`scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
+Ese comando hace, en orden: genera el par de llaves RSA para firmar los tokens
+(en `keys/`, ignorada por git), levanta los contenedores `scipos-db` (Postgres 16)
+y `scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
 (genera el cliente de Prisma, aplica migraciones y siembra datos): la matriz de
 privilegios con los 4 usuarios semilla, el catálogo de productos, los clientes, unas
 cotizaciones de ejemplo y un turno de caja con ventas históricas — todo con los
@@ -119,20 +120,27 @@ pnpm dev
 4. **La autenticación y el guard en acción** (desde otra terminal):
 
 ```bash
-# Iniciar sesión: devuelve el token JWT, el usuario y sus privilegios
+# Iniciar sesión: devuelve un access token (RS256), un refresh token y los privilegios
 curl -X POST http://localhost:4000/api/seguridad/auth/login \
   -H "Content-Type: application/json" \
   -d '{"correo":"vendedor@scipos.com","contrasena":"Vendedor1234"}'
 
-# 200 con el token (sustituye <TOKEN> por el del paso anterior)
+# 200 con el access token (sustituye <TOKEN> por el del paso anterior)
 curl -H "Authorization: Bearer <TOKEN>" http://localhost:4000/api/productos/productos
 
-# 401: sin token (el gateway descarta cualquier x-usuario-id externo)
+# 401: sin token (el gateway lo rechaza en el edge y descarta cualquier x-usuario-id externo)
 curl -i http://localhost:4000/api/seguridad/roles
 
 # 403: el vendedor no puede eliminar productos aunque fuerce la petición
 curl -i -X DELETE -H "Authorization: Bearer <TOKEN>" \
   http://localhost:4000/api/productos/productos/p-001
+
+# Renovar la sesión cuando el access expira (usa el refreshToken del login)
+curl -X POST http://localhost:4000/api/seguridad/auth/refresh \
+  -H "Content-Type: application/json" -d '{"refreshToken":"<REFRESH>"}'
+
+# Cerrar sesión: revoca el token al instante en todos los servicios (denylist)
+curl -X POST -H "Authorization: Bearer <TOKEN>" http://localhost:4000/api/seguridad/auth/logout
 ```
 
 ### Credenciales semilla (una cuenta por rol)
@@ -145,8 +153,22 @@ curl -i -X DELETE -H "Authorization: Bearer <TOKEN>" \
 | `supervisor@scipos.com` | `Supervisor1234` | SUPERVISOR |
 
 El selector de rol del topbar inicia sesión con estas cuentas tras bambalinas,
-así todo el tráfico viaja con token desde el primer clic. La pantalla de login
-puede construirse encima llamando a `iniciarSesion()` del contexto de permisos.
+así todo el tráfico viaja con token RS256 desde el primer clic (el access se
+renueva solo con el refresh token cuando expira). La pantalla de login puede
+construirse encima llamando a `iniciarSesion()` / `cerrarSesion()` del contexto
+de permisos.
+
+### Seguridad JWT (RS256 + JWKS)
+
+- El servicio de **seguridad** firma los access tokens con una **llave privada
+  RSA** y publica la pública en `http://localhost:4001/.well-known/jwks.json`.
+  El gateway y los demás servicios **verifican** con esa llave pública, así que
+  nadie más puede emitir tokens (a diferencia de un secreto compartido).
+- Las llaves se generan con `pnpm generar:llaves` (las crea `setup:backend`) y
+  **no se versionan**. En un despliegue real, genera unas nuevas.
+- Access token corto (15 min) + **refresh token rotativo**: reusar un refresh ya
+  consumido cierra la sesión (defensa ante robo). El **logout** revoca el token
+  al instante vía una denylist en Redis, sin esperar a que expire.
 
 ## 6. Apagar
 

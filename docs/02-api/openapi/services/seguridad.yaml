@@ -3,9 +3,10 @@ info:
   title: SCIPOS - Servicio de Seguridad
   description: >
     Usuarios, roles y privilegios dinámicos por módulo y acción. Es la fuente de
-    verdad del sistema de privilegios: los guards de los demás servicios verifican
-    aquí cada acción protegida. La identidad del usuario viaja en el header
-    x-usuario-id.
+    verdad del sistema de privilegios y de la autenticación: firma los tokens de
+    acceso RS256 con su llave privada y publica la pública en el JWKS, para que
+    los demás servicios los verifiquen sin poder emitirlos. Access token corto
+    (15 min) más refresh token rotativo; el logout revoca al instante vía denylist.
   version: "1.0"
 servers:
   - url: http://localhost:4000/api/seguridad
@@ -29,15 +30,35 @@ paths:
         "200":
           description: Servicio disponible
 
+  /.well-known/jwks.json:
+    get:
+      tags: [auth]
+      summary: JWKS con la llave pública de verificación
+      description: >
+        Publica la llave pública (RS256) para que el gateway y los demás
+        servicios verifiquen los tokens sin poder emitirlos. Endpoint público.
+      responses:
+        "200":
+          description: Conjunto de llaves públicas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+
   /auth/login:
     post:
       tags: [auth]
       summary: Iniciar sesión con correo y contraseña
       description: >
-        Devuelve un token JWT firmado (usarlo en Authorization: Bearer), el
-        usuario y sus privilegios efectivos (RF-01). El gateway elimina el
-        header x-usuario-id de las peticiones externas, así que el token es la
-        única forma de identidad desde fuera.
+        Devuelve un access token JWT RS256 (Authorization: Bearer), un refresh
+        token, el usuario y sus privilegios efectivos (RF-01). El gateway
+        elimina el header x-usuario-id de las peticiones externas, así que el
+        token firmado es la única forma de identidad desde fuera.
       requestBody:
         required: true
         content:
@@ -58,18 +79,58 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                  usuario:
-                    $ref: "#/components/schemas/Usuario"
-                  privilegios:
-                    type: array
-                    items:
-                      type: string
+                $ref: "#/components/schemas/Sesion"
         "401":
           description: Correo o contraseña incorrectos, o usuario inactivo
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Renovar la sesión con un refresh token
+      description: >
+        Rota el refresh token (el anterior queda inutilizable) y entrega un
+        access token nuevo. Reusar un token ya consumido revoca toda la familia
+        de tokens: la sesión se cierra por seguridad. Endpoint público.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: Sesión renovada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "401":
+          description: Refresh inválido, expirado o reusado
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Cerrar sesión (revoca el token al instante)
+      description: >
+        Agrega el access token a la denylist y revoca los refresh del usuario.
+        Idempotente: funciona aunque el access ya haya expirado.
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Sesión cerrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sesionCerrada:
+                    type: boolean
+                    example: true
 
   /auth/perfil:
     get:
@@ -418,7 +479,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Token emitido por POST /auth/login. Es la identidad para peticiones externas.
+      description: >
+        Access token RS256 emitido por POST /auth/login (o renovado en
+        /auth/refresh). Es la identidad para peticiones externas; se verifica
+        contra el JWKS y no debe estar en la denylist.
     identidadUsuario:
       type: apiKey
       in: header
@@ -476,6 +540,28 @@ components:
             $ref: "#/components/schemas/ErrorEstandar"
 
   schemas:
+    Sesion:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Access token JWT RS256 (Authorization: Bearer).
+        refreshToken:
+          type: string
+          description: Refresh token opaco para renovar la sesión.
+        tipoToken:
+          type: string
+          example: Bearer
+        expiraEn:
+          type: string
+          format: date-time
+        usuario:
+          $ref: "#/components/schemas/Usuario"
+        privilegios:
+          type: array
+          items:
+            type: string
+
     Usuario:
       type: object
       properties:
@@ -487,7 +573,7 @@ components:
           example: Vendedor de Mostrador
         correo:
           type: string
-          example: vendedor@scipos.mx
+          example: vendedor@scipos.com
         rol:
           type: string
           enum: [ADMINISTRADOR, VENDEDOR, CAJERO, SUPERVISOR]
