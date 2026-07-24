@@ -26,5 +26,12 @@ pnpm-debug.log*
 Thumbs.db
 *.tsbuildinfo
 
+# Llaves RSA para firmar JWT: nunca se versionan (cada quien genera las suyas
+# con `pnpm generar:llaves`). Si se filtran, se podrían firmar tokens falsos.
+keys/
+
+# Carpeta de práctica del profesor (no forma parte del proyecto)
+ControlAcceso/
+
 # UAT
 .uat-logs/
