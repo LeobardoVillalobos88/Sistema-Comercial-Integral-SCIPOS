@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { HEADER_USUARIO_ID, crearLogger } from "@scipos/backend-commons";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { AppModule } from "./app.module";
+import { crearMiddlewareJwt } from "./auth/jwt-edge.middleware";
 import { origenesPermitidos, serviciosEnrutados } from "./config/servicios";
 
 async function bootstrap() {
@@ -14,6 +15,9 @@ async function bootstrap() {
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });
+
+  // Verifica el token (firma RS256 + iss/aud + denylist) antes de proxyear.
+  app.use("/api", crearMiddlewareJwt());
 
   for (const servicio of serviciosEnrutados()) {
     app.use(
