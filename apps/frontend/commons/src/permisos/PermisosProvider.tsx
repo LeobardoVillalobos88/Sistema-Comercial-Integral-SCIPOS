@@ -1,20 +1,27 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { establecerToken, llamarApi } from "../api";
+import {
+  establecerRefreshToken,
+  establecerToken,
+  llamarApi,
+  registrarRenovacionTokens,
+} from "../api";
 import { CREDENCIALES_DEMO } from "./credenciales-demo";
 import { rolTienePrivilegio } from "./matriz";
 import type { PermisosContextValue, Privilegio, Rol, UsuarioSesion } from "./tipos";
 
 const ROLES: Rol[] = ["ADMINISTRADOR", "VENDEDOR", "CAJERO", "SUPERVISOR"];
 
-/** Clave de sessionStorage donde se conserva el token de la pestaña. */
+/** Claves de sessionStorage donde se conservan los tokens de la pestaña. */
 const CLAVE_TOKEN = "scipos.token";
+const CLAVE_REFRESH = "scipos.refresh";
 
 const PermisosContext = createContext<PermisosContextValue | null>(null);
 
 interface SesionApi {
   token: string;
+  refreshToken: string;
   usuario: UsuarioSesion;
   privilegios: string[];
 }
@@ -22,6 +29,22 @@ interface SesionApi {
 interface PerfilApi {
   usuario: UsuarioSesion;
   privilegios: string[];
+}
+
+/** Guarda o limpia el par de tokens en el cliente HTTP y en sessionStorage. */
+function persistirTokens(token: string | null, refreshToken: string | null): void {
+  establecerToken(token);
+  establecerRefreshToken(refreshToken);
+  if (token) {
+    window.sessionStorage.setItem(CLAVE_TOKEN, token);
+  } else {
+    window.sessionStorage.removeItem(CLAVE_TOKEN);
+  }
+  if (refreshToken) {
+    window.sessionStorage.setItem(CLAVE_REFRESH, refreshToken);
+  } else {
+    window.sessionStorage.removeItem(CLAVE_REFRESH);
+  }
 }
 
 export interface PermisosProviderProps {
@@ -32,11 +55,12 @@ export interface PermisosProviderProps {
 
 /**
  * Proveedor del contexto de permisos. La sesión es real: `iniciarSesion`
- * obtiene un JWT del servicio de seguridad y desde entonces todas las
- * llamadas de `llamarApi` viajan firmadas; el backend valida cada acción
- * (RF-05/RF-06). El selector de rol del topbar inicia sesión con las
- * credenciales demo del rol elegido, y la sesión sobrevive a recargas dentro
- * de la misma pestaña (sessionStorage + GET /auth/perfil).
+ * obtiene un access token RS256 y un refresh token del servicio de seguridad;
+ * desde entonces todas las llamadas de `llamarApi` viajan firmadas y el backend
+ * valida cada acción (RF-05/RF-06). El access se renueva solo con el refresh
+ * cuando expira. El selector de rol del topbar inicia sesión con las
+ * credenciales demo del rol elegido, y la sesión sobrevive a recargas dentro de
+ * la misma pestaña (sessionStorage + GET /auth/perfil).
  *
  * Si la API no está disponible, los privilegios se resuelven con la matriz
  * local de respaldo para que la interfaz siga siendo navegable; las
@@ -51,19 +75,14 @@ export function PermisosProvider({
   const [privilegios, setPrivilegios] = useState<Privilegio[] | null>(null);
   const [cargandoPermisos, setCargandoPermisos] = useState(true);
 
-  const aplicarSesion = useCallback((token: string | null, perfil: PerfilApi) => {
-    if (token) {
-      establecerToken(token);
-      window.sessionStorage.setItem(CLAVE_TOKEN, token);
-    }
+  const aplicarPerfil = useCallback((perfil: PerfilApi) => {
     setUsuario(perfil.usuario);
     setPrivilegios(perfil.privilegios as Privilegio[]);
     setRolEstado(perfil.usuario.rol);
   }, []);
 
   const limpiarSesion = useCallback(() => {
-    establecerToken(null);
-    window.sessionStorage.removeItem(CLAVE_TOKEN);
+    persistirTokens(null, null);
     setUsuario(null);
     setPrivilegios(null);
   }, []);
@@ -75,12 +94,15 @@ export function PermisosProvider({
         method: "POST",
         body: JSON.stringify({ correo, contrasena }),
       });
-      aplicarSesion(sesion.token, sesion);
+      persistirTokens(sesion.token, sesion.refreshToken);
+      aplicarPerfil(sesion);
     },
-    [aplicarSesion],
+    [aplicarPerfil],
   );
 
   const cerrarSesion = useCallback(() => {
+    // Revoca el token en el backend (best-effort) y limpia la sesión local.
+    llamarApi("/seguridad/auth/logout", { method: "POST" }).catch(() => undefined);
     limpiarSesion();
   }, [limpiarSesion]);
 
@@ -101,18 +123,27 @@ export function PermisosProvider({
     [iniciarSesion, limpiarSesion],
   );
 
-  // Al montar: restaura la sesión guardada en la pestaña o inicia la demo.
+  // Al montar: persiste los tokens que el cliente renueve solo y restaura la
+  // sesión guardada en la pestaña (o inicia la demo).
   // biome-ignore lint/correctness/useExhaustiveDependencies: el arranque de sesión debe correr una sola vez
   useEffect(() => {
     let vigente = true;
+    registrarRenovacionTokens(({ token, refreshToken }) => {
+      window.sessionStorage.setItem(CLAVE_TOKEN, token);
+      window.sessionStorage.setItem(CLAVE_REFRESH, refreshToken);
+    });
+
     async function arrancar() {
       const tokenGuardado = window.sessionStorage.getItem(CLAVE_TOKEN);
-      if (tokenGuardado) {
+      const refreshGuardado = window.sessionStorage.getItem(CLAVE_REFRESH);
+      if (tokenGuardado && refreshGuardado) {
         establecerToken(tokenGuardado);
+        establecerRefreshToken(refreshGuardado);
         try {
+          // Si el access expiró, llamarApi lo renueva solo con el refresh.
           const perfil = await llamarApi<PerfilApi>("/seguridad/auth/perfil");
           if (vigente) {
-            aplicarSesion(null, perfil);
+            aplicarPerfil(perfil);
           }
           return;
         } catch {
@@ -137,6 +168,7 @@ export function PermisosProvider({
     });
     return () => {
       vigente = false;
+      registrarRenovacionTokens(null);
     };
   }, []);
 

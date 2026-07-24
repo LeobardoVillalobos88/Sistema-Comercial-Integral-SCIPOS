@@ -1,1 +1,9 @@
-export { ErrorApi, URL_API, descargarArchivo, establecerToken, llamarApi } from "./clienteApi";
+export {
+  ErrorApi,
+  URL_API,
+  descargarArchivo,
+  establecerRefreshToken,
+  establecerToken,
+  llamarApi,
+  registrarRenovacionTokens,
+} from "./clienteApi";
