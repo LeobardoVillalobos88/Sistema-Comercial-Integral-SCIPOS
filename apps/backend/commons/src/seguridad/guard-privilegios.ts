@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PROVEEDOR_PRIVILEGIOS, type ProveedorPrivilegios } from "../contratos/privilegios";
+import { VERIFICADOR_DENYLIST, type VerificadorDenylist } from "./denylist";
 import {
   EXTRACTOR_IDENTIDAD,
   type ExtractorIdentidad,
@@ -34,6 +35,7 @@ export class GuardPrivilegios implements CanActivate {
     private readonly reflector: Reflector,
     @Inject(EXTRACTOR_IDENTIDAD) private readonly extractor: ExtractorIdentidad,
     @Inject(PROVEEDOR_PRIVILEGIOS) private readonly proveedor: ProveedorPrivilegios,
+    @Inject(VERIFICADOR_DENYLIST) private readonly denylist: VerificadorDenylist,
   ) {}
 
   async canActivate(contexto: ExecutionContext): Promise<boolean> {
@@ -52,19 +54,22 @@ export class GuardPrivilegios implements CanActivate {
     }
 
     const peticion = contexto.switchToHttp().getRequest<PeticionConUsuario>();
-    const usuarioId = this.extractor.extraer(peticion);
-    if (!usuarioId) {
-      throw new UnauthorizedException(
-        "La petición no identifica al usuario (falta el header x-usuario-id).",
-      );
+    const identidad = await this.extractor.extraer(peticion);
+    if (!identidad) {
+      throw new UnauthorizedException("La petición no identifica al usuario.");
     }
-    peticion.usuarioId = usuarioId;
+    // Un token deslogueado conserva firma válida hasta expirar; la denylist es
+    // lo único que lo corta al instante en todos los servicios.
+    if (identidad.jti && (await this.denylist.estaRevocado(identidad.jti))) {
+      throw new UnauthorizedException("La sesión fue cerrada (token revocado).");
+    }
+    peticion.usuarioId = identidad.usuarioId;
 
     if (!privilegio) {
       return true;
     }
 
-    const resultado = await this.proveedor.verificar(usuarioId, privilegio);
+    const resultado = await this.proveedor.verificar(identidad.usuarioId, privilegio);
     if (resultado.tiene) {
       return true;
     }

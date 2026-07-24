@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "jsonwebtoken": "^9.0.2"
+    "ioredis": "^5.11.1",
+    "jose": "^5.9.6"
   },
   "peerDependencies": {
     "@nestjs/common": "^11",
@@ -23,7 +24,6 @@
   "devDependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
-    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

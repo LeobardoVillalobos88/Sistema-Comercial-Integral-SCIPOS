@@ -1,10 +1,12 @@
 import { type DynamicModule, Module, type Type } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { PROVEEDOR_PRIVILEGIOS, type ProveedorPrivilegios } from "../contratos/privilegios";
+import { DenylistRedis, VERIFICADOR_DENYLIST, type VerificadorDenylist } from "./denylist";
 import { EXTRACTOR_IDENTIDAD, type ExtractorIdentidad } from "./extractor-identidad";
 import { ExtractorIdentidadJwt } from "./extractor-identidad-jwt";
 import { GuardPrivilegios } from "./guard-privilegios";
 import { ProveedorPrivilegiosHttp } from "./proveedor-privilegios-http";
+import { VerificadorToken } from "./verificador-token";
 
 export interface OpcionesModuloSeguridad {
   /**
@@ -14,11 +16,17 @@ export interface OpcionesModuloSeguridad {
    */
   proveedorPrivilegios?: Type<ProveedorPrivilegios>;
   /**
-   * Estrategia de identidad. Por defecto se usa ExtractorIdentidadJwt:
-   * token Bearer para peticiones externas y header x-usuario-id para las
-   * llamadas entre servicios.
+   * Estrategia de identidad. Por defecto se usa ExtractorIdentidadJwt: token
+   * Bearer RS256 (verificado contra el JWKS del servicio de seguridad) para
+   * peticiones externas y header x-usuario-id para las llamadas entre servicios.
    */
   extractorIdentidad?: Type<ExtractorIdentidad>;
+  /**
+   * Verificador de la denylist de tokens revocados por logout. Por defecto se
+   * consulta Redis; el servicio de seguridad, que además revoca, comparte esa
+   * misma lista.
+   */
+  verificadorDenylist?: Type<VerificadorDenylist>;
 }
 
 /**
@@ -37,6 +45,7 @@ export class ModuloSeguridad {
       module: ModuloSeguridad,
       global: true,
       providers: [
+        VerificadorToken,
         {
           provide: EXTRACTOR_IDENTIDAD,
           useClass: opciones.extractorIdentidad ?? ExtractorIdentidadJwt,
@@ -45,9 +54,13 @@ export class ModuloSeguridad {
           provide: PROVEEDOR_PRIVILEGIOS,
           useClass: opciones.proveedorPrivilegios ?? ProveedorPrivilegiosHttp,
         },
+        {
+          provide: VERIFICADOR_DENYLIST,
+          useClass: opciones.verificadorDenylist ?? DenylistRedis,
+        },
         { provide: APP_GUARD, useClass: GuardPrivilegios },
       ],
-      exports: [EXTRACTOR_IDENTIDAD, PROVEEDOR_PRIVILEGIOS],
+      exports: [EXTRACTOR_IDENTIDAD, PROVEEDOR_PRIVILEGIOS, VERIFICADOR_DENYLIST, VerificadorToken],
     };
   }
 }

@@ -1,7 +1,9 @@
 export * from "./contratos/identidad";
 export * from "./contratos/privilegios";
+export * from "./contratos/tokens";
 export * from "./http/cliente-http";
 export * from "./observabilidad/logger";
+export * from "./seguridad/denylist";
 export * from "./seguridad/extractor-identidad";
 export * from "./seguridad/extractor-identidad-jwt";
 export * from "./seguridad/guard-privilegios";
@@ -9,4 +11,5 @@ export * from "./seguridad/modulo-seguridad";
 export * from "./seguridad/proveedor-privilegios-http";
 export * from "./seguridad/requiere-privilegio.decorator";
 export * from "./seguridad/usuario-actual.decorator";
+export * from "./seguridad/verificador-token";
 export * from "./utils/filtro-excepciones";
