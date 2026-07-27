@@ -13,8 +13,6 @@ OpenAPI/Scalar.
 | [Guía del sistema](docs/readmes/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo (funcional) |
 | [Plan del Avance 3](docs/readmes/avance-3-plan-backend.md) | Reparto de trabajo del backend |
 | [Contratos de API](docs/02-api/README.md) | Flujo contrato-primero y OpenAPI por servicio |
-| [Plantilla de microservicio](apps/backend/services/example-service/README.md) | Cómo crear tu servicio |
-
 ---
 
 # Encendido del sistema en local (dev)
@@ -152,11 +150,9 @@ curl -X POST -H "Authorization: Bearer <TOKEN>" http://localhost:4000/api/seguri
 | `cajero@scipos.com` | `Cajero1234` | CAJERO |
 | `supervisor@scipos.com` | `Supervisor1234` | SUPERVISOR |
 
-El selector de rol del topbar inicia sesión con estas cuentas tras bambalinas,
-así todo el tráfico viaja con token RS256 desde el primer clic (el access se
-renueva solo con el refresh token cuando expira). La pantalla de login puede
-construirse encima llamando a `iniciarSesion()` / `cerrarSesion()` del contexto
-de permisos.
+Con estas cuentas inicias sesión en `/login`. Desde el primer clic todo el
+tráfico viaja con token RS256 (el access se renueva solo con el refresh token
+cuando expira); el menú lateral tiene el botón para cerrar sesión.
 
 ### Seguridad JWT (RS256 + JWKS)
 

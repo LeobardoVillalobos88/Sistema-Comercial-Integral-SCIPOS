@@ -7,7 +7,6 @@ import {
   llamarApi,
   registrarRenovacionTokens,
 } from "../api";
-import { CREDENCIALES_DEMO } from "./credenciales-demo";
 import { rolTienePrivilegio } from "./matriz";
 import type { PermisosContextValue, Privilegio, Rol, UsuarioSesion } from "./tipos";
 
@@ -58,9 +57,9 @@ export interface PermisosProviderProps {
  * obtiene un access token RS256 y un refresh token del servicio de seguridad;
  * desde entonces todas las llamadas de `llamarApi` viajan firmadas y el backend
  * valida cada acción (RF-05/RF-06). El access se renueva solo con el refresh
- * cuando expira. El selector de rol del topbar inicia sesión con las
- * credenciales demo del rol elegido, y la sesión sobrevive a recargas dentro de
- * la misma pestaña (sessionStorage + GET /auth/perfil).
+ * cuando expira. `iniciarSesion` es lo que consume la pantalla de login; la
+ * sesión sobrevive a recargas dentro de la misma pestaña (sessionStorage +
+ * GET /auth/perfil).
  *
  * Si la API no está disponible, los privilegios se resuelven con la matriz
  * local de respaldo para que la interfaz siga siendo navegable; las
@@ -106,25 +105,8 @@ export function PermisosProvider({
     limpiarSesion();
   }, [limpiarSesion]);
 
-  /** Cambia de rol iniciando sesión demo con las credenciales de ese rol. */
-  const setRol = useCallback(
-    (nuevoRol: Rol) => {
-      setRolEstado(nuevoRol);
-      setCargandoPermisos(true);
-      const credenciales = CREDENCIALES_DEMO[nuevoRol];
-      iniciarSesion(credenciales.correo, credenciales.contrasena)
-        .catch(() => {
-          limpiarSesion();
-        })
-        .finally(() => {
-          setCargandoPermisos(false);
-        });
-    },
-    [iniciarSesion, limpiarSesion],
-  );
-
   // Al montar: persiste los tokens que el cliente renueve solo y restaura la
-  // sesión guardada en la pestaña (o inicia la demo).
+  // sesión guardada en la pestaña.
   // biome-ignore lint/correctness/useExhaustiveDependencies: el arranque de sesión debe correr una sola vez
   useEffect(() => {
     let vigente = true;
@@ -152,14 +134,7 @@ export function PermisosProvider({
           }
         }
       }
-      const credenciales = CREDENCIALES_DEMO[rolInicial];
-      try {
-        await iniciarSesion(credenciales.correo, credenciales.contrasena);
-      } catch {
-        if (vigente) {
-          limpiarSesion();
-        }
-      }
+      // Ya no iniciamos sesión demo automáticamente, requerimos login explícito
     }
     arrancar().finally(() => {
       if (vigente) {
@@ -181,7 +156,6 @@ export function PermisosProvider({
   const value = useMemo<PermisosContextValue>(
     () => ({
       rol,
-      setRol,
       roles: ROLES,
       can,
       usuario,
@@ -190,7 +164,7 @@ export function PermisosProvider({
       iniciarSesion,
       cerrarSesion,
     }),
-    [rol, setRol, can, usuario, privilegios, cargandoPermisos, iniciarSesion, cerrarSesion],
+    [rol, can, usuario, privilegios, cargandoPermisos, iniciarSesion, cerrarSesion],
   );
 
   return <PermisosContext.Provider value={value}>{children}</PermisosContext.Provider>;

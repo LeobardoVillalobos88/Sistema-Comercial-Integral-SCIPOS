@@ -1,18 +1,12 @@
 "use client";
 
-import BadgeIcon from "@mui/icons-material/Badge";
 import MenuIcon from "@mui/icons-material/Menu";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import FormControl from "@mui/material/FormControl";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { ETIQUETAS_ROL, usePermisos } from "@scipos/frontend-commons";
-import type { Rol } from "@scipos/frontend-commons";
 
 interface TopbarProps {
   anchoMenu: number;
@@ -20,12 +14,10 @@ interface TopbarProps {
 }
 
 /**
- * Barra superior. Incluye el selector de rol: al cambiarlo, los módulos
- * muestran u ocultan acciones según los privilegios del rol elegido
- * (RF-04/RF-05).
+ * Barra superior del armazón.
  */
 export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
-  const { rol, setRol, roles } = usePermisos();
+  const { usuario, rol } = usePermisos();
 
   return (
     <AppBar
@@ -37,6 +29,11 @@ export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
         ml: { md: `${anchoMenu}px` },
         borderBottom: 1,
         borderColor: "divider",
+        transition: (theme) =>
+          theme.transitions.create(["width", "margin"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
       }}
     >
       <Toolbar>
@@ -65,24 +62,16 @@ export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
           SCIPOS
         </Typography>
 
-        <FormControl size="small" sx={{ minWidth: { xs: 150, sm: 200 } }}>
-          <Select
-            value={rol}
-            onChange={(e) => setRol(e.target.value as Rol)}
-            startAdornment={
-              <InputAdornment position="start">
-                <BadgeIcon fontSize="small" />
-              </InputAdornment>
-            }
-          >
-            {roles.map((r) => (
-              <MenuItem key={r} value={r}>
-                {ETIQUETAS_ROL[r]}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Box sx={{ width: 8 }} />
+        {usuario && (
+          <Box sx={{ textAlign: "right", ml: 2, display: { xs: "none", sm: "block" } }}>
+            <Typography variant="body2" fontWeight="bold">
+              {usuario.nombre}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {ETIQUETAS_ROL[rol]}
+            </Typography>
+          </Box>
+        )}
       </Toolbar>
     </AppBar>
   );

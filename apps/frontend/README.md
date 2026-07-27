@@ -8,29 +8,31 @@ integradas por el `web-shell`, que es el host de navegación y layout.
 | Carpeta | Puerto | Qué es |
 |---|---|---|
 | `commons/` | — | Design System: tema MUI, componentes base, permisos, feedback (toasts/alertas), datos de catálogo, utils |
-| `web-shell/` | 3001 | Host: navegación, layout, selector de rol, landing (Inicio) y dashboard |
-| `example-front/` | 3002 | Plantilla de referencia para los `*-front` |
-| `productos-front/` | 3003 | Catálogo de productos y servicios (lote, caducidad, precios de compra/venta, CRUD) |
+| `web-shell/` | 3001 | Host: navegación, layout, sesión (login/logout), landing (Inicio), dashboard y admin de usuarios |
+| `login-front/` | — | Pantalla de inicio de sesión; se monta en `/login` del `web-shell` (componente puro, sin puerto propio) || `productos-front/` | 3003 | Catálogo de productos y servicios (lote, caducidad, precios de compra/venta, CRUD) |
 | `clientes-front/` | 3004 | Gestión de clientes + detalle con historial de cotizaciones y ventas |
 | `cotizaciones-front/` | 3005 | Cotizaciones (Borrador → Enviada → Vendida) y conversión a venta |
 | `pos-caja-front/` | 3006 | Punto de venta, punto de compra y caja (apertura, movimientos, corte) |
+| `reportes-front/` | 3007 | Reportes (ventas, cotizaciones, inventario valuado, cortes, utilidad) con exportación CSV |
 
-> Los `*-front` se crean copiando `example-front`. El siguiente puerto libre es el **3007**.
+> Cada `*-front` corre en su propio puerto (3003–3007).
 
 ## Comandos
 
 ```bash
 pnpm install                                  # instala todo el monorepo (desde la raíz)
 pnpm dev                                      # corre TODO a la vez (vía Turbo)
-pnpm --filter @scipos/web-shell dev           # solo el shell        → http://localhost:3001
-pnpm --filter @scipos/example-front dev       # solo la plantilla    → http://localhost:3002
-pnpm --filter @scipos/productos-front dev     # solo productos       → http://localhost:3003
+pnpm --filter @scipos/web-shell dev           # solo el shell        → http://localhost:3001pnpm --filter @scipos/productos-front dev     # solo productos       → http://localhost:3003
 pnpm --filter @scipos/clientes-front dev      # solo clientes        → http://localhost:3004
 pnpm --filter @scipos/cotizaciones-front dev  # solo cotizaciones    → http://localhost:3005
 pnpm --filter @scipos/pos-caja-front dev      # solo POS + caja      → http://localhost:3006
+pnpm --filter @scipos/reportes-front dev      # solo reportes        → http://localhost:3007
 pnpm build                                    # build de todo
 pnpm lint                                     # lint con Biome
 ```
+
+> `login-front` no tiene servidor propio: se consume desde el `web-shell`. Para
+> verlo, levanta el shell y entra a `http://localhost:3001/login`.
 
 ## El Design System (`@scipos/frontend-commons`)
 
@@ -40,22 +42,26 @@ Todo lo compartido se importa desde un solo lugar:
 import {
   PageHeader, SearchableTable, SkeletonTabla, EstadoChip, EstadoCotizacionChip,
   StatCard, Permiso, usePermisos, PRODUCTOS_MOCK, CLIENTES_MOCK,
-  formatearMoneda, formatearFecha, formatearFechaConHora, totalCotizacion, temaScipos,
+  formatearMoneda, formatearFecha, formatearFechaConHora, temaScipos,
 } from "@scipos/frontend-commons";
 ```
 
-### Permisos
+### Sesión y permisos
+
+La sesión es real: la pantalla de `/login` llama a `iniciarSesion(correo, contrasena)`
+del contexto de permisos, que obtiene un token JWT del servicio de seguridad. A
+partir de ahí, cada módulo muestra u oculta acciones según los privilegios del
+usuario, y el **backend valida cada acción** (ocultar en el frontend nunca basta).
+Sin sesión, el `web-shell` redirige a `/login`; el botón de cerrar sesión del menú
+lateral llama a `cerrarSesion()`.
 
 ```tsx
-const { rol, can } = usePermisos();
+const { can, usuario, cerrarSesion } = usePermisos();
 
 {can("productos:crear") && <Button>Nuevo</Button>}
 // o, de forma declarativa:
 <Permiso requiere="productos:crear"><Button>Nuevo</Button></Permiso>
 ```
-
-El selector de rol del `web-shell` cambia el rol activo y los módulos reaccionan
-mostrando u ocultando acciones según los privilegios de ese rol.
 
 ### Feedback (toasts, alertas y skeletons)
 
@@ -72,7 +78,7 @@ if (await confirmar({ titulo: "¿Eliminar registro?" })) { /* ... */ }
 ```
 
 Para estados de carga está `SkeletonTabla`: renderízalo mientras la vista espera
-sus datos (al integrar el backend, mientras la petición está en curso).
+sus datos (mientras la petición al backend está en curso).
 
 ### Convención de acciones en tablas
 
@@ -80,3 +86,4 @@ Orden fijo de los botones de acción: **Ver → Activar/Desactivar → Editar �
 Eliminar** (se omiten los que no apliquen). Colores: ver `primary`, editar
 `info`, activar `success`, eliminar `error`. Eliminar siempre pide
 confirmación y es exclusivo del Administrador (privilegio `modulo:eliminar`).
+```

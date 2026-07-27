@@ -1,4 +1,3 @@
-export { CREDENCIALES_DEMO } from "./credenciales-demo";
 export { MATRIZ_PRIVILEGIOS, rolTienePrivilegio } from "./matriz";
 export { PermisosProvider, usePermisos } from "./PermisosProvider";
 export type { PermisosProviderProps } from "./PermisosProvider";

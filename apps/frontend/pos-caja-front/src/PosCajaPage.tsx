@@ -45,8 +45,6 @@ import {
   ETIQUETAS_ROL,
   EstadoChip,
   PageHeader,
-  type PermisosContextValue,
-  type Rol,
   SkeletonTabla,
   formatearFechaConHora,
   formatearMoneda,
@@ -242,25 +240,6 @@ function TablaCortesHistoricos({ cortes }: { cortes: CorteCaja[] }) {
         </TableBody>
       </Table>
     </TableContainer>
-  );
-}
-
-function RolSelector({ permisos }: { permisos: PermisosContextValue }) {
-  return (
-    <TextField
-      select
-      size="small"
-      label="Rol activo"
-      value={permisos.rol}
-      onChange={(event) => permisos.setRol(event.target.value as Rol)}
-      sx={{ minWidth: 220 }}
-    >
-      {permisos.roles.map((rol) => (
-        <MenuItem key={rol} value={rol}>
-          {ETIQUETAS_ROL[rol]}
-        </MenuItem>
-      ))}
-    </TextField>
   );
 }
 
@@ -758,7 +737,6 @@ export function PosCajaPage({
                 variant="outlined"
               />
             )}
-            {hideTabs ? null : <RolSelector permisos={permisos} />}
           </Stack>
         }
       />

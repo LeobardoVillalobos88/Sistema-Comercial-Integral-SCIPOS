@@ -7,6 +7,7 @@ const nextConfig = {
     "@scipos/productos-front",
     "@scipos/clientes-front",
     "@scipos/cotizaciones-front",
+    "@scipos/login-front",
     "@scipos/pos-caja-front",
     "@scipos/reportes-front",
   ],

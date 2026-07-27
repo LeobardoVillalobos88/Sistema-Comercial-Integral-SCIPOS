@@ -1,8 +1,9 @@
 # 🐺 SCIPOS — Guía del sistema (LOBOSOFT)
 
 Guía rápida: **qué hace cada módulo** y **qué puede hacer cada rol**.
-Para probar todo: `pnpm dev` y abre el shell en **http://localhost:3001**. El rol se
-cambia con el **selector de la barra superior** (arriba a la derecha).
+Para probar todo: `pnpm dev` y abre el shell en **http://localhost:3001**. Inicia sesión
+en `/login` con una de las cuentas semilla (una por rol; ver el `README` raíz) para
+recorrer el sistema desde ese rol.
 
 ---
 
@@ -128,9 +129,9 @@ Eliminar siempre pide confirmación.
 
 ## 5. Notas de uso
 
-- Los datos del sistema son **catálogos en memoria**: cada módulo administra su
-  propia información durante la sesión del navegador y los módulos comparten los
-  mismos IDs de clientes, productos y cotizaciones para que la información embone.
+- Los datos viven en un **backend real** (microservicios NestJS + PostgreSQL) al que
+  cada módulo llama a través del gateway; el backend **valida cada acción** según los
+  privilegios del usuario, no solo oculta botones.
 - Al realizar acciones el sistema responde con **notificaciones** (arriba a la
   derecha): verde = éxito, azul = información, rojo = error; y pide **confirmación**
   antes de acciones destructivas.
