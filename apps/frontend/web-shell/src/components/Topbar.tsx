@@ -2,10 +2,10 @@
 
 import MenuIcon from "@mui/icons-material/Menu";
 import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
 import { ETIQUETAS_ROL, usePermisos } from "@scipos/frontend-commons";
 
 interface TopbarProps {
@@ -29,10 +29,11 @@ export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
         ml: { md: `${anchoMenu}px` },
         borderBottom: 1,
         borderColor: "divider",
-        transition: (theme) => theme.transitions.create(["width", "margin"], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.enteringScreen,
-        }),
+        transition: (theme) =>
+          theme.transitions.create(["width", "margin"], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
       }}
     >
       <Toolbar>

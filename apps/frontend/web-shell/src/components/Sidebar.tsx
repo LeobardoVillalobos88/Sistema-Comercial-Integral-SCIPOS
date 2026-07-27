@@ -2,29 +2,28 @@
 
 import { NAVEGACION } from "@/config/navegacion";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import DescriptionIcon from "@mui/icons-material/Description";
 import InsightsIcon from "@mui/icons-material/Insights";
 import InventoryIcon from "@mui/icons-material/Inventory2";
+import LogoutIcon from "@mui/icons-material/Logout";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import PeopleIcon from "@mui/icons-material/People";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import SavingsIcon from "@mui/icons-material/Savings";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import LogoutIcon from "@mui/icons-material/Logout";
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import Drawer from "@mui/material/Drawer";
+import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
-import Divider from "@mui/material/Divider";
-import { ETIQUETAS_ROL, usePermisos } from "@scipos/frontend-commons";
+import { usePermisos } from "@scipos/frontend-commons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -59,20 +58,22 @@ function Contenido({
   onToggleSidebar?: () => void;
 }) {
   const pathname = usePathname();
-  const { can, usuario, rol, cerrarSesion } = usePermisos();
+  const { can, cerrarSesion } = usePermisos();
 
   // Solo se muestran los módulos cuyo privilegio tiene el rol actual.
   const itemsVisibles = NAVEGACION.filter((item) => !item.privilegio || can(item.privilegio));
 
   return (
-    <Box sx={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      height: "100%", 
-      position: "relative",
-      background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
-      color: "#ffffff"
-    }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        position: "relative",
+        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+        color: "#ffffff",
+      }}
+    >
       {/* Botón flotante para expandir/colapsar (solo visible en escritorio si se pasa la función) */}
       {onToggleSidebar && (
         <IconButton
@@ -92,28 +93,40 @@ function Contenido({
             display: { xs: "none", md: "flex" },
           }}
         >
-          {sidebarAbierto ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+          {sidebarAbierto ? (
+            <ChevronLeftIcon fontSize="small" />
+          ) : (
+            <ChevronRightIcon fontSize="small" />
+          )}
         </IconButton>
       )}
 
-      <Box sx={{ p: 2, display: "flex", justifyContent: sidebarAbierto ? "flex-start" : "center", alignItems: "center", minHeight: 64 }}>
+      <Box
+        sx={{
+          p: 2,
+          display: "flex",
+          justifyContent: sidebarAbierto ? "flex-start" : "center",
+          alignItems: "center",
+          minHeight: 64,
+        }}
+      >
         <Box
           component="img"
-          src={sidebarAbierto ? "/logo-lobosoft.png" : "/logo-lobosoft.png"} // Podríamos usar un logo cuadrado si estuviera compacto
+          src="/logo-lobosoft.png"
           alt="LOBOSOFT"
-          sx={{ 
-            width: sidebarAbierto ? "100%" : 40, 
-            height: "auto", 
-            display: "block", 
-            transition: "width 0.2s"
+          sx={{
+            width: sidebarAbierto ? "100%" : 40,
+            height: "auto",
+            display: "block",
+            transition: "width 0.2s",
           }}
         />
       </Box>
-      <List 
-        sx={{ 
-          px: 1, 
-          mt: 1, 
-          flexGrow: 1, 
+      <List
+        sx={{
+          px: 1,
+          mt: 1,
+          flexGrow: 1,
           overflowY: "auto",
           "&::-webkit-scrollbar": { display: "none" },
           msOverflowStyle: "none",
@@ -139,13 +152,26 @@ function Contenido({
                   bgcolor: activo ? "rgba(255,255,255,0.1)" : "transparent",
                   "&:hover": {
                     bgcolor: "rgba(255,255,255,0.15)",
-                  }
+                  },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 40, mr: sidebarAbierto ? 2 : "auto", justifyContent: "center", color: "inherit" }}>
+                <ListItemIcon
+                  sx={{
+                    minWidth: 40,
+                    mr: sidebarAbierto ? 2 : "auto",
+                    justifyContent: "center",
+                    color: "inherit",
+                  }}
+                >
                   <Icono fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary={item.etiqueta} sx={{ opacity: sidebarAbierto ? 1 : 0, display: sidebarAbierto ? "block" : "none" }} />
+                <ListItemText
+                  primary={item.etiqueta}
+                  sx={{
+                    opacity: sidebarAbierto ? 1 : 0,
+                    display: sidebarAbierto ? "block" : "none",
+                  }}
+                />
               </ListItemButton>
             </Tooltip>
           );
@@ -153,11 +179,15 @@ function Contenido({
       </List>
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
-      
+
       {/* Botón de cerrar sesión al fondo */}
       <Box sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Tooltip title="Cerrar sesión" placement={sidebarAbierto ? "top" : "right"}>
-          <IconButton color="inherit" onClick={cerrarSesion} sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444" } }}>
+          <IconButton
+            color="inherit"
+            onClick={cerrarSesion}
+            sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444" } }}
+          >
             <LogoutIcon />
           </IconButton>
         </Tooltip>
@@ -167,12 +197,26 @@ function Contenido({
 }
 
 /** Menú lateral. Permanente en escritorio, temporal (cajón) en móvil. */
-export function Sidebar({ ancho, menuMovilAbierto, onCerrarMenu, sidebarAbierto = true, onToggleSidebar }: SidebarProps) {
+export function Sidebar({
+  ancho,
+  menuMovilAbierto,
+  onCerrarMenu,
+  sidebarAbierto = true,
+  onToggleSidebar,
+}: SidebarProps) {
   return (
-    <Box component="nav" sx={{ width: { md: ancho }, flexShrink: { md: 0 }, transition: (theme) => theme.transitions.create("width", {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }) }}>
+    <Box
+      component="nav"
+      sx={{
+        width: { md: ancho },
+        flexShrink: { md: 0 },
+        transition: (theme) =>
+          theme.transitions.create("width", {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
+      }}
+    >
       {/* Móvil */}
       <Drawer
         variant="temporary"
@@ -191,18 +235,19 @@ export function Sidebar({ ancho, menuMovilAbierto, onCerrarMenu, sidebarAbierto 
         open
         sx={{
           display: { xs: "none", md: "block" },
-          "& .MuiDrawer-paper": { 
-            boxSizing: "border-box", 
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
             width: ancho,
             overflow: "visible", // Permitir que la flechita sobresalga
-            transition: (theme) => theme.transitions.create("width", {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            })
+            transition: (theme) =>
+              theme.transitions.create("width", {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
           },
         }}
         PaperProps={{
-          sx: { overflow: "visible", bgcolor: "#0f172a" }
+          sx: { overflow: "visible", bgcolor: "#0f172a" },
         }}
       >
         <Contenido sidebarAbierto={sidebarAbierto} onToggleSidebar={onToggleSidebar} />

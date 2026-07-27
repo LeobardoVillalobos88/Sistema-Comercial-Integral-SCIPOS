@@ -243,7 +243,6 @@ function TablaCortesHistoricos({ cortes }: { cortes: CorteCaja[] }) {
   );
 }
 
-
 export function PosCajaPage({
   defaultTab = 0,
   hideTabs = false,
@@ -738,7 +737,6 @@ export function PosCajaPage({
                 variant="outlined"
               />
             )}
-            {hideTabs ? null : null}
           </Stack>
         }
       />

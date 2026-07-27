@@ -1,36 +1,57 @@
 "use client";
 
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import Toolbar from "@mui/material/Toolbar";
-import { useState } from "react";
+import { usePermisos } from "@scipos/frontend-commons";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { usePermisos } from "@scipos/frontend-commons";
 
 const ANCHO_MENU_ABIERTO = 248;
 const ANCHO_MENU_CERRADO = 80;
 
 /**
  * Armazón principal de la aplicación: barra superior + menú lateral + área de
- * contenido donde se renderiza cada módulo.
+ * contenido donde se renderiza cada módulo. Exige sesión: sin usuario redirige
+ * al login (el backend valida cada acción de todos modos).
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
-  const [sidebarAbierto, setSidebarAbierto] = useState(false); // Inicia cerrado
+  const [sidebarAbierto, setSidebarAbierto] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { usuario, cargandoPermisos } = usePermisos();
 
+  const enLogin = pathname === "/login";
+
   useEffect(() => {
-    if (!cargandoPermisos && !usuario && pathname !== "/login") {
+    if (!cargandoPermisos && !usuario && !enLogin) {
       router.replace("/login");
     }
-  }, [cargandoPermisos, usuario, pathname, router]);
+  }, [cargandoPermisos, usuario, enLogin, router]);
 
-  if (pathname === "/login") {
+  // El login se pinta sin armazón.
+  if (enLogin) {
     return <Box component="main">{children}</Box>;
+  }
+
+  // Mientras se resuelve la sesión (o se redirige al login) no mostramos el
+  // armazón protegido, para evitar parpadeos y peticiones sin token.
+  if (cargandoPermisos || !usuario) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          minHeight: "100vh",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   const anchoActual = sidebarAbierto ? ANCHO_MENU_ABIERTO : ANCHO_MENU_CERRADO;
@@ -51,10 +72,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           flexGrow: 1,
           width: { md: `calc(100% - ${anchoActual}px)` },
           bgcolor: "background.default",
-          transition: (theme) => theme.transitions.create("width", {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
+          transition: (theme) =>
+            theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
         }}
       >
         <Toolbar />

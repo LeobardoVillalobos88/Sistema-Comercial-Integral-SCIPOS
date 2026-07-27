@@ -57,9 +57,9 @@ export interface PermisosProviderProps {
  * obtiene un access token RS256 y un refresh token del servicio de seguridad;
  * desde entonces todas las llamadas de `llamarApi` viajan firmadas y el backend
  * valida cada acción (RF-05/RF-06). El access se renueva solo con el refresh
- * cuando expira. El selector de rol del topbar inicia sesión con las
- * credenciales demo del rol elegido, y la sesión sobrevive a recargas dentro de
- * la misma pestaña (sessionStorage + GET /auth/perfil).
+ * cuando expira. `iniciarSesion` es lo que consume la pantalla de login; la
+ * sesión sobrevive a recargas dentro de la misma pestaña (sessionStorage +
+ * GET /auth/perfil).
  *
  * Si la API no está disponible, los privilegios se resuelven con la matriz
  * local de respaldo para que la interfaz siga siendo navegable; las
@@ -105,10 +105,8 @@ export function PermisosProvider({
     limpiarSesion();
   }, [limpiarSesion]);
 
-
-
   // Al montar: persiste los tokens que el cliente renueve solo y restaura la
-  // sesión guardada en la pestaña (o inicia la demo).
+  // sesión guardada en la pestaña.
   // biome-ignore lint/correctness/useExhaustiveDependencies: el arranque de sesión debe correr una sola vez
   useEffect(() => {
     let vigente = true;
