@@ -10,7 +10,7 @@ PostgreSQL `cotizaciones`; los clientes, productos y ventas se consultan por RES
 - Ciclo de vida `BORRADOR → ENVIADA → VENDIDA`.
 - Conversión segura a venta; `VENDIDA` solo se guarda si ventas-caja confirma un `id`.
 - Listado con filtros, historial por cliente y resumen para dashboard.
-- Guard compartido de `@scipos/backend-commons` con identidad `x-usuario-id`.
+- Guard compartido de `@scipos/backend-commons`: la identidad llega como Bearer JWT (RS256) verificado contra el JWKS; `x-usuario-id` es solo el canal interno entre servicios.
 - OpenAPI vivo en `/api-json`, Scalar en `/docs` y health check en `/health`.
 
 ## Privilegios
@@ -23,8 +23,8 @@ PostgreSQL `cotizaciones`; los clientes, productos y ventas se consultan por RES
 | Convertir a venta | `cotizaciones:convertir` |
 | Eliminar un borrador | `cotizaciones:eliminar` |
 
-El servicio de seguridad debe registrar estas cinco claves. La identidad viaja por header para poder
-cambiar el extractor a JWT sin modificar controladores ni lógica de dominio.
+El servicio de seguridad registra estas cinco claves. El guard compartido verifica la identidad
+(Bearer JWT) sin tocar los controladores ni la lógica de dominio.
 
 ## Desarrollo local
 
@@ -48,4 +48,4 @@ convertir también debe estar disponible ventas-caja (4005).
 - `GET {SEGURIDAD_URL}/privilegios/verificar?usuarioId=...&privilegio=...` → `{ tiene: boolean, motivo?: string }`.
 - `GET {CLIENTES_URL}/:id` → `{ id, nombre, activo }`.
 - `GET {PRODUCTOS_URL}/productos/:id` → `{ id, nombre, precioVenta, activo }`.
-- `POST {VENTAS_CAJA_URL}/ventas/desde-cotizacion` → `{ id }`.
+- `POST {VENTAS_CAJA_URL}/ventas/convertir-cotizacion` → `{ id }`.

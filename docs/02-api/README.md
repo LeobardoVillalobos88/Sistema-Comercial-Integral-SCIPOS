@@ -15,7 +15,9 @@ demás integrantes usan para integrarse con tu servicio sin esperarte.
 ## Convenciones
 
 - Todas las rutas públicas pasan por el gateway: `http://localhost:4000/api/<servicio>/...`
-- La identidad viaja en el header `x-usuario-id`. Sin header en un endpoint protegido:
-  **401**; sin el privilegio requerido: **403**.
+- La identidad viaja como **Bearer JWT (RS256)**, verificado en el gateway y en cada
+  servicio contra el JWKS de seguridad; `x-usuario-id` es solo el canal interno entre
+  servicios (el gateway lo descarta de las peticiones externas). Sin token válido en un
+  endpoint protegido: **401**; sin el privilegio requerido: **403**.
 - Los errores usan el formato estándar del backend: `{ estatus, mensaje, error, ruta, fecha }`.
 - Las colecciones de Postman y sus environments van en `postman/`.
