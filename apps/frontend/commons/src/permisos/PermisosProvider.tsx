@@ -7,7 +7,6 @@ import {
   llamarApi,
   registrarRenovacionTokens,
 } from "../api";
-import { CREDENCIALES_DEMO } from "./credenciales-demo";
 import { rolTienePrivilegio } from "./matriz";
 import type { PermisosContextValue, Privilegio, Rol, UsuarioSesion } from "./tipos";
 
@@ -106,22 +105,7 @@ export function PermisosProvider({
     limpiarSesion();
   }, [limpiarSesion]);
 
-  /** Cambia de rol iniciando sesión demo con las credenciales de ese rol. */
-  const setRol = useCallback(
-    (nuevoRol: Rol) => {
-      setRolEstado(nuevoRol);
-      setCargandoPermisos(true);
-      const credenciales = CREDENCIALES_DEMO[nuevoRol];
-      iniciarSesion(credenciales.correo, credenciales.contrasena)
-        .catch(() => {
-          limpiarSesion();
-        })
-        .finally(() => {
-          setCargandoPermisos(false);
-        });
-    },
-    [iniciarSesion, limpiarSesion],
-  );
+
 
   // Al montar: persiste los tokens que el cliente renueve solo y restaura la
   // sesión guardada en la pestaña (o inicia la demo).
@@ -152,14 +136,7 @@ export function PermisosProvider({
           }
         }
       }
-      const credenciales = CREDENCIALES_DEMO[rolInicial];
-      try {
-        await iniciarSesion(credenciales.correo, credenciales.contrasena);
-      } catch {
-        if (vigente) {
-          limpiarSesion();
-        }
-      }
+      // Ya no iniciamos sesión demo automáticamente, requerimos login explícito
     }
     arrancar().finally(() => {
       if (vigente) {
@@ -181,7 +158,6 @@ export function PermisosProvider({
   const value = useMemo<PermisosContextValue>(
     () => ({
       rol,
-      setRol,
       roles: ROLES,
       can,
       usuario,
@@ -190,7 +166,7 @@ export function PermisosProvider({
       iniciarSesion,
       cerrarSesion,
     }),
-    [rol, setRol, can, usuario, privilegios, cargandoPermisos, iniciarSesion, cerrarSesion],
+    [rol, can, usuario, privilegios, cargandoPermisos, iniciarSesion, cerrarSesion],
   );
 
   return <PermisosContext.Provider value={value}>{children}</PermisosContext.Provider>;

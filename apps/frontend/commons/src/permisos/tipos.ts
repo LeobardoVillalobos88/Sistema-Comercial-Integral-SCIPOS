@@ -24,8 +24,6 @@ export interface UsuarioSesion {
 export interface PermisosContextValue {
   /** Rol actualmente seleccionado. */
   rol: Rol;
-  /** Cambia el rol activo iniciando sesión demo con ese rol (selector del topbar). */
-  setRol: (rol: Rol) => void;
   /** Lista de roles disponibles. */
   roles: Rol[];
   /** ¿El usuario activo tiene el privilegio indicado? */

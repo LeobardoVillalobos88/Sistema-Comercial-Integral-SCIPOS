@@ -20,6 +20,7 @@
     "@scipos/clientes-front": "workspace:*",
     "@scipos/cotizaciones-front": "workspace:*",
     "@scipos/frontend-commons": "workspace:*",
+    "@scipos/login-front": "workspace:*",
     "@scipos/pos-caja-front": "workspace:*",
     "@scipos/productos-front": "workspace:*",
     "@scipos/reportes-front": "workspace:*",
