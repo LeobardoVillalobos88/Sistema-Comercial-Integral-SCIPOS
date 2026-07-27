@@ -7,19 +7,15 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Divider from "@mui/material/Divider";
 import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { CREDENCIALES_DEMO, ETIQUETAS_ROL, type Rol } from "@scipos/frontend-commons";
 import { useState } from "react";
 
 /** Degradado corporativo compartido con el menú lateral. */
 const DEGRADADO_MARCA = "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)";
-
-const ROLES_DEMO = Object.keys(CREDENCIALES_DEMO) as Rol[];
 
 export interface LoginViewProps {
   onLogin: (correo: string, contrasena: string) => Promise<void>;
@@ -27,8 +23,7 @@ export interface LoginViewProps {
 
 /**
  * Pantalla de inicio de sesión (RF-01). Recibe las credenciales y delega en
- * `onLogin`, que abre la sesión real contra el servicio de seguridad. Ofrece
- * además accesos rápidos por rol para demostrar los privilegios dinámicos.
+ * `onLogin`, que abre la sesión real contra el servicio de seguridad.
  */
 export function LoginView({ onLogin }: LoginViewProps) {
   const [correo, setCorreo] = useState("");
@@ -36,28 +31,17 @@ export function LoginView({ onLogin }: LoginViewProps) {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const intentarAcceso = async (correoIngresado: string, contrasenaIngresada: string) => {
+  const alEnviar = async (evento: React.FormEvent) => {
+    evento.preventDefault();
     setError(null);
     setCargando(true);
     try {
-      await onLogin(correoIngresado, contrasenaIngresada);
+      await onLogin(correo, contrasena);
       // En caso de éxito la navegación desmonta esta vista; no reactivamos el botón.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Credenciales inválidas. Intente de nuevo.");
       setCargando(false);
     }
-  };
-
-  const alEnviar = (evento: React.FormEvent) => {
-    evento.preventDefault();
-    void intentarAcceso(correo, contrasena);
-  };
-
-  const accederComo = (rol: Rol) => {
-    const credenciales = CREDENCIALES_DEMO[rol];
-    setCorreo(credenciales.correo);
-    setContrasena(credenciales.contrasena);
-    void intentarAcceso(credenciales.correo, credenciales.contrasena);
   };
 
   return (
@@ -214,24 +198,6 @@ export function LoginView({ onLogin }: LoginViewProps) {
               </Button>
             </Stack>
           </Box>
-
-          <Divider sx={{ my: 3, color: "#94a3b8", fontSize: "0.75rem" }}>
-            Acceso rápido (demo)
-          </Divider>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="center">
-            {ROLES_DEMO.map((rol) => (
-              <Button
-                key={rol}
-                size="small"
-                variant="outlined"
-                disabled={cargando}
-                onClick={() => accederComo(rol)}
-                sx={{ textTransform: "none", borderColor: "#e2e8f0", color: "#475569" }}
-              >
-                {ETIQUETAS_ROL[rol]}
-              </Button>
-            ))}
-          </Stack>
         </Paper>
       </Box>
     </Box>

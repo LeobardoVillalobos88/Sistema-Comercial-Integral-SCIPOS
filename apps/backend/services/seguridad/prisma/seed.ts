@@ -94,8 +94,8 @@ const MATRIZ_ROLES: Record<string, string[]> = {
 };
 
 /**
- * Usuarios semilla, uno por rol, con IDs fijos y credenciales de demostración
- * conocidas por todo el equipo (misma tabla que CREDENCIALES_DEMO del frontend).
+ * Usuarios semilla, uno por rol, con IDs fijos y credenciales conocidas por el
+ * equipo (documentadas en el README para poder iniciar sesión).
  */
 const USUARIOS_SEMILLA = [
   {
