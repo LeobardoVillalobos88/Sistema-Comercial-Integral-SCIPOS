@@ -134,7 +134,8 @@ export function PermisosProvider({
           }
         }
       }
-      // Ya no iniciamos sesión demo automáticamente, requerimos login explícito
+      // Sin una sesión guardada válida se termina sin usuario: el shell redirige
+      // a /login para que las credenciales se ingresen de forma explícita.
     }
     arrancar().finally(() => {
       if (vigente) {

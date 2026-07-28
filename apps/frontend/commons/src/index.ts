@@ -3,4 +3,4 @@ export * from "./components";
 export * from "./permisos";
 export * from "./mocks";
 export * from "./utils";
-export { temaScipos } from "./theme";
+export { MARCA_OSCURA, temaScipos } from "./theme";

@@ -1,19 +1,14 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CreditScoreIcon from "@mui/icons-material/CreditScore";
 import DeleteIcon from "@mui/icons-material/Delete";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SearchIcon from "@mui/icons-material/Search";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardHeader from "@mui/material/CardHeader";
 import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
 import Dialog from "@mui/material/Dialog";
@@ -39,19 +34,16 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   ETIQUETAS_ROL,
   EstadoChip,
   PageHeader,
   SkeletonTabla,
-  formatearFechaConHora,
   formatearMoneda,
   usePermisos,
 } from "@scipos/frontend-commons";
 import { useToast } from "@scipos/frontend-commons/feedback";
-import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   abrirCaja as abrirCajaApi,
@@ -68,179 +60,18 @@ import {
   resumenCorteAUi,
   ventaApiAUi,
 } from "./api/posApi";
+import { precioSegunModo } from "./calculos/calculos-pos";
+import { PanelCaja, PanelSeccion, ResumenMonto } from "./components";
 import { CajaProvider, type TipoMovimientoCaja, useCaja } from "./context/CajaContext";
-import type { CorteCaja, ItemCarrito, ProductoPos, VentaPOS } from "./types/pos";
+import { useCarrito } from "./hooks/useCarrito";
+import type { CorteCaja, ModoPos, ProductoPos, VentaPOS } from "./types/pos";
 
-/** "venta" usa el precio de venta y resta inventario; "compra" usa el precio de compra y suma. */
-export type ModoPos = "venta" | "compra";
+export type { ModoPos };
 
 export interface PosCajaPageProps {
   defaultTab?: number;
   hideTabs?: boolean;
   modo?: ModoPos;
-}
-
-interface PanelSeccionProps {
-  titulo: string;
-  descripcion?: string;
-  acciones?: ReactNode;
-  children: ReactNode;
-}
-
-interface ResumenMontoProps {
-  etiqueta: string;
-  valor: string;
-  color?: string;
-}
-
-const IVA = 0.16;
-
-function precioSegunModo(producto: ProductoPos, modo: ModoPos): number {
-  return modo === "compra" ? producto.precioCompra : producto.precioVenta;
-}
-
-function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarrito {
-  const precio = precioSegunModo(producto, modo);
-  return {
-    productoId: producto.id,
-    clave: producto.clave,
-    nombre: producto.nombre,
-    precioUnitario: precio,
-    cantidad: 1,
-    subtotal: precio,
-  };
-}
-
-function PanelSeccion({ titulo, descripcion, acciones, children }: PanelSeccionProps) {
-  return (
-    <Card variant="outlined" sx={{ height: "100%" }}>
-      <CardHeader title={titulo} subheader={descripcion} action={acciones} sx={{ pb: 0 }} />
-      <CardContent sx={{ pt: 2 }}>{children}</CardContent>
-    </Card>
-  );
-}
-
-function ResumenMonto({ etiqueta, valor, color }: ResumenMontoProps) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 2,
-      }}
-    >
-      <Typography variant="body2" color="text.secondary">
-        {etiqueta}
-      </Typography>
-      <Typography variant="h6" sx={{ color }}>
-        {valor}
-      </Typography>
-    </Paper>
-  );
-}
-
-function TablaVentasHistoricas({
-  ventas,
-  onComprobante,
-}: {
-  ventas: VentaPOS[];
-  onComprobante: (ventaId: string) => void;
-}) {
-  if (ventas.length === 0) {
-    return (
-      <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
-        <Typography variant="body2" color="text.secondary">
-          Aún no hay ventas registradas en el sistema.
-        </Typography>
-      </Paper>
-    );
-  }
-
-  return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Folio</TableCell>
-            <TableCell>Fecha</TableCell>
-            <TableCell align="right">Subtotal</TableCell>
-            <TableCell align="right">Descuento</TableCell>
-            <TableCell align="right">IVA</TableCell>
-            <TableCell align="right">Total</TableCell>
-            <TableCell align="center">Comprobante</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {ventas.map((venta) => (
-            <TableRow key={venta.id} hover>
-              <TableCell>{venta.folio}</TableCell>
-              <TableCell>{formatearFechaConHora(venta.fecha)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.subtotal)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.descuento)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.iva)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.total)}</TableCell>
-              <TableCell align="center">
-                <Tooltip title="Ver comprobante PDF">
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => onComprobante(venta.id)}
-                    aria-label={`Comprobante de la venta ${venta.folio}`}
-                  >
-                    <PictureAsPdfIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-}
-
-function TablaCortesHistoricos({ cortes }: { cortes: CorteCaja[] }) {
-  if (cortes.length === 0) {
-    return (
-      <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
-        <Typography variant="body2" color="text.secondary">
-          Los cortes cerrados en esta sesión aparecerán aquí.
-        </Typography>
-      </Paper>
-    );
-  }
-
-  return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Folio</TableCell>
-            <TableCell>Apertura</TableCell>
-            <TableCell>Cierre</TableCell>
-            <TableCell align="right">Inicial</TableCell>
-            <TableCell align="right">Ventas</TableCell>
-            <TableCell align="right">Cierre total</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {cortes.map((corte) => (
-            <TableRow key={corte.id} hover>
-              <TableCell>{corte.folio}</TableCell>
-              <TableCell>{formatearFechaConHora(corte.fechaApertura)}</TableCell>
-              <TableCell>{formatearFechaConHora(corte.fechaCierre)}</TableCell>
-              <TableCell align="right">{formatearMoneda(corte.montoInicial)}</TableCell>
-              <TableCell align="right">{formatearMoneda(corte.ventasTurno)}</TableCell>
-              <TableCell align="right">{formatearMoneda(corte.totalCierre)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
 }
 
 export function PosCajaPage({
@@ -267,10 +98,7 @@ export function PosCajaPage({
   const [activeTab, setActiveTab] = useState<number>(defaultTab === 1 ? 1 : 0);
   const [inventario, setInventario] = useState<ProductoPos[]>([]);
   const [cargandoProductos, setCargandoProductos] = useState(true);
-  const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [busqueda, setBusqueda] = useState("");
-  const [descuentoCaptura, setDescuentoCaptura] = useState("0");
-  const [descuentoAplicado, setDescuentoAplicado] = useState(0);
   const [montoInicialCaptura, setMontoInicialCaptura] = useState("0");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
@@ -285,6 +113,20 @@ export function PosCajaPage({
   const [totalCobro, setTotalCobro] = useState(0);
   const [dialogCorteAbierto, setDialogCorteAbierto] = useState(false);
   const [procesando, setProcesando] = useState(false);
+
+  const {
+    carrito,
+    totales,
+    descuentoCaptura,
+    setDescuentoCaptura,
+    cantidadDe,
+    agregar: agregarAlCarritoEstado,
+    incrementar: incrementarEnCarrito,
+    decrementar: decrementarEnCarrito,
+    eliminar: eliminarDelCarrito,
+    aplicarDescuento: aplicarDescuentoAlCarrito,
+    limpiar: limpiarCarrito,
+  } = useCarrito(modo);
 
   useEffect(() => {
     setActiveTab(defaultTab === 1 ? 1 : 0);
@@ -377,14 +219,12 @@ export function PosCajaPage({
     cargarHistorial();
   }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarHistorial]);
 
-  const subtotalCarrito = useMemo(
-    () => carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0),
-    [carrito],
-  );
-  const descuentoEfectivo = Math.min(descuentoAplicado, subtotalCarrito);
-  const baseGravable = Math.max(subtotalCarrito - descuentoEfectivo, 0);
-  const iva = baseGravable * IVA;
-  const totalVenta = baseGravable + iva;
+  const {
+    subtotal: subtotalCarrito,
+    descuento: descuentoEfectivo,
+    iva,
+    total: totalVenta,
+  } = totales;
 
   const ingresosManual = useMemo(
     () =>
@@ -422,8 +262,7 @@ export function PosCajaPage({
     });
   }, [busqueda, inventario]);
 
-  const cantidadEnCarrito = (productoId: string) =>
-    carrito.find((item) => item.productoId === productoId)?.cantidad ?? 0;
+  const cantidadEnCarrito = cantidadDe;
 
   const agregarProducto = (producto: ProductoPos) => {
     if (!esCompra && !cajaAbierta) {
@@ -432,30 +271,12 @@ export function PosCajaPage({
       return;
     }
 
-    const cantidadActual = cantidadEnCarrito(producto.id);
-    if (!esCompra && cantidadActual >= producto.existencia) {
+    if (!esCompra && cantidadEnCarrito(producto.id) >= producto.existencia) {
       toast.error(`No hay más existencia disponible para ${producto.nombre}.`);
       return;
     }
 
-    setCarrito((carritoActual) => {
-      const existente = carritoActual.find((item) => item.productoId === producto.id);
-
-      if (!existente) {
-        return [...carritoActual, crearItemCarrito(producto, modo)];
-      }
-
-      return carritoActual.map((item) =>
-        item.productoId === producto.id
-          ? {
-              ...item,
-              cantidad: item.cantidad + 1,
-              subtotal: (item.cantidad + 1) * item.precioUnitario,
-            }
-          : item,
-      );
-    });
-
+    agregarAlCarritoEstado(producto);
     toast.exito(`Se agregó ${producto.nombre} al carrito.`);
   };
 
@@ -472,38 +293,12 @@ export function PosCajaPage({
       return;
     }
 
-    setCarrito((carritoActual) =>
-      carritoActual.map((item) =>
-        item.productoId === productoId
-          ? {
-              ...item,
-              cantidad: item.cantidad + 1,
-              subtotal: (item.cantidad + 1) * item.precioUnitario,
-            }
-          : item,
-      ),
-    );
+    incrementarEnCarrito(productoId);
   };
 
-  const decrementarCantidad = (productoId: string) => {
-    setCarrito((carritoActual) =>
-      carritoActual
-        .map((item) =>
-          item.productoId === productoId
-            ? {
-                ...item,
-                cantidad: item.cantidad - 1,
-                subtotal: (item.cantidad - 1) * item.precioUnitario,
-              }
-            : item,
-        )
-        .filter((item) => item.cantidad > 0),
-    );
-  };
+  const decrementarCantidad = (productoId: string) => decrementarEnCarrito(productoId);
 
-  const eliminarPartida = (productoId: string) => {
-    setCarrito((carritoActual) => carritoActual.filter((item) => item.productoId !== productoId));
-  };
+  const eliminarPartida = (productoId: string) => eliminarDelCarrito(productoId);
 
   const aplicarDescuento = () => {
     if (!puedeDescuento) {
@@ -511,13 +306,11 @@ export function PosCajaPage({
       return;
     }
 
-    const descuento = Number.parseFloat(descuentoCaptura);
-    if (Number.isNaN(descuento) || descuento < 0) {
+    if (!aplicarDescuentoAlCarrito()) {
       toast.error("Ingresa un descuento válido.");
       return;
     }
 
-    setDescuentoAplicado(Math.min(descuento, subtotalCarrito));
     toast.exito("Descuento aplicado correctamente.");
   };
 
@@ -527,9 +320,7 @@ export function PosCajaPage({
       return;
     }
 
-    setCarrito([]);
-    setDescuentoAplicado(0);
-    setDescuentoCaptura("0");
+    limpiarCarrito();
     toast.info("La venta fue cancelada y el carrito se limpió.");
   };
 
@@ -582,9 +373,7 @@ export function PosCajaPage({
       }
 
       setDialogCobroAbierto(true);
-      setCarrito([]);
-      setDescuentoAplicado(0);
-      setDescuentoCaptura("0");
+      limpiarCarrito();
       await cargarProductos();
       if (activeTab === 1) {
         await cargarHistorial();
@@ -1010,7 +799,7 @@ export function PosCajaPage({
                     <ResumenMonto
                       etiqueta={esCompra ? "Total de la compra" : "Total de la venta"}
                       valor={formatearMoneda(totalVenta)}
-                      color="#1f3a5f"
+                      color="primary.main"
                     />
                   </Stack>
 
@@ -1050,231 +839,34 @@ export function PosCajaPage({
       ) : null}
 
       {activeTab === 1 ? (
-        <Stack spacing={3}>
-          <Grid container spacing={3} alignItems="stretch">
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Apertura de caja"
-                descripcion="Ingresa el fondo inicial para habilitar las operaciones del turno."
-                acciones={
-                  <Chip
-                    color={cajaAbierta ? "success" : "default"}
-                    label={cajaAbierta ? "Caja operando" : "Pendiente de apertura"}
-                    variant="outlined"
-                  />
-                }
-              >
-                <Stack spacing={2}>
-                  <TextField
-                    label="Monto inicial en efectivo"
-                    type="number"
-                    value={montoInicialCaptura}
-                    onChange={(event) =>
-                      setMontoInicialCaptura(event.target.value.replace(/[^\d.]/g, ""))
-                    }
-                    fullWidth
-                    inputProps={{ min: 0, step: "0.01" }}
-                    disabled={cajaAbierta || procesando}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => void abrirCaja()}
-                    disabled={cajaAbierta || procesando}
-                  >
-                    Abrir caja
-                  </Button>
-                  <Typography variant="body2" color="text.secondary">
-                    Fondo registrado: {formatearMoneda(montoInicial)}
-                  </Typography>
-                  {cajaAbierta && fechaApertura ? (
-                    <Typography variant="body2" color="text.secondary">
-                      Apertura actual: {formatearFechaConHora(fechaApertura)}
-                    </Typography>
-                  ) : null}
-                </Stack>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Flujo manual"
-                descripcion="Registra ingresos o egresos adicionales del turno."
-              >
-                <Stack spacing={2}>
-                  <FormControl fullWidth size="small">
-                    <Select
-                      value={tipoFlujo}
-                      onChange={(event) => setTipoFlujo(event.target.value as TipoMovimientoCaja)}
-                      disabled={!cajaAbierta || procesando}
-                    >
-                      <MenuItem value="Ingreso">Ingreso</MenuItem>
-                      <MenuItem value="Egreso">Egreso</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    label="Concepto"
-                    value={conceptoMovimiento}
-                    onChange={(event) => setConceptoMovimiento(event.target.value)}
-                    fullWidth
-                    disabled={!cajaAbierta || procesando}
-                  />
-
-                  <TextField
-                    label="Monto"
-                    type="number"
-                    value={montoMovimiento}
-                    onChange={(event) =>
-                      setMontoMovimiento(event.target.value.replace(/[^\d.]/g, ""))
-                    }
-                    fullWidth
-                    inputProps={{ min: 0, step: "0.01" }}
-                    disabled={!cajaAbierta || procesando}
-                  />
-
-                  <Button
-                    variant="outlined"
-                    onClick={() => void registrarMovimiento()}
-                    disabled={!cajaAbierta || procesando}
-                  >
-                    Registrar movimiento
-                  </Button>
-
-                  <Stack spacing={1}>
-                    <ResumenMonto
-                      etiqueta="Ingresos manuales"
-                      valor={formatearMoneda(ingresosManual)}
-                    />
-                    <ResumenMonto
-                      etiqueta="Egresos manuales"
-                      valor={formatearMoneda(egresosManual)}
-                    />
-                  </Stack>
-                </Stack>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <PanelSeccion
-                titulo="Movimientos del turno"
-                descripcion="Registro activo de ingresos y egresos manuales capturados en esta sesión."
-              >
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Fecha</TableCell>
-                        <TableCell>Concepto</TableCell>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {movimientos.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center">
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                              Aún no se registran movimientos manuales.
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        movimientos.map((movimiento) => (
-                          <TableRow key={movimiento.id} hover>
-                            <TableCell>{formatearFechaConHora(movimiento.fecha)}</TableCell>
-                            <TableCell>{movimiento.concepto}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={movimiento.tipo === "Ingreso" ? "Ingreso" : "Egreso"}
-                                color={movimiento.tipo === "Ingreso" ? "success" : "warning"}
-                                size="small"
-                                variant="outlined"
-                              />
-                            </TableCell>
-                            <TableCell align="right">{formatearMoneda(movimiento.monto)}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <PanelSeccion
-                titulo="Cierre con corte"
-                descripcion="Balance totalizado del turno: apertura + ventas + ingresos − egresos."
-                acciones={
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<AttachMoneyIcon />}
-                    onClick={abrirDialogoCorte}
-                    disabled={!cajaAbierta || carrito.length > 0 || procesando}
-                  >
-                    Cierre de caja
-                  </Button>
-                }
-              >
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto etiqueta="Monto inicial" valor={formatearMoneda(montoInicial)} />
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto
-                      etiqueta="Ventas POS del turno"
-                      valor={formatearMoneda(ventasTurnoTotal)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto
-                      etiqueta="Ingresos manuales"
-                      valor={formatearMoneda(ingresosManual)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto
-                      etiqueta="Egresos manuales"
-                      valor={formatearMoneda(egresosManual)}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <ResumenMonto
-                      etiqueta="Balance total calculado"
-                      valor={formatearMoneda(balanceCaja)}
-                      color="#1f3a5f"
-                    />
-                  </Grid>
-                </Grid>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Historial de ventas previas"
-                descripcion="Ventas registradas en el sistema."
-              >
-                {cargandoHistorial ? (
-                  <SkeletonTabla filas={4} columnas={7} />
-                ) : (
-                  <TablaVentasHistoricas ventas={ventasHistorial} onComprobante={verComprobante} />
-                )}
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Cortes de caja previos"
-                descripcion="Cortes realizados en esta sesión."
-              >
-                <TablaCortesHistoricos cortes={cortesCaja} />
-              </PanelSeccion>
-            </Grid>
-          </Grid>
-        </Stack>
+        <PanelCaja
+          cajaAbierta={cajaAbierta}
+          montoInicial={montoInicial}
+          fechaApertura={fechaApertura}
+          movimientos={movimientos}
+          procesando={procesando}
+          montoInicialCaptura={montoInicialCaptura}
+          onMontoInicialCapturaChange={setMontoInicialCaptura}
+          onAbrirCaja={() => void abrirCaja()}
+          tipoFlujo={tipoFlujo}
+          onTipoFlujoChange={setTipoFlujo}
+          conceptoMovimiento={conceptoMovimiento}
+          onConceptoMovimientoChange={setConceptoMovimiento}
+          montoMovimiento={montoMovimiento}
+          onMontoMovimientoChange={setMontoMovimiento}
+          onRegistrarMovimiento={() => void registrarMovimiento()}
+          ingresosManual={ingresosManual}
+          egresosManual={egresosManual}
+          ventasTurnoTotal={ventasTurnoTotal}
+          balanceCaja={balanceCaja}
+          hayVentaEnCurso={carrito.length > 0}
+          onAbrirDialogoCorte={abrirDialogoCorte}
+          cargandoHistorial={cargandoHistorial}
+          ventasHistorial={ventasHistorial}
+          cortesCaja={cortesCaja}
+          onVerComprobante={verComprobante}
+        />
       ) : null}
-
       <Dialog open={dialogCobroAbierto} onClose={cerrarDialogoCobro} fullWidth maxWidth="sm">
         <DialogTitle>
           {esCompra ? "Compra registrada con éxito" : "Transacción cobrada con éxito"}

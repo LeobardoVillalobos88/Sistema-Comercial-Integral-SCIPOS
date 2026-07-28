@@ -9,7 +9,8 @@ integradas por el `web-shell`, que es el host de navegación y layout.
 |---|---|---|
 | `commons/` | — | Design System: tema MUI, componentes base, permisos, feedback (toasts/alertas), datos de catálogo, utils |
 | `web-shell/` | 3001 | Host: navegación, layout, sesión (login/logout), landing (Inicio), dashboard y admin de usuarios |
-| `login-front/` | — | Pantalla de inicio de sesión; se monta en `/login` del `web-shell` (componente puro, sin puerto propio) || `productos-front/` | 3003 | Catálogo de productos y servicios (lote, caducidad, precios de compra/venta, CRUD) |
+| `login-front/` | — | Pantalla de inicio de sesión; se monta en `/login` del `web-shell` (componente puro, sin puerto propio) |
+| `productos-front/` | 3003 | Catálogo de productos y servicios (lote, caducidad, precios de compra/venta, CRUD) |
 | `clientes-front/` | 3004 | Gestión de clientes + detalle con historial de cotizaciones y ventas |
 | `cotizaciones-front/` | 3005 | Cotizaciones (Borrador → Enviada → Vendida) y conversión a venta |
 | `pos-caja-front/` | 3006 | Punto de venta, punto de compra y caja (apertura, movimientos, corte) |
@@ -22,13 +23,15 @@ integradas por el `web-shell`, que es el host de navegación y layout.
 ```bash
 pnpm install                                  # instala todo el monorepo (desde la raíz)
 pnpm dev                                      # corre TODO a la vez (vía Turbo)
-pnpm --filter @scipos/web-shell dev           # solo el shell        → http://localhost:3001pnpm --filter @scipos/productos-front dev     # solo productos       → http://localhost:3003
+pnpm --filter @scipos/web-shell dev           # solo el shell        → http://localhost:3001
+pnpm --filter @scipos/productos-front dev     # solo productos       → http://localhost:3003
 pnpm --filter @scipos/clientes-front dev      # solo clientes        → http://localhost:3004
 pnpm --filter @scipos/cotizaciones-front dev  # solo cotizaciones    → http://localhost:3005
 pnpm --filter @scipos/pos-caja-front dev      # solo POS + caja      → http://localhost:3006
 pnpm --filter @scipos/reportes-front dev      # solo reportes        → http://localhost:3007
 pnpm build                                    # build de todo
 pnpm lint                                     # lint con Biome
+pnpm --filter @scipos/pos-caja-front test     # importes del punto de venta
 ```
 
 > `login-front` no tiene servidor propio: se consume desde el `web-shell`. Para
@@ -42,9 +45,36 @@ Todo lo compartido se importa desde un solo lugar:
 import {
   PageHeader, SearchableTable, SkeletonTabla, EstadoChip, EstadoCotizacionChip,
   StatCard, Permiso, usePermisos, PRODUCTOS_MOCK, CLIENTES_MOCK,
-  formatearMoneda, formatearFecha, formatearFechaConHora, temaScipos,
+  formatearMoneda, formatearFecha, formatearFechaConHora, temaScipos, MARCA_OSCURA,
 } from "@scipos/frontend-commons";
 ```
+
+### Colores
+
+`temaScipos` manda: los colores salen de la paleta (`primary.main`, `secondary.main`)
+o de rutas del tema en `sx` (`color="primary.main"`), nunca de un hexadecimal escrito
+a mano. El menú lateral y la pantalla de acceso son superficies oscuras que no caben
+en la paleta clara de MUI, así que sus tonos viven en `MARCA_OSCURA`
+(`degradado`, `degradadoHover`, `fondo`, `texto`, `textoTenue`). Si necesitas ese
+degradado corporativo, impórtalo de ahí en vez de volver a escribirlo.
+
+### Tablas
+
+`SearchableTable` pide `claveFila` además de `columnas` y `textoBusqueda`. Devuelve
+el identificador estable de la fila (normalmente su `id`):
+
+```tsx
+<SearchableTable
+  filas={productos}
+  columnas={columnas}
+  claveFila={(p) => p.id}
+  textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
+/>
+```
+
+La lista se reordena mientras el usuario escribe en el buscador; con la posición como
+clave, React conservaría el estado de una fila y lo mostraría en el registro
+equivocado.
 
 ### Sesión y permisos
 

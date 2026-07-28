@@ -12,10 +12,8 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { MARCA_OSCURA } from "@scipos/frontend-commons";
 import { useState } from "react";
-
-/** Degradado corporativo compartido con el menú lateral. */
-const DEGRADADO_MARCA = "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)";
 
 export interface LoginViewProps {
   onLogin: (correo: string, contrasena: string) => Promise<void>;
@@ -56,8 +54,8 @@ export function LoginView({ onLogin }: LoginViewProps) {
           alignItems: "center",
           justifyContent: "center",
           p: 4,
-          color: "#ffffff",
-          background: DEGRADADO_MARCA,
+          color: MARCA_OSCURA.texto,
+          background: MARCA_OSCURA.degradado,
           "&::before": {
             content: '""',
             position: "absolute",
@@ -90,7 +88,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
               fontSize: "1rem",
               letterSpacing: "3px",
               textTransform: "uppercase",
-              color: "#cbd5e1",
+              color: MARCA_OSCURA.textoTenue,
             }}
           >
             Sistema Comercial Integral
@@ -120,7 +118,7 @@ export function LoginView({ onLogin }: LoginViewProps) {
             boxShadow: "0 10px 40px rgba(0, 0, 0, 0.04)",
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 600, color: "#0f172a" }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, color: MARCA_OSCURA.fondo }}>
             Bienvenido
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.5, mb: 3, color: "#64748b" }}>
@@ -186,10 +184,10 @@ export function LoginView({ onLogin }: LoginViewProps) {
                   py: 1.25,
                   fontWeight: 600,
                   letterSpacing: 0.5,
-                  background: DEGRADADO_MARCA,
+                  background: MARCA_OSCURA.degradado,
                   boxShadow: "0 4px 14px rgba(15, 23, 42, 0.3)",
                   "&:hover": {
-                    background: "linear-gradient(135deg, #1e293b 0%, #2e286e 100%)",
+                    background: MARCA_OSCURA.degradadoHover,
                     boxShadow: "0 6px 20px rgba(15, 23, 42, 0.4)",
                   },
                 }}

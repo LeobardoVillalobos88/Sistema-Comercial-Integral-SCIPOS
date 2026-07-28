@@ -8,6 +8,9 @@ export interface ProductoPos {
   estado: "Activo" | "Inactivo";
 }
 
+/** "venta" usa el precio de venta y resta inventario; "compra" usa el precio de compra y suma. */
+export type ModoPos = "venta" | "compra";
+
 export interface ItemCarrito {
   productoId: string;
   clave: string;

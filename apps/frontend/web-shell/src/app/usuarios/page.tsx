@@ -285,6 +285,7 @@ export default function UsuariosPage() {
         <SearchableTable
           filas={usuarios}
           columnas={columnas}
+          claveFila={(u) => u.id}
           textoBusqueda={(u) => `${u.nombre} ${u.correo} ${u.rol}`}
           placeholderBusqueda="Buscar por nombre, correo o rol..."
           mensajeVacio="No hay usuarios que coincidan con la búsqueda."

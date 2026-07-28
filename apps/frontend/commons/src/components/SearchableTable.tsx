@@ -28,6 +28,12 @@ export interface Columna<T> {
 export interface SearchableTableProps<T> {
   filas: T[];
   columnas: Columna<T>[];
+  /**
+   * Clave estable de cada fila, normalmente su id. Es obligatoria porque la
+   * lista se reordena al filtrar: con la posición como clave, React conserva
+   * el estado de la fila anterior y lo muestra en el registro equivocado.
+   */
+  claveFila: (fila: T) => string | number;
   /** Texto a buscar dentro de cada fila (se concatena para el filtro). */
   textoBusqueda: (fila: T) => string;
   placeholderBusqueda?: string;
@@ -44,6 +50,7 @@ export interface SearchableTableProps<T> {
 export function SearchableTable<T>({
   filas,
   columnas,
+  claveFila,
   textoBusqueda,
   placeholderBusqueda = "Buscar...",
   mensajeVacio = "No hay registros que coincidan con la búsqueda.",
@@ -107,8 +114,8 @@ export function SearchableTable<T>({
                 </TableCell>
               </TableRow>
             ) : (
-              filasFiltradas.map((fila, idx) => (
-                <TableRow key={idx} hover>
+              filasFiltradas.map((fila) => (
+                <TableRow key={claveFila(fila)} hover>
                   {columnas.map((col) => (
                     <TableCell key={col.clave} align={col.align ?? "left"}>
                       {col.render(fila)}

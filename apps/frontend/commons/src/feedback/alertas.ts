@@ -1,7 +1,10 @@
 import Swal from "sweetalert2";
+import { temaScipos } from "../theme";
 
-// Colores alineados al tema de SCIPOS.
-const COLOR_PRIMARIO = "#1f3a5f";
+// SweetAlert2 se dibuja fuera del árbol de React, así que los colores se leen
+// del tema en lugar de tomarlos del contexto.
+const COLOR_PRIMARIO = temaScipos.palette.primary.main;
+/** Gris azulado propio de los botones de cancelar; no existe en la paleta. */
 const COLOR_CANCELAR = "#8a94a6";
 
 interface OpcionesConfirmar {
