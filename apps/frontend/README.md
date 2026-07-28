@@ -42,9 +42,36 @@ Todo lo compartido se importa desde un solo lugar:
 import {
   PageHeader, SearchableTable, SkeletonTabla, EstadoChip, EstadoCotizacionChip,
   StatCard, Permiso, usePermisos, PRODUCTOS_MOCK, CLIENTES_MOCK,
-  formatearMoneda, formatearFecha, formatearFechaConHora, temaScipos,
+  formatearMoneda, formatearFecha, formatearFechaConHora, temaScipos, MARCA_OSCURA,
 } from "@scipos/frontend-commons";
 ```
+
+### Colores
+
+`temaScipos` manda: los colores salen de la paleta (`primary.main`, `secondary.main`)
+o de rutas del tema en `sx` (`color="primary.main"`), nunca de un hexadecimal escrito
+a mano. El menú lateral y la pantalla de acceso son superficies oscuras que no caben
+en la paleta clara de MUI, así que sus tonos viven en `MARCA_OSCURA`
+(`degradado`, `degradadoHover`, `fondo`, `texto`, `textoTenue`). Si necesitas ese
+degradado corporativo, impórtalo de ahí en vez de volver a escribirlo.
+
+### Tablas
+
+`SearchableTable` pide `claveFila` además de `columnas` y `textoBusqueda`. Devuelve
+el identificador estable de la fila (normalmente su `id`):
+
+```tsx
+<SearchableTable
+  filas={productos}
+  columnas={columnas}
+  claveFila={(p) => p.id}
+  textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
+/>
+```
+
+La lista se reordena mientras el usuario escribe en el buscador; con la posición como
+clave, React conservaría el estado de una fila y lo mostraría en el registro
+equivocado.
 
 ### Sesión y permisos
 

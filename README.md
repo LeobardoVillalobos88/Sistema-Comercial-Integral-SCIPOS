@@ -71,8 +71,7 @@ Ese comando hace, en orden: genera el par de llaves RSA para firmar los tokens
 y `scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
 (genera el cliente de Prisma, aplica migraciones y siembra datos): la matriz de
 privilegios con los 4 usuarios semilla, el catálogo de productos, los clientes, unas
-cotizaciones de ejemplo y un turno de caja con ventas históricas — todo con los
-mismos IDs que usaba el frontend simulado.
+cotizaciones de ejemplo y un turno de caja con ventas históricas.
 
 Si todo salió bien, la última línea dice algo como `Semilla aplicada: { cajas: 2, ventas: 2, movimientos: 4 }`
 
@@ -109,12 +108,15 @@ pnpm dev
    con la tabla de servicios enrutados. http://localhost:4001/health responde el
    estado del servicio de seguridad.
 2. **Documentación de la API:** http://localhost:4001/docs (Scalar).
-3. **Frontend:** http://localhost:3001/inicio y cambia el rol en el topbar; en
-   DevTools → Network verás las llamadas a `localhost:4000/api/seguridad/...`
-   (los privilegios ya vienen del backend). Todos los módulos de dominio
-   (`/productos`, `/clientes`, `/cotizaciones`, `/pos`, `/compras`, `/caja`,
-   `/reportes` y `/usuarios`) y las tarjetas del dashboard operan contra la API
-   real — ya no quedan mocks salvo en el módulo de ejemplo.
+3. **Frontend:** entra en http://localhost:3001/login con alguna de las cuentas
+   semilla de la tabla de abajo. El topbar muestra el usuario y su rol; para ver
+   el sistema de privilegios en acción, inicia sesión con roles distintos y
+   compara qué módulos y botones aparecen. En DevTools → Network verás las
+   llamadas a `localhost:4000/api/seguridad/...` de donde salen esos privilegios.
+   Los módulos de dominio (`/productos`, `/clientes`, `/cotizaciones`, `/pos`,
+   `/compras`, `/caja`, `/reportes` y `/usuarios`) y las tarjetas del dashboard
+   operan contra la API real; el módulo de ejemplo es el único con datos
+   simulados.
 4. **La autenticación y el guard en acción** (desde otra terminal):
 
 ```bash
@@ -140,6 +142,19 @@ curl -X POST http://localhost:4000/api/seguridad/auth/refresh \
 # Cerrar sesión: revoca el token al instante en todos los servicios (denylist)
 curl -X POST -H "Authorization: Bearer <TOKEN>" http://localhost:4000/api/seguridad/auth/logout
 ```
+
+5. **Pruebas automáticas.** No necesitan base de datos ni contenedores: usan
+   dobles de prueba, así que corren en frío.
+
+```bash
+pnpm test                                          # todo el monorepo
+pnpm --filter @scipos/seguridad-service test       # privilegios efectivos
+pnpm --filter @scipos/cotizaciones-service test    # cálculo y conversión a venta
+```
+
+Las de seguridad cubren la regla que sostiene el proyecto: los privilegios
+efectivos son los del rol más los concedidos, menos los revocados, y una
+revocación individual gana incluso sobre un rol con acceso total.
 
 ### Credenciales semilla (una cuenta por rol)
 
