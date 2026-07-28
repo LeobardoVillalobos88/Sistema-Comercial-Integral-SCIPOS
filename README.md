@@ -150,11 +150,14 @@ curl -X POST -H "Authorization: Bearer <TOKEN>" http://localhost:4000/api/seguri
 pnpm test                                          # todo el monorepo
 pnpm --filter @scipos/seguridad-service test       # privilegios efectivos
 pnpm --filter @scipos/cotizaciones-service test    # cálculo y conversión a venta
+pnpm --filter @scipos/pos-caja-front test          # importes del punto de venta
 ```
 
 Las de seguridad cubren la regla que sostiene el proyecto: los privilegios
 efectivos son los del rol más los concedidos, menos los revocados, y una
-revocación individual gana incluso sobre un rol con acceso total.
+revocación individual gana incluso sobre un rol con acceso total. Las del punto
+de venta cubren el cálculo de subtotal, descuento, IVA y total, incluido que un
+descuento mayor al subtotal se recorta en lugar de producir un total negativo.
 
 ### Credenciales semilla (una cuenta por rol)
 
