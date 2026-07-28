@@ -367,6 +367,7 @@ export function CatalogoProductos() {
         <SearchableTable
           filas={productosFiltrados}
           columnas={columnas}
+          claveFila={(p) => p.id}
           textoBusqueda={(p) => `${p.lote} ${p.nombre}`}
           placeholderBusqueda="Buscar producto o servicio..."
           mensajeVacio="No hay productos que coincidan con la búsqueda y los filtros."

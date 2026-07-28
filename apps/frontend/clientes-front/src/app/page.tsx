@@ -420,6 +420,7 @@ export default function ClientesPage() {
         <SearchableTable
           filas={clientes}
           columnas={columnas}
+          claveFila={(c) => c.id}
           textoBusqueda={(c) => `${c.nombre} ${c.rfc || ""} ${c.correo} ${c.telefono}`}
           placeholderBusqueda="Buscar por nombre, RFC, correo o teléfono..."
           mensajeVacio="No se encontraron clientes registrados con ese criterio."
