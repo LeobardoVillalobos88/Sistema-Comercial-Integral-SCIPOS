@@ -35,3 +35,6 @@ ControlAcceso/
 
 # UAT
 .uat-logs/
+
+# Grafo local de code-review-graph (indice, no se versiona)
+.code-review-graph/
