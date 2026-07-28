@@ -68,11 +68,12 @@ import {
   resumenCorteAUi,
   ventaApiAUi,
 } from "./api/posApi";
+import { precioSegunModo } from "./calculos/calculos-pos";
 import { CajaProvider, type TipoMovimientoCaja, useCaja } from "./context/CajaContext";
-import type { CorteCaja, ItemCarrito, ProductoPos, VentaPOS } from "./types/pos";
+import { useCarrito } from "./hooks/useCarrito";
+import type { CorteCaja, ModoPos, ProductoPos, VentaPOS } from "./types/pos";
 
-/** "venta" usa el precio de venta y resta inventario; "compra" usa el precio de compra y suma. */
-export type ModoPos = "venta" | "compra";
+export type { ModoPos };
 
 export interface PosCajaPageProps {
   defaultTab?: number;
@@ -91,24 +92,6 @@ interface ResumenMontoProps {
   etiqueta: string;
   valor: string;
   color?: string;
-}
-
-const IVA = 0.16;
-
-function precioSegunModo(producto: ProductoPos, modo: ModoPos): number {
-  return modo === "compra" ? producto.precioCompra : producto.precioVenta;
-}
-
-function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarrito {
-  const precio = precioSegunModo(producto, modo);
-  return {
-    productoId: producto.id,
-    clave: producto.clave,
-    nombre: producto.nombre,
-    precioUnitario: precio,
-    cantidad: 1,
-    subtotal: precio,
-  };
 }
 
 function PanelSeccion({ titulo, descripcion, acciones, children }: PanelSeccionProps) {
@@ -267,10 +250,7 @@ export function PosCajaPage({
   const [activeTab, setActiveTab] = useState<number>(defaultTab === 1 ? 1 : 0);
   const [inventario, setInventario] = useState<ProductoPos[]>([]);
   const [cargandoProductos, setCargandoProductos] = useState(true);
-  const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [busqueda, setBusqueda] = useState("");
-  const [descuentoCaptura, setDescuentoCaptura] = useState("0");
-  const [descuentoAplicado, setDescuentoAplicado] = useState(0);
   const [montoInicialCaptura, setMontoInicialCaptura] = useState("0");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
@@ -285,6 +265,20 @@ export function PosCajaPage({
   const [totalCobro, setTotalCobro] = useState(0);
   const [dialogCorteAbierto, setDialogCorteAbierto] = useState(false);
   const [procesando, setProcesando] = useState(false);
+
+  const {
+    carrito,
+    totales,
+    descuentoCaptura,
+    setDescuentoCaptura,
+    cantidadDe,
+    agregar: agregarAlCarritoEstado,
+    incrementar: incrementarEnCarrito,
+    decrementar: decrementarEnCarrito,
+    eliminar: eliminarDelCarrito,
+    aplicarDescuento: aplicarDescuentoAlCarrito,
+    limpiar: limpiarCarrito,
+  } = useCarrito(modo);
 
   useEffect(() => {
     setActiveTab(defaultTab === 1 ? 1 : 0);
@@ -377,14 +371,12 @@ export function PosCajaPage({
     cargarHistorial();
   }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarHistorial]);
 
-  const subtotalCarrito = useMemo(
-    () => carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0),
-    [carrito],
-  );
-  const descuentoEfectivo = Math.min(descuentoAplicado, subtotalCarrito);
-  const baseGravable = Math.max(subtotalCarrito - descuentoEfectivo, 0);
-  const iva = baseGravable * IVA;
-  const totalVenta = baseGravable + iva;
+  const {
+    subtotal: subtotalCarrito,
+    descuento: descuentoEfectivo,
+    iva,
+    total: totalVenta,
+  } = totales;
 
   const ingresosManual = useMemo(
     () =>
@@ -422,8 +414,7 @@ export function PosCajaPage({
     });
   }, [busqueda, inventario]);
 
-  const cantidadEnCarrito = (productoId: string) =>
-    carrito.find((item) => item.productoId === productoId)?.cantidad ?? 0;
+  const cantidadEnCarrito = cantidadDe;
 
   const agregarProducto = (producto: ProductoPos) => {
     if (!esCompra && !cajaAbierta) {
@@ -432,30 +423,12 @@ export function PosCajaPage({
       return;
     }
 
-    const cantidadActual = cantidadEnCarrito(producto.id);
-    if (!esCompra && cantidadActual >= producto.existencia) {
+    if (!esCompra && cantidadEnCarrito(producto.id) >= producto.existencia) {
       toast.error(`No hay más existencia disponible para ${producto.nombre}.`);
       return;
     }
 
-    setCarrito((carritoActual) => {
-      const existente = carritoActual.find((item) => item.productoId === producto.id);
-
-      if (!existente) {
-        return [...carritoActual, crearItemCarrito(producto, modo)];
-      }
-
-      return carritoActual.map((item) =>
-        item.productoId === producto.id
-          ? {
-              ...item,
-              cantidad: item.cantidad + 1,
-              subtotal: (item.cantidad + 1) * item.precioUnitario,
-            }
-          : item,
-      );
-    });
-
+    agregarAlCarritoEstado(producto);
     toast.exito(`Se agregó ${producto.nombre} al carrito.`);
   };
 
@@ -472,38 +445,12 @@ export function PosCajaPage({
       return;
     }
 
-    setCarrito((carritoActual) =>
-      carritoActual.map((item) =>
-        item.productoId === productoId
-          ? {
-              ...item,
-              cantidad: item.cantidad + 1,
-              subtotal: (item.cantidad + 1) * item.precioUnitario,
-            }
-          : item,
-      ),
-    );
+    incrementarEnCarrito(productoId);
   };
 
-  const decrementarCantidad = (productoId: string) => {
-    setCarrito((carritoActual) =>
-      carritoActual
-        .map((item) =>
-          item.productoId === productoId
-            ? {
-                ...item,
-                cantidad: item.cantidad - 1,
-                subtotal: (item.cantidad - 1) * item.precioUnitario,
-              }
-            : item,
-        )
-        .filter((item) => item.cantidad > 0),
-    );
-  };
+  const decrementarCantidad = (productoId: string) => decrementarEnCarrito(productoId);
 
-  const eliminarPartida = (productoId: string) => {
-    setCarrito((carritoActual) => carritoActual.filter((item) => item.productoId !== productoId));
-  };
+  const eliminarPartida = (productoId: string) => eliminarDelCarrito(productoId);
 
   const aplicarDescuento = () => {
     if (!puedeDescuento) {
@@ -511,13 +458,11 @@ export function PosCajaPage({
       return;
     }
 
-    const descuento = Number.parseFloat(descuentoCaptura);
-    if (Number.isNaN(descuento) || descuento < 0) {
+    if (!aplicarDescuentoAlCarrito()) {
       toast.error("Ingresa un descuento válido.");
       return;
     }
 
-    setDescuentoAplicado(Math.min(descuento, subtotalCarrito));
     toast.exito("Descuento aplicado correctamente.");
   };
 
@@ -527,9 +472,7 @@ export function PosCajaPage({
       return;
     }
 
-    setCarrito([]);
-    setDescuentoAplicado(0);
-    setDescuentoCaptura("0");
+    limpiarCarrito();
     toast.info("La venta fue cancelada y el carrito se limpió.");
   };
 
@@ -582,9 +525,7 @@ export function PosCajaPage({
       }
 
       setDialogCobroAbierto(true);
-      setCarrito([]);
-      setDescuentoAplicado(0);
-      setDescuentoCaptura("0");
+      limpiarCarrito();
       await cargarProductos();
       if (activeTab === 1) {
         await cargarHistorial();
