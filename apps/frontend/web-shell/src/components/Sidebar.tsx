@@ -23,7 +23,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
-import { usePermisos } from "@scipos/frontend-commons";
+import { MARCA_OSCURA, usePermisos } from "@scipos/frontend-commons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -70,8 +70,8 @@ function Contenido({
         flexDirection: "column",
         height: "100%",
         position: "relative",
-        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
-        color: "#ffffff",
+        background: MARCA_OSCURA.degradado,
+        color: MARCA_OSCURA.texto,
       }}
     >
       {/* Botón flotante para expandir/colapsar (solo visible en escritorio si se pasa la función) */}
@@ -84,8 +84,8 @@ function Contenido({
             top: "50%",
             transform: "translateY(-50%)",
             right: -14,
-            bgcolor: "#ffffff",
-            color: "#0f172a",
+            bgcolor: MARCA_OSCURA.texto,
+            color: MARCA_OSCURA.fondo,
             border: 1,
             borderColor: "rgba(0,0,0,0.1)",
             zIndex: 10,
@@ -148,7 +148,7 @@ function Contenido({
                   mb: 0.5,
                   justifyContent: sidebarAbierto ? "initial" : "center",
                   px: sidebarAbierto ? 2 : 1,
-                  color: activo ? "#ffffff" : "#94a3b8",
+                  color: activo ? MARCA_OSCURA.texto : MARCA_OSCURA.textoTenue,
                   bgcolor: activo ? "rgba(255,255,255,0.1)" : "transparent",
                   "&:hover": {
                     bgcolor: "rgba(255,255,255,0.15)",
@@ -186,7 +186,7 @@ function Contenido({
           <IconButton
             color="inherit"
             onClick={cerrarSesion}
-            sx={{ color: "#94a3b8", "&:hover": { color: "#ef4444" } }}
+            sx={{ color: MARCA_OSCURA.textoTenue, "&:hover": { color: "error.light" } }}
           >
             <LogoutIcon />
           </IconButton>
@@ -225,7 +225,11 @@ export function Sidebar({
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: "block", md: "none" },
-          "& .MuiDrawer-paper": { boxSizing: "border-box", width: ancho, bgcolor: "#0f172a" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: ancho,
+            bgcolor: MARCA_OSCURA.fondo,
+          },
         }}
       >
         <Contenido onNavegar={onCerrarMenu} sidebarAbierto={true} />
@@ -247,7 +251,7 @@ export function Sidebar({
           },
         }}
         PaperProps={{
-          sx: { overflow: "visible", bgcolor: "#0f172a" },
+          sx: { overflow: "visible", bgcolor: MARCA_OSCURA.fondo },
         }}
       >
         <Contenido sidebarAbierto={sidebarAbierto} onToggleSidebar={onToggleSidebar} />

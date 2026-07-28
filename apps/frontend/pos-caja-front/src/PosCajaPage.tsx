@@ -1010,7 +1010,7 @@ export function PosCajaPage({
                     <ResumenMonto
                       etiqueta={esCompra ? "Total de la compra" : "Total de la venta"}
                       valor={formatearMoneda(totalVenta)}
-                      color="#1f3a5f"
+                      color="primary.main"
                     />
                   </Stack>
 
@@ -1243,7 +1243,7 @@ export function PosCajaPage({
                     <ResumenMonto
                       etiqueta="Balance total calculado"
                       valor={formatearMoneda(balanceCaja)}
-                      color="#1f3a5f"
+                      color="primary.main"
                     />
                   </Grid>
                 </Grid>

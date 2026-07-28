@@ -7,6 +7,21 @@ import { createTheme } from "@mui/material/styles";
  * microfrontends (colores, tipografía, formas). Todos los módulos deben usar
  * este tema para verse consistentes (RNF-12).
  */
+/**
+ * Superficies oscuras de la marca: la barra lateral y la pantalla de acceso.
+ * Viven fuera de la paleta porque el tema opera en modo claro, y se declaran
+ * aquí para que ambas pantallas compartan una sola fuente de verdad.
+ */
+export const MARCA_OSCURA = {
+  fondo: "#0f172a",
+  fondoProfundo: "#1e1b4b",
+  degradado: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)",
+  /** Variante aclarada del degradado, para el estado hover. */
+  degradadoHover: "linear-gradient(135deg, #1e293b 0%, #2e286e 100%)",
+  texto: "#ffffff",
+  textoTenue: "#94a3b8",
+} as const;
+
 export const temaScipos = createTheme({
   palette: {
     mode: "light",
