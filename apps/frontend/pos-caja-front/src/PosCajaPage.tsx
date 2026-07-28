@@ -1,19 +1,14 @@
 "use client";
 
 import AddIcon from "@mui/icons-material/Add";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import CreditScoreIcon from "@mui/icons-material/CreditScore";
 import DeleteIcon from "@mui/icons-material/Delete";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SearchIcon from "@mui/icons-material/Search";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardHeader from "@mui/material/CardHeader";
 import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
 import Dialog from "@mui/material/Dialog";
@@ -39,19 +34,16 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   ETIQUETAS_ROL,
   EstadoChip,
   PageHeader,
   SkeletonTabla,
-  formatearFechaConHora,
   formatearMoneda,
   usePermisos,
 } from "@scipos/frontend-commons";
 import { useToast } from "@scipos/frontend-commons/feedback";
-import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   abrirCaja as abrirCajaApi,
@@ -69,6 +61,7 @@ import {
   ventaApiAUi,
 } from "./api/posApi";
 import { precioSegunModo } from "./calculos/calculos-pos";
+import { PanelCaja, PanelSeccion, ResumenMonto } from "./components";
 import { CajaProvider, type TipoMovimientoCaja, useCaja } from "./context/CajaContext";
 import { useCarrito } from "./hooks/useCarrito";
 import type { CorteCaja, ModoPos, ProductoPos, VentaPOS } from "./types/pos";
@@ -79,151 +72,6 @@ export interface PosCajaPageProps {
   defaultTab?: number;
   hideTabs?: boolean;
   modo?: ModoPos;
-}
-
-interface PanelSeccionProps {
-  titulo: string;
-  descripcion?: string;
-  acciones?: ReactNode;
-  children: ReactNode;
-}
-
-interface ResumenMontoProps {
-  etiqueta: string;
-  valor: string;
-  color?: string;
-}
-
-function PanelSeccion({ titulo, descripcion, acciones, children }: PanelSeccionProps) {
-  return (
-    <Card variant="outlined" sx={{ height: "100%" }}>
-      <CardHeader title={titulo} subheader={descripcion} action={acciones} sx={{ pb: 0 }} />
-      <CardContent sx={{ pt: 2 }}>{children}</CardContent>
-    </Card>
-  );
-}
-
-function ResumenMonto({ etiqueta, valor, color }: ResumenMontoProps) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 2,
-      }}
-    >
-      <Typography variant="body2" color="text.secondary">
-        {etiqueta}
-      </Typography>
-      <Typography variant="h6" sx={{ color }}>
-        {valor}
-      </Typography>
-    </Paper>
-  );
-}
-
-function TablaVentasHistoricas({
-  ventas,
-  onComprobante,
-}: {
-  ventas: VentaPOS[];
-  onComprobante: (ventaId: string) => void;
-}) {
-  if (ventas.length === 0) {
-    return (
-      <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
-        <Typography variant="body2" color="text.secondary">
-          Aún no hay ventas registradas en el sistema.
-        </Typography>
-      </Paper>
-    );
-  }
-
-  return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Folio</TableCell>
-            <TableCell>Fecha</TableCell>
-            <TableCell align="right">Subtotal</TableCell>
-            <TableCell align="right">Descuento</TableCell>
-            <TableCell align="right">IVA</TableCell>
-            <TableCell align="right">Total</TableCell>
-            <TableCell align="center">Comprobante</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {ventas.map((venta) => (
-            <TableRow key={venta.id} hover>
-              <TableCell>{venta.folio}</TableCell>
-              <TableCell>{formatearFechaConHora(venta.fecha)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.subtotal)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.descuento)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.iva)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.total)}</TableCell>
-              <TableCell align="center">
-                <Tooltip title="Ver comprobante PDF">
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => onComprobante(venta.id)}
-                    aria-label={`Comprobante de la venta ${venta.folio}`}
-                  >
-                    <PictureAsPdfIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-}
-
-function TablaCortesHistoricos({ cortes }: { cortes: CorteCaja[] }) {
-  if (cortes.length === 0) {
-    return (
-      <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
-        <Typography variant="body2" color="text.secondary">
-          Los cortes cerrados en esta sesión aparecerán aquí.
-        </Typography>
-      </Paper>
-    );
-  }
-
-  return (
-    <TableContainer component={Paper} variant="outlined">
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Folio</TableCell>
-            <TableCell>Apertura</TableCell>
-            <TableCell>Cierre</TableCell>
-            <TableCell align="right">Inicial</TableCell>
-            <TableCell align="right">Ventas</TableCell>
-            <TableCell align="right">Cierre total</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {cortes.map((corte) => (
-            <TableRow key={corte.id} hover>
-              <TableCell>{corte.folio}</TableCell>
-              <TableCell>{formatearFechaConHora(corte.fechaApertura)}</TableCell>
-              <TableCell>{formatearFechaConHora(corte.fechaCierre)}</TableCell>
-              <TableCell align="right">{formatearMoneda(corte.montoInicial)}</TableCell>
-              <TableCell align="right">{formatearMoneda(corte.ventasTurno)}</TableCell>
-              <TableCell align="right">{formatearMoneda(corte.totalCierre)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
 }
 
 export function PosCajaPage({
@@ -991,231 +839,34 @@ export function PosCajaPage({
       ) : null}
 
       {activeTab === 1 ? (
-        <Stack spacing={3}>
-          <Grid container spacing={3} alignItems="stretch">
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Apertura de caja"
-                descripcion="Ingresa el fondo inicial para habilitar las operaciones del turno."
-                acciones={
-                  <Chip
-                    color={cajaAbierta ? "success" : "default"}
-                    label={cajaAbierta ? "Caja operando" : "Pendiente de apertura"}
-                    variant="outlined"
-                  />
-                }
-              >
-                <Stack spacing={2}>
-                  <TextField
-                    label="Monto inicial en efectivo"
-                    type="number"
-                    value={montoInicialCaptura}
-                    onChange={(event) =>
-                      setMontoInicialCaptura(event.target.value.replace(/[^\d.]/g, ""))
-                    }
-                    fullWidth
-                    inputProps={{ min: 0, step: "0.01" }}
-                    disabled={cajaAbierta || procesando}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => void abrirCaja()}
-                    disabled={cajaAbierta || procesando}
-                  >
-                    Abrir caja
-                  </Button>
-                  <Typography variant="body2" color="text.secondary">
-                    Fondo registrado: {formatearMoneda(montoInicial)}
-                  </Typography>
-                  {cajaAbierta && fechaApertura ? (
-                    <Typography variant="body2" color="text.secondary">
-                      Apertura actual: {formatearFechaConHora(fechaApertura)}
-                    </Typography>
-                  ) : null}
-                </Stack>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Flujo manual"
-                descripcion="Registra ingresos o egresos adicionales del turno."
-              >
-                <Stack spacing={2}>
-                  <FormControl fullWidth size="small">
-                    <Select
-                      value={tipoFlujo}
-                      onChange={(event) => setTipoFlujo(event.target.value as TipoMovimientoCaja)}
-                      disabled={!cajaAbierta || procesando}
-                    >
-                      <MenuItem value="Ingreso">Ingreso</MenuItem>
-                      <MenuItem value="Egreso">Egreso</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    label="Concepto"
-                    value={conceptoMovimiento}
-                    onChange={(event) => setConceptoMovimiento(event.target.value)}
-                    fullWidth
-                    disabled={!cajaAbierta || procesando}
-                  />
-
-                  <TextField
-                    label="Monto"
-                    type="number"
-                    value={montoMovimiento}
-                    onChange={(event) =>
-                      setMontoMovimiento(event.target.value.replace(/[^\d.]/g, ""))
-                    }
-                    fullWidth
-                    inputProps={{ min: 0, step: "0.01" }}
-                    disabled={!cajaAbierta || procesando}
-                  />
-
-                  <Button
-                    variant="outlined"
-                    onClick={() => void registrarMovimiento()}
-                    disabled={!cajaAbierta || procesando}
-                  >
-                    Registrar movimiento
-                  </Button>
-
-                  <Stack spacing={1}>
-                    <ResumenMonto
-                      etiqueta="Ingresos manuales"
-                      valor={formatearMoneda(ingresosManual)}
-                    />
-                    <ResumenMonto
-                      etiqueta="Egresos manuales"
-                      valor={formatearMoneda(egresosManual)}
-                    />
-                  </Stack>
-                </Stack>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <PanelSeccion
-                titulo="Movimientos del turno"
-                descripcion="Registro activo de ingresos y egresos manuales capturados en esta sesión."
-              >
-                <TableContainer component={Paper} variant="outlined">
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Fecha</TableCell>
-                        <TableCell>Concepto</TableCell>
-                        <TableCell>Tipo</TableCell>
-                        <TableCell align="right">Monto</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {movimientos.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center">
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                              Aún no se registran movimientos manuales.
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        movimientos.map((movimiento) => (
-                          <TableRow key={movimiento.id} hover>
-                            <TableCell>{formatearFechaConHora(movimiento.fecha)}</TableCell>
-                            <TableCell>{movimiento.concepto}</TableCell>
-                            <TableCell>
-                              <Chip
-                                label={movimiento.tipo === "Ingreso" ? "Ingreso" : "Egreso"}
-                                color={movimiento.tipo === "Ingreso" ? "success" : "warning"}
-                                size="small"
-                                variant="outlined"
-                              />
-                            </TableCell>
-                            <TableCell align="right">{formatearMoneda(movimiento.monto)}</TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12}>
-              <PanelSeccion
-                titulo="Cierre con corte"
-                descripcion="Balance totalizado del turno: apertura + ventas + ingresos − egresos."
-                acciones={
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<AttachMoneyIcon />}
-                    onClick={abrirDialogoCorte}
-                    disabled={!cajaAbierta || carrito.length > 0 || procesando}
-                  >
-                    Cierre de caja
-                  </Button>
-                }
-              >
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto etiqueta="Monto inicial" valor={formatearMoneda(montoInicial)} />
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto
-                      etiqueta="Ventas POS del turno"
-                      valor={formatearMoneda(ventasTurnoTotal)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto
-                      etiqueta="Ingresos manuales"
-                      valor={formatearMoneda(ingresosManual)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6} lg={3}>
-                    <ResumenMonto
-                      etiqueta="Egresos manuales"
-                      valor={formatearMoneda(egresosManual)}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <ResumenMonto
-                      etiqueta="Balance total calculado"
-                      valor={formatearMoneda(balanceCaja)}
-                      color="primary.main"
-                    />
-                  </Grid>
-                </Grid>
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Historial de ventas previas"
-                descripcion="Ventas registradas en el sistema."
-              >
-                {cargandoHistorial ? (
-                  <SkeletonTabla filas={4} columnas={7} />
-                ) : (
-                  <TablaVentasHistoricas ventas={ventasHistorial} onComprobante={verComprobante} />
-                )}
-              </PanelSeccion>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <PanelSeccion
-                titulo="Cortes de caja previos"
-                descripcion="Cortes realizados en esta sesión."
-              >
-                <TablaCortesHistoricos cortes={cortesCaja} />
-              </PanelSeccion>
-            </Grid>
-          </Grid>
-        </Stack>
+        <PanelCaja
+          cajaAbierta={cajaAbierta}
+          montoInicial={montoInicial}
+          fechaApertura={fechaApertura}
+          movimientos={movimientos}
+          procesando={procesando}
+          montoInicialCaptura={montoInicialCaptura}
+          onMontoInicialCapturaChange={setMontoInicialCaptura}
+          onAbrirCaja={() => void abrirCaja()}
+          tipoFlujo={tipoFlujo}
+          onTipoFlujoChange={setTipoFlujo}
+          conceptoMovimiento={conceptoMovimiento}
+          onConceptoMovimientoChange={setConceptoMovimiento}
+          montoMovimiento={montoMovimiento}
+          onMontoMovimientoChange={setMontoMovimiento}
+          onRegistrarMovimiento={() => void registrarMovimiento()}
+          ingresosManual={ingresosManual}
+          egresosManual={egresosManual}
+          ventasTurnoTotal={ventasTurnoTotal}
+          balanceCaja={balanceCaja}
+          hayVentaEnCurso={carrito.length > 0}
+          onAbrirDialogoCorte={abrirDialogoCorte}
+          cargandoHistorial={cargandoHistorial}
+          ventasHistorial={ventasHistorial}
+          cortesCaja={cortesCaja}
+          onVerComprobante={verComprobante}
+        />
       ) : null}
-
       <Dialog open={dialogCobroAbierto} onClose={cerrarDialogoCobro} fullWidth maxWidth="sm">
         <DialogTitle>
           {esCompra ? "Compra registrada con éxito" : "Transacción cobrada con éxito"}
