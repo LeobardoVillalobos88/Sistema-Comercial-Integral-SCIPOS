@@ -350,8 +350,8 @@ export function CatalogoProductos() {
   return (
     <Box>
       <PageHeader
-        titulo="Catálogo"
-        descripcion="Productos y servicios"
+        titulo="Productos"
+        descripcion="Catálogo de productos y servicios"
         acciones={
           <Permiso requiere="productos:crear">
             <Button variant="contained" startIcon={<AddIcon />} onClick={abrirCrear}>

@@ -29,10 +29,10 @@ export const NAVEGACION: ItemNavegacion[] = [
   { etiqueta: "Inicio", ruta: "/inicio", icono: "insights" },
   { etiqueta: "Dashboard", ruta: "/dashboard", icono: "dashboard" },
   {
-    etiqueta: "Productos",
-    ruta: "/productos",
-    icono: "inventory",
-    privilegio: "productos:ver",
+    etiqueta: "Usuarios",
+    ruta: "/usuarios",
+    icono: "manage_accounts",
+    privilegio: "seguridad:ver",
   },
   {
     etiqueta: "Clientes",
@@ -41,10 +41,22 @@ export const NAVEGACION: ItemNavegacion[] = [
     privilegio: "clientes:ver",
   },
   {
+    etiqueta: "Productos",
+    ruta: "/productos",
+    icono: "inventory",
+    privilegio: "productos:ver",
+  },
+  {
     etiqueta: "Cotizaciones",
     ruta: "/cotizaciones",
     icono: "description",
     privilegio: "cotizaciones:ver",
+  },
+  {
+    etiqueta: "Caja",
+    ruta: "/caja",
+    icono: "savings",
+    privilegio: "caja:ver",
   },
   {
     etiqueta: "Punto de venta",
@@ -59,21 +71,9 @@ export const NAVEGACION: ItemNavegacion[] = [
     privilegio: "compras:ver",
   },
   {
-    etiqueta: "Caja",
-    ruta: "/caja",
-    icono: "savings",
-    privilegio: "caja:ver",
-  },
-  {
     etiqueta: "Reportes",
     ruta: "/reportes",
     icono: "assessment",
     privilegio: "reportes:ver",
-  },
-  {
-    etiqueta: "Usuarios",
-    ruta: "/usuarios",
-    icono: "manage_accounts",
-    privilegio: "seguridad:ver",
   },
 ];
