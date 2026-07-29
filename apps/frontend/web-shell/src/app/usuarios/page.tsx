@@ -157,6 +157,18 @@ export default function UsuariosPage() {
   const alternarEstado = useCallback(
     async (usuario: UsuarioSesion) => {
       const nuevoEstado = usuario.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
+      // Desactivar le quita el acceso a una persona: se confirma antes, igual
+      // que en el resto de los módulos. Reactivar no necesita confirmación.
+      if (nuevoEstado === "INACTIVO") {
+        const confirmado = await confirmar({
+          titulo: "¿Desactivar usuario?",
+          texto: `"${usuario.nombre}" (${usuario.correo}) no podrá iniciar sesión mientras esté inactivo.`,
+          confirmar: "Sí, desactivar",
+        });
+        if (!confirmado) {
+          return;
+        }
+      }
       try {
         const actualizado = await llamarApi<UsuarioSesion>(`/seguridad/usuarios/${usuario.id}`, {
           method: "PATCH",
@@ -194,7 +206,7 @@ export default function UsuariosPage() {
 
   if (!cargandoPermisos && !can("seguridad:ver")) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
         <Alert severity="warning">
           No tienes privilegios para administrar usuarios con el rol actual.
         </Alert>
@@ -268,7 +280,7 @@ export default function UsuariosPage() {
   ];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 2 }}>
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <PageHeader
         titulo="Usuarios"
         descripcion="Administra las cuentas del sistema: rol, estado, contraseña y acceso."
