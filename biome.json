@@ -15,7 +15,8 @@
       "**/build/**",
       "**/.husky/_/**",
       "**/next-env.d.ts",
-      "ControlAcceso/**"
+      "ControlAcceso/**",
+      ".impeccable/**"
     ]
   },
   "formatter": {

@@ -509,7 +509,7 @@ export function PosCajaPage({
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <PageHeader
         titulo={esCompra ? "Punto de compra" : "Ventas POS + Caja"}
         descripcion={

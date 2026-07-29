@@ -2,7 +2,6 @@
 
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import Toolbar from "@mui/material/Toolbar";
 import { usePermisos } from "@scipos/frontend-commons";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -79,8 +78,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             }),
         }}
       >
-        <Toolbar />
-        <Box sx={{ p: { xs: 2, md: 4 } }}>{children}</Box>
+        {/* Compensa la franja fija. Debe medir lo mismo que su Toolbar denso:
+            un separador de altura estándar dejaría un hueco muerto arriba. */}
+        <Box sx={{ height: { xs: 52, md: 48 } }} />
+        {/* Sin relleno propio: cada módulo trae su Container con el suyo, y
+            sumarlos dejaba un hueco muerto sobre el rótulo. */}
+        <Box>{children}</Box>
       </Box>
     </Box>
   );

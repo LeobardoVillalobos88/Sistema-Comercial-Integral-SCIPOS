@@ -583,7 +583,7 @@ export default function CotizacionesPage() {
 
   if (!can("cotizaciones:ver")) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
         <PageHeader titulo="Cotizaciones" />
         <Alert severity="warning">
           No tienes privilegios para ver cotizaciones con el rol actual.
@@ -593,7 +593,7 @@ export default function CotizacionesPage() {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <PageHeader
         titulo="Cotizaciones"
         descripcion="Historial de cotizaciones y su conversión a venta."

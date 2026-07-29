@@ -12,7 +12,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { MARCA_OSCURA } from "@scipos/frontend-commons";
+import { ESMALTE, PLANO, SOBRE_ESMALTE } from "@scipos/frontend-commons";
 import { useState } from "react";
 
 export interface LoginViewProps {
@@ -22,6 +22,10 @@ export interface LoginViewProps {
 /**
  * Pantalla de inicio de sesión (RF-01). Recibe las credenciales y delega en
  * `onLogin`, que abre la sesión real contra el servicio de seguridad.
+ *
+ * Es la primera pantalla del sistema y por eso lleva el rótulo a su escala
+ * completa: el muro de esmalte con el nombre pintado, y la placa de
+ * credenciales montada encima.
  */
 export function LoginView({ onLogin }: LoginViewProps) {
   const [correo, setCorreo] = useState("");
@@ -44,84 +48,80 @@ export function LoginView({ onLogin }: LoginViewProps) {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", flexDirection: { xs: "column", md: "row" } }}>
-      {/* Lado de la marca */}
+      {/* El muro rotulado */}
       <Box
         sx={{
-          flex: { xs: "0 0 260px", md: 1 },
-          position: "relative",
-          overflow: "hidden",
+          flex: { xs: "0 0 auto", md: 1.15 },
+          bgcolor: ESMALTE.azul,
+          color: SOBRE_ESMALTE.texto,
           display: "flex",
-          alignItems: "center",
+          flexDirection: "column",
           justifyContent: "center",
-          p: 4,
-          color: MARCA_OSCURA.texto,
-          background: MARCA_OSCURA.degradado,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: "-10%",
-            left: "-10%",
-            width: "50vw",
-            height: "50vw",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)",
-            pointerEvents: "none",
-          },
+          px: { xs: 3, md: 7 },
+          py: { xs: 5, md: 7 },
         }}
       >
-        <Box sx={{ position: "relative", textAlign: "center" }}>
+        <Typography
+          component="h1"
+          sx={{
+            fontWeight: 900,
+            fontSize: { xs: "3.75rem", md: "5.75rem" },
+            lineHeight: 0.84,
+            letterSpacing: "-0.045em",
+            textShadow: `7px 7px 0 ${ESMALTE.azulHondo}`,
+          }}
+        >
+          SCIPOS
+        </Typography>
+
+        <Typography
+          variant="overline"
+          sx={{
+            mt: { xs: 2, md: 3 },
+            fontSize: { xs: 11, md: 13 },
+            letterSpacing: "0.26em",
+            color: SOBRE_ESMALTE.textoTenue,
+          }}
+        >
+          Sistema Comercial Integral
+        </Typography>
+
+        {/* Flecha de rótulo: una banda de ocre que dirige a la placa. */}
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: { xs: 3, md: 4.5 } }}>
+          <Box sx={{ height: 5, width: { xs: 56, md: 88 }, bgcolor: ESMALTE.ocre }} />
           <Typography
-            component="h1"
-            sx={{
-              fontSize: { xs: "2.75rem", md: "3.5rem" },
-              fontWeight: 300,
-              letterSpacing: { xs: "8px", md: "12px" },
-              textTransform: "uppercase",
-              textShadow: "0 4px 10px rgba(0,0,0,0.3)",
-            }}
+            variant="overline"
+            sx={{ fontSize: 10.5, letterSpacing: "0.17em", color: ESMALTE.ocre }}
           >
-            SCIPOS
+            Acceso al sistema
           </Typography>
-          <Typography
-            sx={{
-              mt: 1,
-              fontSize: "1rem",
-              letterSpacing: "3px",
-              textTransform: "uppercase",
-              color: MARCA_OSCURA.textoTenue,
-            }}
-          >
-            Sistema Comercial Integral
-          </Typography>
-        </Box>
+        </Stack>
       </Box>
 
-      {/* Lado del formulario */}
+      {/* La placa de credenciales */}
       <Box
         sx={{
-          flex: 1,
+          flex: { xs: 1, md: 0.85 },
+          bgcolor: PLANO.papel,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          p: { xs: 3, md: 4 },
-          bgcolor: "#f8fafc",
+          p: { xs: 3, md: 5 },
         }}
       >
         <Paper
-          elevation={0}
+          variant="outlined"
           sx={{
             width: "100%",
-            maxWidth: 420,
-            p: { xs: 3, md: 5 },
-            borderRadius: 4,
-            border: "1px solid #f1f5f9",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.04)",
+            maxWidth: 400,
+            p: { xs: 3, md: 4.5 },
+            // Banda de pintura arriba: por eso el panel va a esquina recta.
+            borderRadius: 0,
+            borderTop: `5px solid ${ESMALTE.ocre}`,
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 600, color: MARCA_OSCURA.fondo }}>
-            Bienvenido
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, mb: 3, color: "#64748b" }}>
+          <Typography variant="h5">Bienvenido</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, mb: 3 }}>
             Ingresa tus credenciales para continuar
           </Typography>
 
@@ -179,25 +179,23 @@ export function LoginView({ onLogin }: LoginViewProps) {
                 startIcon={
                   cargando ? <CircularProgress size={20} color="inherit" /> : <LoginRoundedIcon />
                 }
-                sx={{
-                  mt: 0.5,
-                  py: 1.25,
-                  fontWeight: 600,
-                  letterSpacing: 0.5,
-                  background: MARCA_OSCURA.degradado,
-                  boxShadow: "0 4px 14px rgba(15, 23, 42, 0.3)",
-                  "&:hover": {
-                    background: MARCA_OSCURA.degradadoHover,
-                    boxShadow: "0 6px 20px rgba(15, 23, 42, 0.4)",
-                  },
-                }}
+                sx={{ mt: 0.5, py: 1.4 }}
               >
                 {cargando ? "Ingresando…" : "Ingresar al sistema"}
               </Button>
             </Stack>
           </Box>
+
+          <Typography
+            variant="overline"
+            sx={{ display: "block", mt: 3.5, fontSize: 8.5, color: PLANO.tintaSuave }}
+          >
+            LOBOSOFT
+          </Typography>
         </Paper>
       </Box>
     </Box>
   );
 }
+
+export default LoginView;

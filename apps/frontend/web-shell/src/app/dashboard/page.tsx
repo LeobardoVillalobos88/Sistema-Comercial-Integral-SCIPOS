@@ -7,6 +7,7 @@ import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import SavingsIcon from "@mui/icons-material/Savings";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
 import {
   CLIENTES_MOCK,
   PRODUCTOS_MOCK,
@@ -132,7 +133,7 @@ export default function DashboardPage() {
       : "Sin datos disponibles";
 
   return (
-    <Box>
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <PageHeader titulo="Dashboard" descripcion="Resumen general de la operación" />
 
       <Box
@@ -215,6 +216,6 @@ export default function DashboardPage() {
           />
         )}
       </Box>
-    </Box>
+    </Container>
   );
 }

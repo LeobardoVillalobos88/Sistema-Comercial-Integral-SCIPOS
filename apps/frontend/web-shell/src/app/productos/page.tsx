@@ -3,7 +3,7 @@ import { CatalogoProductos } from "@scipos/productos-front";
 
 export default function ProductosPage() {
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <CatalogoProductos />
     </Container>
   );

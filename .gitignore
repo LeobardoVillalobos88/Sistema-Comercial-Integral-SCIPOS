@@ -38,3 +38,6 @@ ControlAcceso/
 
 # Grafo local de code-review-graph (indice, no se versiona)
 .code-review-graph/
+
+# Cache local del detector de diseno (la config si se versiona)
+.impeccable/hook.cache.json
