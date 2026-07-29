@@ -401,7 +401,7 @@ export default function ClientesPage() {
   ];
 
   return (
-    <Container maxWidth="lg" sx={{ py: 2 }}>
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <PageHeader
         titulo="Gestión de Clientes"
         descripcion="Administra la información de tus clientes y consulta su historial de cotizaciones y ventas."

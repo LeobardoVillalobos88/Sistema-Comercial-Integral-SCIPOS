@@ -7,6 +7,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PRODUCTOS_MOCK, PageHeader, StatCard, formatearMoneda } from "@scipos/frontend-commons";
@@ -52,7 +53,7 @@ function PanelGrafica({ titulo, children }: { titulo: string; children: React.Re
 
 export default function InicioPage() {
   return (
-    <Box>
+    <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
       <PageHeader
         titulo="Inicio"
         descripcion="Panorama general del negocio: inventario, precios de compra y de venta."
@@ -154,6 +155,6 @@ export default function InicioPage() {
           />
         </PanelGrafica>
       </Box>
-    </Box>
+    </Container>
   );
 }

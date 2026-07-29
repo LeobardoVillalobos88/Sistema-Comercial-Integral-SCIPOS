@@ -10,7 +10,7 @@ export default function ReportesPage() {
 
   if (!can("reportes:ver")) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="xl" sx={{ pt: 2, pb: 4 }}>
         <Alert severity="warning">
           No tienes privilegios para consultar reportes con el rol actual.
         </Alert>
