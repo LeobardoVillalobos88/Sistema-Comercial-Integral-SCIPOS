@@ -23,7 +23,8 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
-import { MARCA_OSCURA, usePermisos } from "@scipos/frontend-commons";
+import Typography from "@mui/material/Typography";
+import { ESMALTE, SOBRE_ESMALTE, sombraRotulo, usePermisos } from "@scipos/frontend-commons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -70,8 +71,9 @@ function Contenido({
         flexDirection: "column",
         height: "100%",
         position: "relative",
-        background: MARCA_OSCURA.degradado,
-        color: MARCA_OSCURA.texto,
+        // Campo de esmalte plano: el muro es de un solo color, sin degradado.
+        bgcolor: ESMALTE.azul,
+        color: SOBRE_ESMALTE.texto,
       }}
     >
       {/* Botón flotante para expandir/colapsar (solo visible en escritorio si se pasa la función) */}
@@ -84,8 +86,8 @@ function Contenido({
             top: "50%",
             transform: "translateY(-50%)",
             right: -14,
-            bgcolor: MARCA_OSCURA.texto,
-            color: MARCA_OSCURA.fondo,
+            bgcolor: SOBRE_ESMALTE.texto,
+            color: ESMALTE.azul,
             border: 1,
             borderColor: "rgba(0,0,0,0.1)",
             zIndex: 10,
@@ -101,26 +103,39 @@ function Contenido({
         </IconButton>
       )}
 
+      {/* El sistema se identifica como SCIPOS; LOBOSOFT firma al pie. */}
       <Box
         sx={{
-          p: 2,
+          px: 2,
+          py: 2.25,
+          minHeight: 76,
           display: "flex",
-          justifyContent: sidebarAbierto ? "flex-start" : "center",
-          alignItems: "center",
-          minHeight: 64,
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: sidebarAbierto ? "flex-start" : "center",
+          borderBottom: `1px solid ${SOBRE_ESMALTE.divisor}`,
         }}
       >
-        <Box
-          component="img"
-          src="/logo-lobosoft.png"
-          alt="LOBOSOFT"
+        <Typography
+          component="p"
           sx={{
-            width: sidebarAbierto ? "100%" : 40,
-            height: "auto",
-            display: "block",
-            transition: "width 0.2s",
+            fontWeight: 900,
+            lineHeight: 1,
+            letterSpacing: "-0.03em",
+            fontSize: sidebarAbierto ? 26 : 17,
+            textShadow: sombraRotulo(),
           }}
-        />
+        >
+          {sidebarAbierto ? "SCIPOS" : "SC"}
+        </Typography>
+        {sidebarAbierto && (
+          <Typography
+            variant="overline"
+            sx={{ mt: 0.75, fontSize: 9, color: SOBRE_ESMALTE.textoTenue, lineHeight: 1.2 }}
+          >
+            Sistema Comercial
+          </Typography>
+        )}
       </Box>
       <List
         sx={{
@@ -144,14 +159,27 @@ function Contenido({
                 selected={activo}
                 onClick={onNavegar}
                 sx={{
-                  borderRadius: 2,
-                  mb: 0.5,
+                  borderRadius: 0,
+                  mb: 0.25,
                   justifyContent: sidebarAbierto ? "initial" : "center",
                   px: sidebarAbierto ? 2 : 1,
-                  color: activo ? MARCA_OSCURA.texto : MARCA_OSCURA.textoTenue,
-                  bgcolor: activo ? "rgba(255,255,255,0.1)" : "transparent",
+                  // Etiqueta de rótulo: versalitas espaciadas.
+                  "& .MuiListItemText-primary": {
+                    fontSize: "0.6875rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.09em",
+                    textTransform: "uppercase",
+                  },
+                  color: activo ? SOBRE_ESMALTE.texto : SOBRE_ESMALTE.textoTenue,
+                  // El módulo activo se marca con banda de pintura, no con píldora.
+                  borderLeft: "4px solid",
+                  borderLeftColor: activo ? ESMALTE.ocre : "transparent",
+                  bgcolor: activo ? SOBRE_ESMALTE.activo : "transparent",
+                  "&.Mui-selected": { bgcolor: SOBRE_ESMALTE.activo },
+                  "&.Mui-selected:hover": { bgcolor: SOBRE_ESMALTE.activo },
                   "&:hover": {
-                    bgcolor: "rgba(255,255,255,0.15)",
+                    bgcolor: SOBRE_ESMALTE.hover,
+                    color: SOBRE_ESMALTE.texto,
                   },
                 }}
               >
@@ -178,17 +206,35 @@ function Contenido({
         })}
       </List>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+      <Divider sx={{ borderColor: SOBRE_ESMALTE.divisor }} />
 
-      {/* Botón de cerrar sesión al fondo */}
-      <Box sx={{ p: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {/* Cerrar sesión, y la firma del equipo al pie del muro. */}
+      <Box
+        sx={{
+          px: 2,
+          py: 1.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: sidebarAbierto ? "space-between" : "center",
+          gap: 1,
+        }}
+      >
+        {sidebarAbierto && (
+          <Typography
+            variant="overline"
+            sx={{ fontSize: 8.5, color: SOBRE_ESMALTE.textoFirma, lineHeight: 1 }}
+          >
+            LOBOSOFT
+          </Typography>
+        )}
         <Tooltip title="Cerrar sesión" placement={sidebarAbierto ? "top" : "right"}>
           <IconButton
             color="inherit"
             onClick={cerrarSesion}
-            sx={{ color: MARCA_OSCURA.textoTenue, "&:hover": { color: "error.light" } }}
+            size="small"
+            sx={{ color: SOBRE_ESMALTE.textoTenue, "&:hover": { color: ESMALTE.ocre } }}
           >
-            <LogoutIcon />
+            <LogoutIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
@@ -228,7 +274,7 @@ export function Sidebar({
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: ancho,
-            bgcolor: MARCA_OSCURA.fondo,
+            bgcolor: ESMALTE.azul,
           },
         }}
       >
@@ -251,7 +297,7 @@ export function Sidebar({
           },
         }}
         PaperProps={{
-          sx: { overflow: "visible", bgcolor: MARCA_OSCURA.fondo },
+          sx: { overflow: "visible", bgcolor: ESMALTE.azul },
         }}
       >
         <Contenido sidebarAbierto={sidebarAbierto} onToggleSidebar={onToggleSidebar} />
