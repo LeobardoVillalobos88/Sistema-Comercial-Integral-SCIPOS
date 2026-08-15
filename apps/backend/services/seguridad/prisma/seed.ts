@@ -99,34 +99,39 @@ const MATRIZ_ROLES: Record<string, string[]> = {
  *
  * En un despliegue expuesto conviene sustituir estas contraseñas: cada una se
  * puede sobreescribir con su variable de entorno sin tocar el código.
+ *
+ * El respaldo se resuelve con || y no con ??, porque una variable declarada y
+ * vacía debe caer al valor documentado. Docker Compose entrega las variables
+ * sin valor como cadena vacía, no como indefinidas, y ?? las daría por buenas:
+ * el usuario quedaría sembrado con una contraseña vacía e inservible.
  */
 const USUARIOS_SEMILLA = [
   {
     id: "usuario-administrador",
     nombre: "Administrador General",
     correo: "admin@scipos.com",
-    contrasena: process.env.SEED_ADMIN_PASSWORD ?? "Admin1234",
+    contrasena: process.env.SEED_ADMIN_PASSWORD || "Admin1234",
     rolClave: "ADMINISTRADOR",
   },
   {
     id: "usuario-vendedor",
     nombre: "Vendedor de Mostrador",
     correo: "vendedor@scipos.com",
-    contrasena: process.env.SEED_VENDEDOR_PASSWORD ?? "Vendedor1234",
+    contrasena: process.env.SEED_VENDEDOR_PASSWORD || "Vendedor1234",
     rolClave: "VENDEDOR",
   },
   {
     id: "usuario-cajero",
     nombre: "Cajero Principal",
     correo: "cajero@scipos.com",
-    contrasena: process.env.SEED_CAJERO_PASSWORD ?? "Cajero1234",
+    contrasena: process.env.SEED_CAJERO_PASSWORD || "Cajero1234",
     rolClave: "CAJERO",
   },
   {
     id: "usuario-supervisor",
     nombre: "Supervisor de Tienda",
     correo: "supervisor@scipos.com",
-    contrasena: process.env.SEED_SUPERVISOR_PASSWORD ?? "Supervisor1234",
+    contrasena: process.env.SEED_SUPERVISOR_PASSWORD || "Supervisor1234",
     rolClave: "SUPERVISOR",
   },
 ];
