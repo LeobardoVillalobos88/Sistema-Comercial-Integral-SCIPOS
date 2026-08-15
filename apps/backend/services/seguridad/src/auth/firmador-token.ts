@@ -37,10 +37,22 @@ function leerPem(variableContenido: string, variableRuta: string, archivoPorDefe
     const normalizado = contenido.includes("-----BEGIN")
       ? contenido.replace(/\\n/g, "\n")
       : Buffer.from(contenido, "base64").toString("utf8");
+    if (!normalizado.includes("-----BEGIN")) {
+      throw new Error(
+        `La variable ${variableContenido} no contiene una llave PEM válida. Genera el par con 'pnpm generar:llaves' y copia el valor que imprime 'pnpm llaves:entorno'.`,
+      );
+    }
     return normalizado.trim();
   }
+
   const ruta = resolve(process.env[variableRuta] ?? `../../../../keys/${archivoPorDefecto}`);
-  return readFileSync(ruta, "utf8");
+  try {
+    return readFileSync(ruta, "utf8");
+  } catch {
+    throw new Error(
+      `No se encontró la llave de firma: ni la variable ${variableContenido} ni el archivo ${ruta}. En un despliegue define ${variableContenido}; en local ejecuta 'pnpm generar:llaves'.`,
+    );
+  }
 }
 
 /**

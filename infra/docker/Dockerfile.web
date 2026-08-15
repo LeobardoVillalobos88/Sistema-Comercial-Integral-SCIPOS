@@ -3,11 +3,24 @@
 # Imagen del web-shell, que embebe los microfrontends como paquetes del
 # workspace y por lo tanto se compila como una sola aplicación Next.
 
-FROM node:20-slim AS base
+# La versión coincide con la de .nvmrc. No bajarla: pnpm 11 usa node:sqlite,
+# que no existe antes de Node 22.5, y la instalación falla sin dependencias.
+FROM node:22-slim AS base
+# Los NPM_CONFIG_* dan margen de red: pnpm verifica cada entrada del lockfile
+# contra el registro y, con una conexión lenta, esa consulta expira y aborta la
+# instalación como si el paquete hubiera sido rechazado. Se sube el tiempo de
+# espera en lugar de relajar la política de cadena de suministro.
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:$PATH" \
-    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    NPM_CONFIG_FETCH_RETRIES=5 \
+    NPM_CONFIG_NETWORK_CONCURRENCY=8 \
+    NPM_CONFIG_STORE_DIR=/pnpm/store \
+    NPM_CONFIG_PACKAGE_IMPORT_METHOD=copy
+# `prepare` deja pnpm dentro de la imagen. La etapa de ejecución arranca con
+# `pnpm start`, así que necesita pnpm disponible sin descargarlo al iniciar.
+RUN corepack enable && corepack prepare pnpm@11.8.0 --activate
 WORKDIR /app
 
 FROM base AS construccion
@@ -21,7 +34,10 @@ FROM base AS construccion
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY . .
-RUN pnpm install --frozen-lockfile
+# La caché del almacén de pnpm sobrevive entre construcciones: al actualizar el
+# proyecto en la instancia no se vuelven a descargar las dependencias enteras.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 RUN pnpm exec turbo run build --filter=@scipos/web-shell
 
 FROM base AS ejecucion

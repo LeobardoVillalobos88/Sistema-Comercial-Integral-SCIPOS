@@ -123,10 +123,13 @@ la pública en su JWKS. Las llaves **no vienen en el repositorio**: cada
 instalación genera las suyas, porque quien tenga la privada puede emitir
 tokens válidos.
 
-Necesitas Node solo para este paso:
+Necesitas Node solo para este paso. **Instálalo desde NodeSource, no con
+`apt-get install nodejs`**: los repositorios de Ubuntu traen Node 18 y el
+gestor de paquetes del proyecto requiere Node 22 o superior.
 
 ```bash
-sudo apt-get install -y nodejs npm
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs
 corepack enable
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm generar:llaves
