@@ -38,7 +38,10 @@ COPY . .
 # proyecto en la instancia no se vuelven a descargar las dependencias enteras.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile
-RUN pnpm exec turbo run build --filter=@scipos/web-shell
+# Concurrencia limitada por la misma razón que en la imagen de backend: la
+# compilación de Next reserva mucha memoria y el demonio de Docker muere sin
+# error legible si se queda sin ella.
+RUN pnpm exec turbo run build --concurrency=2 --filter=@scipos/web-shell
 
 FROM base AS ejecucion
 ENV NODE_ENV=production \

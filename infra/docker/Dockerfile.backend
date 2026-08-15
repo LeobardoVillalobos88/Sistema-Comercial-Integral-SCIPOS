@@ -51,7 +51,14 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 # consumidores. El build de cada servicio con base de datos incluye su
 # `prisma generate`, y cada esquema declara su propia carpeta de salida, así
 # que los seis clientes de Prisma conviven sin pisarse.
+# La concurrencia se limita a propósito. turbo.json fija 20 para el desarrollo
+# local, donde cada tarea es un proceso persistente y liviano; aquí cada tarea
+# es una compilación completa de TypeScript que reserva cientos de megabytes.
+# Veinte a la vez agotan la memoria de una máquina pequeña y el demonio de
+# Docker muere sin dejar un error legible. Dos a la vez tarda más, pero
+# sobrevive en una instancia de 2 GB.
 RUN pnpm exec turbo run build \
+      --concurrency=2 \
       --filter=@scipos/gateway \
       --filter=@scipos/seguridad-service \
       --filter=@scipos/productos-service \

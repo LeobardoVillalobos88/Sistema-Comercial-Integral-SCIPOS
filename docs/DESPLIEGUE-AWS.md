@@ -51,18 +51,29 @@ En la consola de AWS, EC2 → *Launch instance*:
 |---|---|
 | Nombre | `scipos-produccion` |
 | AMI | Ubuntu Server 24.04 LTS (x86_64) |
-| Tipo de instancia | `t3.small` (2 GB de RAM) |
+| Tipo de instancia | `t3.medium` (4 GB) para construir sin sobresaltos, o `t3.small` (2 GB) con memoria de intercambio |
 | Par de llaves | crea uno y guarda el `.pem` |
 | Almacenamiento | **30 GB** gp3 |
 
-Dos advertencias sobre el tamaño, por si te tienta bajarlo:
+Sobre el tamaño, por si te tienta bajarlo:
 
-- **`t2.micro` / `t3.micro` (1 GB de RAM) no alcanza** para compilar las
-  imágenes: el build de Next agota la memoria y el proceso muere. Si el
-  requisito de capa gratuita te obliga a usar micro, compila las imágenes en tu
-  máquina y súbelas, o añade memoria de intercambio (ver *Problemas comunes*).
+- **La memoria es el cuello de botella, no el procesador.** Compilar el
+  monorepo levanta varias compilaciones de TypeScript a la vez, y cada una
+  reserva cientos de megabytes. Las imágenes ya limitan la concurrencia a dos
+  tareas simultáneas justamente para que quepa en máquinas pequeñas, pero por
+  debajo de 2 GB no alcanza.
+- **Con `t3.small` añade memoria de intercambio antes de construir** (paso 2).
+  No es opcional: sin ella el demonio de Docker puede morir a mitad de la
+  compilación, y lo hace sin dejar un error legible — parece que el build se
+  quedó congelado.
+- **`t2.micro` / `t3.micro` (1 GB) no alcanza** ni con intercambio. Si la capa
+  gratuita te obliga a usar micro, construye las imágenes en otra máquina y
+  súbelas a un registro.
 - **20 GB de disco se quedan cortos.** Las imágenes de Node con el monorepo
   completo ocupan varios GB.
+
+Una vez construidas, las imágenes corren cómodas: el consumo alto es solo
+durante la compilación.
 
 ### Grupo de seguridad
 
@@ -102,6 +113,21 @@ Cierra la sesión y vuelve a entrar para que tome el grupo `docker`. Verifica:
 ```bash
 docker --version && docker compose version
 ```
+
+### Memoria de intercambio (obligatorio en `t3.small`)
+
+Con 2 GB de RAM la compilación se queda sin memoria y el demonio de Docker
+muere a media construcción, sin mensaje de error claro. Añade 4 GB de
+intercambio antes de continuar:
+
+```bash
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
+Compruébalo con `free -h`: la fila `Swap` debe mostrar 4 GB. En `t3.medium`
+este paso es opcional.
 
 ---
 
@@ -274,14 +300,19 @@ docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env \
 
 ## Problemas comunes
 
-**La construcción muere sin mensaje claro, o dice "Killed".**
-Es falta de memoria. Añade intercambio:
+**La construcción se queda congelada, muere sin mensaje, o dice "Killed".**
+Es falta de memoria, y es el fallo más común de este despliegue. Confirma que
+tienes intercambio activo con `free -h`; si la fila `Swap` está en cero,
+vuelve al paso 2 y créalo.
 
-```bash
-sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
-sudo mkswap /swapfile && sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-```
+Si ya lo tienes y aun así falla, baja la concurrencia de la compilación a una
+sola tarea editando `--concurrency=2` a `--concurrency=1` en
+`infra/docker/Dockerfile.backend`. Tardará bastante más, pero cabe en menos
+memoria.
+
+Síntoma revelador: si `docker info` empieza a responder errores mientras
+construyes, no es un problema del proyecto — el demonio se quedó sin memoria y
+murió.
 
 **Un servicio se reinicia en bucle.**
 Mira sus registros. Si el error menciona la base de datos, casi siempre es que
