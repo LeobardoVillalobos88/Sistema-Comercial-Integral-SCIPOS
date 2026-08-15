@@ -62,7 +62,7 @@ New `modulo:accion` strings are registered in the **seguridad catalog** (its see
 
 ## Commands
 
-Run from the repo root. Use **pnpm** (workspaces), not npm. Node ≥ 20 (`.nvmrc`); package manager pinned to pnpm 11 (`packageManager` field).
+Run from the repo root. Use **pnpm** (workspaces), not npm. **Node ≥ 22** (`.nvmrc` says 22; pnpm 11 uses `node:sqlite`, absent before 22.5, so Node 20 cannot even install); package manager pinned to pnpm 11 (`packageManager` field).
 
 ```bash
 pnpm install                                  # install the whole monorepo
@@ -155,6 +155,17 @@ stubs/              # scaffolding templates (e.g. next-ts/)
 ### Local infrastructure
 
 `infra/docker/compose/docker-compose.dev.yml` (run via `pnpm infra:up` / `pnpm infra:down`): `scipos-db` (Postgres 16, user/pass `root`/`root`, DB `scipos`, port 5432) and `scipos-redis` (Redis 5, password `root`, port 6379) — credentials per SetUp General. Each service connects with `DATABASE_URL=postgresql://root:root@localhost:5432/scipos?schema=<servicio>` and `REDIS_URL=redis://:root@localhost:6379`.
+
+### Deployment infrastructure
+
+The repo ships a container deployment for a single host (EC2), documented end to end in `docs/DESPLIEGUE-AWS.md`. Scripts: `pnpm prod:build` / `prod:up` / `prod:down` / `prod:logs`.
+
+- **Two Dockerfiles, not nine.** `infra/docker/Dockerfile.backend` produces **one image shared by all seven backend processes** (gateway + 6 services): they share the monorepo, its dependencies and `backend-commons`, so seven near-identical images would multiply build time and disk for nothing. Each service is still its own container and process with its own port and Postgres schema — `working_dir` per service in compose selects which one boots. `infra/docker/Dockerfile.web` builds web-shell. Each Prisma schema declares `output = "../node_modules/.prisma/client"`, so the six clients coexist in one image without clobbering each other.
+- **nginx is the only published port** (`infra/nginx/nginx.conf`): `/` → web-shell, `/api/` → gateway. Same origin, so CORS is effectively moot; services 4001-4006, Postgres and Redis stay on the internal Docker network. `origenesPermitidos()` now reads `ORIGENES_PERMITIDOS` (comma-separated) and keeps the localhost list as the dev fallback.
+- **`NEXT_PUBLIC_API_URL` defaults to `/api`, a relative path.** Next resolves `NEXT_PUBLIC_*` at build time, so an absolute URL would force an image rebuild per domain or IP. It enters `Dockerfile.web` as a build arg — keep it relative.
+- **Keys by env var.** `FirmadorToken` accepts `JWT_PRIVATE_KEY`/`JWT_PUBLIC_KEY` (raw PEM, escaped `\n`, or base64) with priority over `*_PATH`; `pnpm llaves:entorno` prints the base64 pair ready to paste. `pnpm generar:llaves` and the `keys/` flow are unchanged for local dev.
+- **Migrations run on boot** via `infra/docker/entrypoint-backend.sh` when `EJECUTAR_MIGRACIONES=true` (idempotent). Seeding is opt-in with `EJECUTAR_SEMILLA=true` so a restart doesn't reload data. Seed passwords are overridable with `SEED_*_PASSWORD`.
+- The root `.env.example` is the single file a deployer fills; per-service `.env.example` files remain for local dev. `.dockerignore` keeps `node_modules`, `keys/` and every `.env` out of the build context.
 
 ## Priority scope (Shape Up circuit breaker)
 

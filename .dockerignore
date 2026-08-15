@@ -1,0 +1,42 @@
+# Lo que nunca debe entrar al contexto de construcción de las imágenes.
+# Sin este archivo, Docker enviaría los node_modules del monorepo completo
+# (varios GB) en cada build.
+
+node_modules
+**/node_modules
+.pnpm-store
+
+.git
+.gitattributes
+
+.next
+**/.next
+dist
+**/dist
+build
+**/build
+.turbo
+**/.turbo
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Secretos: las llaves y los .env se inyectan como variables de entorno,
+# nunca se hornean dentro de la imagen.
+keys
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+*.log
+.DS_Store
+Thumbs.db
+
+# Carpetas ajenas al proyecto o de herramientas locales.
+ControlAcceso
+.code-review-graph
+.impeccable
+.uat-logs
+.claude
+docs/pdfs
