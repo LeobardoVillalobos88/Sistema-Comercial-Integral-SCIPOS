@@ -6,10 +6,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { PermisosProvider, temaScipos } from "@scipos/frontend-commons";
 import { ToastProvider } from "@scipos/frontend-commons/feedback";
 
-/**
- * Proveedores globales del shell: cache de Emotion (SSR de Next), tema MUI,
- * el contexto de permisos y las notificaciones toast.
- */
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AppRouterCacheProvider options={{ key: "mui" }}>

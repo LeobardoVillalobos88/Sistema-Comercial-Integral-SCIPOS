@@ -11,11 +11,6 @@ import { Topbar } from "./Topbar";
 const ANCHO_MENU_ABIERTO = 248;
 const ANCHO_MENU_CERRADO = 80;
 
-/**
- * Armazón principal de la aplicación: barra superior + menú lateral + área de
- * contenido donde se renderiza cada módulo. Exige sesión: sin usuario redirige
- * al login (el backend valida cada acción de todos modos).
- */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
@@ -31,13 +26,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [cargandoPermisos, usuario, enLogin, router]);
 
-  // El login se pinta sin armazón.
   if (enLogin) {
     return <Box component="main">{children}</Box>;
   }
 
-  // Mientras se resuelve la sesión (o se redirige al login) no mostramos el
-  // armazón protegido, para evitar parpadeos y peticiones sin token.
   if (cargandoPermisos || !usuario) {
     return (
       <Box

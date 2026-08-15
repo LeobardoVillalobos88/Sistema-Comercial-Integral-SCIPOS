@@ -1,13 +1,6 @@
-/**
- * Tabla de enrutamiento del gateway. Cada entrada expone
- * /api/<ruta>/* hacia el microservicio correspondiente.
- */
 export interface ServicioEnrutado {
-  /** Segmento de la URL pública, por ejemplo "productos" → /api/productos. */
   ruta: string;
-  /** Nombre legible del servicio. */
   nombre: string;
-  /** URL base del microservicio destino. */
   url: string;
 }
 
@@ -46,17 +39,6 @@ export function serviciosEnrutados(): ServicioEnrutado[] {
   ];
 }
 
-/**
- * Orígenes del frontend autorizados para consumir el gateway.
- *
- * En un despliegue se declaran en ORIGENES_PERMITIDOS, separados por comas
- * (por ejemplo "https://scipos.example.com,http://54.12.3.4"). Sin esa
- * variable se asumen los puertos locales de desarrollo.
- *
- * Detrás de un proxy inverso que sirve el frontend y el gateway bajo el mismo
- * origen, el navegador no emite peticiones de origen cruzado y esta lista
- * queda como respaldo para clientes externos.
- */
 export function origenesPermitidos(): string[] {
   const declarados = (process.env.ORIGENES_PERMITIDOS ?? "")
     .split(",")

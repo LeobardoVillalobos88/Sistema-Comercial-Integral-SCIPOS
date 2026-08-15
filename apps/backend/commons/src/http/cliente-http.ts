@@ -2,20 +2,10 @@ import { HttpException, Injectable } from "@nestjs/common";
 import { HEADER_USUARIO_ID } from "../contratos/identidad";
 
 export interface OpcionesSolicitud {
-  /** Identidad a propagar al otro servicio (header x-usuario-id). */
   usuarioId?: string;
-  /** Tiempo máximo de espera en milisegundos. */
   timeoutMs?: number;
 }
 
-/**
- * Cliente HTTP para comunicación entre servicios (REST). Aplica timeout,
- * propaga la identidad del usuario y traduce las respuestas de error a
- * excepciones de Nest conservando el estatus original.
- *
- * Registrarlo como provider del módulo que lo necesite:
- *   providers: [ClienteHttp]
- */
 @Injectable()
 export class ClienteHttp {
   get<T>(url: string, opciones?: OpcionesSolicitud): Promise<T> {

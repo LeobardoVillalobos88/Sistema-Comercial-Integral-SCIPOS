@@ -64,7 +64,6 @@ export interface ResumenCorteApi {
 
 export interface CrearVentaPayload {
   clienteId: string;
-  // El precio no se envía: el backend lo toma del catálogo de productos.
   partidas: Array<{
     productoId: string;
     cantidad: number;
@@ -88,7 +87,6 @@ export interface CrearCompraPayload {
   }>;
 }
 
-/** Mensaje del backend si la API lo devolvió; si no, un mensaje genérico. */
 export function mensajeErrorApi(error: unknown, mensajePorDefecto: string): string {
   return error instanceof ErrorApi ? error.message : mensajePorDefecto;
 }
@@ -184,7 +182,6 @@ export async function consultarEstadoCaja(): Promise<EstadoCajaApi> {
   return llamarApi<EstadoCajaApi>("/ventas-caja/caja/estado");
 }
 
-/** Abre en otra pestaña el comprobante PDF no fiscal de una venta. */
 export async function abrirComprobanteVenta(ventaId: string): Promise<void> {
   const blob = await descargarArchivo(
     `/ventas-caja/ventas/${encodeURIComponent(ventaId)}/comprobante`,
@@ -224,7 +221,6 @@ async function historialVentasPorCliente(clienteId: string): Promise<VentaDetall
   );
 }
 
-/** Agrega ventas de todos los clientes activos para el panel de historial. */
 export async function cargarHistorialVentas(): Promise<VentaDetalleApi[]> {
   const clientes = await listarClientesActivos();
   if (clientes.length === 0) {

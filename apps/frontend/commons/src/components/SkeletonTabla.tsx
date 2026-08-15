@@ -6,15 +6,11 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 export interface SkeletonTablaProps {
-  /** Número de columnas del esqueleto. */
   columnas?: number;
-  /** Número de filas del esqueleto. */
   filas?: number;
-  /** Muestra un esqueleto de barra de búsqueda arriba. */
   conBusqueda?: boolean;
 }
 
-/** Esqueleto de carga para tablas (mismo aspecto que SearchableTable). */
 export function SkeletonTabla({ columnas = 5, filas = 6, conBusqueda = true }: SkeletonTablaProps) {
   return (
     <Box>

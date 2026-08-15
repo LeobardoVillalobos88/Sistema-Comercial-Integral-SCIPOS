@@ -1,4 +1,3 @@
-/** Formatea un número como moneda en pesos mexicanos (es-MX). */
 export function formatearMoneda(valor: number): string {
   return new Intl.NumberFormat("es-MX", {
     style: "currency",
@@ -6,7 +5,6 @@ export function formatearMoneda(valor: number): string {
   }).format(valor);
 }
 
-/** Formatea una fecha ISO a formato corto es-MX (dd/mm/aaaa). */
 export function formatearFecha(isoFecha: string): string {
   const fecha = new Date(isoFecha);
   if (Number.isNaN(fecha.getTime())) {
@@ -15,7 +13,6 @@ export function formatearFecha(isoFecha: string): string {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" }).format(fecha);
 }
 
-/** Formatea una fecha ISO con hora en es-MX (dd mmm aaaa, hh:mm). */
 export function formatearFechaConHora(isoFecha: string): string {
   const fecha = new Date(isoFecha);
   if (Number.isNaN(fecha.getTime())) {

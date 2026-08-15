@@ -12,7 +12,6 @@ export class ComprasService {
     private readonly redis: RedisService,
   ) {}
 
-  /** Registra una compra e incrementa existencias en una sola transacción (RF-36). */
   async crear(dto: CrearCompraDto) {
     const productoIds = dto.partidas.map((partida) => partida.productoId);
     const productos = await this.prisma.producto.findMany({ where: { id: { in: productoIds } } });

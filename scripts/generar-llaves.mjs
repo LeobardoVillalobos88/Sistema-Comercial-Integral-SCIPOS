@@ -1,11 +1,3 @@
-/**
- * Genera el par de llaves RSA que el servicio de seguridad usa para firmar los
- * tokens de acceso (RS256). La privada firma; la pública se publica en el JWKS
- * para que los demás servicios verifiquen sin poder emitir tokens.
- *
- * Las llaves NO se versionan (están en .gitignore). Cada quien genera las
- * suyas con `pnpm generar:llaves`; el script no las regenera si ya existen.
- */
 import { generateKeyPairSync } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";

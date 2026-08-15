@@ -16,7 +16,6 @@ export interface EstadoCotizacionChipProps {
   estado: EstadoCotizacion;
 }
 
-/** Chip con la etiqueta y el color estándar de cada estado de cotización. */
 export function EstadoCotizacionChip({ estado }: EstadoCotizacionChipProps) {
   const chip = CHIP_POR_ESTADO[estado];
   return <Chip size="small" color={chip.color} label={chip.etiqueta} />;

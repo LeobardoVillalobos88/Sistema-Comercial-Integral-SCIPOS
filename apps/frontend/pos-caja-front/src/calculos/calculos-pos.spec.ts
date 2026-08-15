@@ -37,7 +37,6 @@ function partida(parcial: Partial<ItemCarrito> = {}): ItemCarrito {
   };
 }
 
-/** Identificadores de las partidas, para afirmar sobre el contenido del carrito. */
 function claves(carrito: ItemCarrito[]): string[] {
   return carrito.map((item) => item.productoId);
 }

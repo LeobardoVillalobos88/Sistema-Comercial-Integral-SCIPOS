@@ -7,16 +7,6 @@ import type {
 } from "./extractor-identidad";
 import { VerificadorToken } from "./verificador-token";
 
-/**
- * Identifica al usuario de una petición con un token JWT RS256
- * (`Authorization: Bearer <token>`). Un token presente pero inválido, expirado
- * o de otro emisor/audiencia rechaza la petición con 401.
- *
- * Si la petición no trae token, cae al header interno `x-usuario-id`: es el
- * canal con el que los servicios se propagan la identidad entre sí. El gateway
- * elimina ese header de las peticiones externas, de modo que desde fuera solo
- * se acepta identidad firmada.
- */
 @Injectable()
 export class ExtractorIdentidadJwt implements ExtractorIdentidad {
   constructor(private readonly verificador: VerificadorToken) {}
@@ -38,7 +28,6 @@ export class ExtractorIdentidadJwt implements ExtractorIdentidad {
         throw new UnauthorizedException("El token no identifica a un usuario.");
       }
       if (typeof jti !== "string" || jti === "") {
-        // Sin jti el token no sería revocable nunca: se rechaza (fail-closed).
         throw new UnauthorizedException("El token no es revocable (falta jti).");
       }
       return { usuarioId: sub, jti };

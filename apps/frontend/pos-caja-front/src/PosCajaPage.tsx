@@ -196,12 +196,9 @@ export function PosCajaPage({
     cargarProductos();
     if (!esCompra) {
       cargarClientes();
-      // Restaura el turno de caja que ya estuviera abierto en el backend.
       consultarEstadoCaja()
         .then(hidratarDesdeEstado)
-        .catch(() => {
-          // Sin estado disponible: la UI arranca con la caja cerrada.
-        });
+        .catch(() => {});
     }
   }, [
     permisos.cargandoPermisos,

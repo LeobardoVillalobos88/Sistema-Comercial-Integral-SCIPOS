@@ -7,7 +7,6 @@ import { PrismaClient } from ".prisma/client";
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(config: ConfigService) {
     const url = config.getOrThrow<string>("DATABASE_URL");
-    // El adapter de pg no lee el parámetro ?schema= de la URL; hay que pasarlo aparte.
     const schema = new URL(url).searchParams.get("schema") ?? undefined;
     const adapter = new PrismaPg({ connectionString: url }, schema ? { schema } : undefined);
     super({ adapter });

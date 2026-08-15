@@ -61,7 +61,6 @@ function Contenido({
   const pathname = usePathname();
   const { can, cerrarSesion } = usePermisos();
 
-  // Solo se muestran los módulos cuyo privilegio tiene el rol actual.
   const itemsVisibles = NAVEGACION.filter((item) => !item.privilegio || can(item.privilegio));
 
   return (
@@ -71,7 +70,6 @@ function Contenido({
         flexDirection: "column",
         height: "100%",
         position: "relative",
-        // Campo de esmalte plano: el muro es de un solo color, sin degradado.
         bgcolor: ESMALTE.azul,
         color: SOBRE_ESMALTE.texto,
       }}
@@ -163,7 +161,6 @@ function Contenido({
                   mb: 0.25,
                   justifyContent: sidebarAbierto ? "initial" : "center",
                   px: sidebarAbierto ? 2 : 1,
-                  // Etiqueta de rótulo: versalitas espaciadas.
                   "& .MuiListItemText-primary": {
                     fontSize: "0.6875rem",
                     fontWeight: 700,
@@ -171,7 +168,6 @@ function Contenido({
                     textTransform: "uppercase",
                   },
                   color: activo ? SOBRE_ESMALTE.texto : SOBRE_ESMALTE.textoTenue,
-                  // El módulo activo se marca con banda de pintura, no con píldora.
                   borderLeft: "4px solid",
                   borderLeftColor: activo ? ESMALTE.ocre : "transparent",
                   bgcolor: activo ? SOBRE_ESMALTE.activo : "transparent",
@@ -242,7 +238,6 @@ function Contenido({
   );
 }
 
-/** Menú lateral. Permanente en escritorio, temporal (cajón) en móvil. */
 export function Sidebar({
   ancho,
   menuMovilAbierto,

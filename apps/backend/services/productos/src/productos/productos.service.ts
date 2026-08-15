@@ -12,9 +12,7 @@ import type { CambiarEstadoProductoDto } from "./dto/cambiar-estado-producto.dto
 import type { CrearProductoDto } from "./dto/crear-producto.dto";
 
 const CLAVE_CACHE_LISTA = "productos:lista";
-/** Bajo este umbral de existencia, un producto cuenta como "stock bajo" en el resumen. */
 const UMBRAL_STOCK_BAJO = 10;
-/** Ventana de días para considerar un lote "próximo a caducar" en el resumen. */
 const DIAS_PROXIMO_A_CADUCAR = 30;
 
 export interface FiltrosListado {
@@ -111,7 +109,6 @@ export class ProductosService {
     return { eliminado: true };
   }
 
-  /** Ajuste genérico de stock (RNF-14): lo usan otros servicios para descontar o reponer existencias. */
   async ajustarStock(id: string, dto: AjustarStockDto) {
     const producto = await this.obtener(id);
     const nuevaExistencia = producto.existencia + dto.delta;
@@ -128,7 +125,6 @@ export class ProductosService {
     return actualizado;
   }
 
-  /** Resumen para el dashboard: productos activos, stock bajo y próximos a caducar. */
   async resumen() {
     const limiteCaducidad = new Date();
     limiteCaducidad.setDate(limiteCaducidad.getDate() + DIAS_PROXIMO_A_CADUCAR);

@@ -19,8 +19,6 @@ import { UsuariosModule } from "./usuarios/usuarios.module";
     PrivilegiosModule,
     RolesModule,
     UsuariosModule,
-    // Este servicio es la fuente de verdad de privilegios, por lo que el
-    // guard usa el proveedor local en lugar de consultarse a sí mismo por HTTP.
     ModuloSeguridad.registrar({ proveedorPrivilegios: ProveedorPrivilegiosLocal }),
   ],
   controllers: [HealthController],
