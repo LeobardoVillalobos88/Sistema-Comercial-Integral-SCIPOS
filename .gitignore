@@ -1,0 +1,43 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+# Usamos pnpm; ignoramos lockfiles de npm/yarn por si alguien corre npm por error
+package-lock.json
+yarn.lock
+
+# Builds / cache
+.next/
+out/
+dist/
+build/
+.turbo/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Entorno
+.env
+.env*.local
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# Llaves RSA para firmar JWT: nunca se versionan (cada quien genera las suyas
+# con `pnpm generar:llaves`). Si se filtran, se podrían firmar tokens falsos.
+keys/
+
+# Carpeta de práctica del profesor (no forma parte del proyecto)
+ControlAcceso/
+
+# UAT
+.uat-logs/
+
+# Grafo local de code-review-graph (indice, no se versiona)
+.code-review-graph/
+
+# Cache local del detector de diseno (la config si se versiona)
+.impeccable/hook.cache.json

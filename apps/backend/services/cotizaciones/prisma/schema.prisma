@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoCotizacion {
+  BORRADOR
+  ENVIADA
+  VENDIDA
+}
+
+model SecuenciaFolio {
+  clave        String   @id @db.VarChar(40)
+  ultimo       Int
+  actualizadoEn DateTime @updatedAt @map("actualizado_en")
+
+  @@map("secuencias_folio")
+}
+
+model Cotizacion {
+  id            String            @id @default(uuid()) @db.VarChar(40)
+  folio         String            @unique @db.VarChar(20)
+  clienteId     String            @map("cliente_id") @db.VarChar(40)
+  clienteNombre String            @map("cliente_nombre") @db.VarChar(180)
+  estado        EstadoCotizacion  @default(BORRADOR)
+  subtotal      Decimal           @db.Decimal(12, 2)
+  iva           Decimal           @db.Decimal(12, 2)
+  total         Decimal           @db.Decimal(12, 2)
+  ventaId       String?           @unique @map("venta_id") @db.VarChar(40)
+  creadaEn      DateTime          @default(now()) @map("creada_en")
+  actualizadaEn DateTime          @updatedAt @map("actualizada_en")
+  partidas      PartidaCotizacion[]
+
+  @@index([clienteId, creadaEn])
+  @@index([estado, creadaEn])
+  @@map("cotizaciones")
+}
+
+model PartidaCotizacion {
+  id             String     @id @default(uuid()) @db.VarChar(40)
+  cotizacionId   String     @map("cotizacion_id") @db.VarChar(40)
+  productoId     String     @map("producto_id") @db.VarChar(40)
+  productoNombre String     @map("producto_nombre") @db.VarChar(180)
+  cantidad       Int
+  precioUnitario Decimal    @map("precio_unitario") @db.Decimal(12, 2)
+  importe        Decimal    @db.Decimal(12, 2)
+  cotizacion     Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+
+  @@index([cotizacionId])
+  @@map("partidas_cotizacion")
+}

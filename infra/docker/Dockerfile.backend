@@ -1,0 +1,103 @@
+# syntax=docker/dockerfile:1
+
+# Imagen única para los siete procesos de backend: el gateway y los seis
+# servicios de dominio.
+#
+# Comparten monorepo, dependencias y librería común, así que compilarlos juntos
+# produce una imagen en lugar de siete casi idénticas: la construcción ocurre
+# una sola vez y la instancia guarda un artefacto en vez de siete. Cada
+# servicio sigue siendo un contenedor y un proceso aparte, con su puerto y su
+# esquema de base de datos propios; lo único compartido es el artefacto del que
+# arrancan. Cada contenedor elige qué proceso levantar con su working_dir.
+
+# La versión coincide con la de .nvmrc. No bajarla: pnpm 11 usa node:sqlite,
+# que no existe antes de Node 22.5, y la instalación falla sin dependencias.
+FROM node:22-slim AS base
+# Los NPM_CONFIG_* dan margen de red: pnpm verifica cada entrada del lockfile
+# contra el registro y, con una conexión lenta, esa consulta expira y aborta la
+# instalación como si el paquete hubiera sido rechazado. Se sube el tiempo de
+# espera en lugar de relajar la política de cadena de suministro.
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm:$PATH" \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    NPM_CONFIG_FETCH_TIMEOUT=600000 \
+    NPM_CONFIG_FETCH_RETRIES=5 \
+    NPM_CONFIG_NETWORK_CONCURRENCY=8 \
+    NPM_CONFIG_STORE_DIR=/pnpm/store \
+    NPM_CONFIG_PACKAGE_IMPORT_METHOD=copy
+# openssl lo requiere el motor de migraciones de Prisma sobre Debian slim.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+# `prepare` deja pnpm dentro de la imagen. Sin esto, la etapa de ejecución
+# heredaría solo el atajo de corepack y tendría que descargar pnpm al arrancar
+# el contenedor, porque el entrypoint lo usa para aplicar las migraciones.
+RUN corepack enable && corepack prepare pnpm@11.8.0 --activate
+WORKDIR /app
+
+FROM base AS construccion
+# `prisma generate` evalúa prisma.config.ts, que exige que DATABASE_URL
+# resuelva aunque generar el cliente no abra ninguna conexión. Se define un
+# valor de relleno para esta etapa; la imagen final no lo hereda, porque la
+# etapa de ejecución parte de `base` y no de aquí. La conexión real llega como
+# variable de entorno del contenedor.
+ENV DATABASE_URL="postgresql://relleno:relleno@localhost:5432/relleno?schema=public"
+COPY . .
+# La caché del almacén de pnpm sobrevive entre construcciones: al actualizar el
+# proyecto en la instancia no se vuelven a descargar las dependencias enteras.
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Prisma escribe el cliente generado en node_modules/.prisma/client, una
+# carpeta real que queda fuera del árbol de enlaces de pnpm. Desde ahí, Node no
+# encuentra las dependencias internas del propio cliente (@prisma/client-runtime-utils
+# entre ellas), porque al subir por el árbol solo ve el node_modules del
+# servicio, donde no están.
+#
+# Se exponen en la raíz los paquetes del ámbito @prisma que pnpm ya resolvió en
+# su almacén interno. Se enlaza el ámbito completo y no un paquete concreto
+# para que una versión futura de Prisma que necesite otro módulo siga
+# funcionando sin tocar esto.
+RUN mkdir -p /app/node_modules/@prisma \
+  && for paquete in /app/node_modules/.pnpm/node_modules/@prisma/*; do \
+       ln -sfn "$paquete" "/app/node_modules/@prisma/$(basename "$paquete")"; \
+     done
+# turbo respeta el orden del grafo: compila backend-commons antes que sus
+# consumidores. El build de cada servicio con base de datos incluye su
+# `prisma generate`, y cada esquema declara su propia carpeta de salida, así
+# que los seis clientes de Prisma conviven sin pisarse.
+# La concurrencia se limita a propósito. turbo.json fija 20 para el desarrollo
+# local, donde cada tarea es un proceso persistente y liviano; aquí cada tarea
+# es una compilación completa de TypeScript que reserva cientos de megabytes.
+# Veinte a la vez agotan la memoria de una máquina pequeña y el demonio de
+# Docker muere sin dejar un error legible. Dos a la vez tarda más, pero
+# sobrevive en una instancia de 2 GB.
+RUN pnpm exec turbo run build \
+      --concurrency=2 \
+      --filter=@scipos/gateway \
+      --filter=@scipos/seguridad-service \
+      --filter=@scipos/productos-service \
+      --filter=@scipos/clientes-service \
+      --filter=@scipos/cotizaciones-service \
+      --filter=@scipos/ventas-caja-service \
+      --filter=@scipos/reportes-service
+
+# Comprobación de que cada cliente de Prisma carga de verdad.
+#
+# Sin esto, un problema de resolución de módulos produce una imagen que
+# construye sin quejarse y falla al arrancar el contenedor, que es mucho más
+# caro de diagnosticar. Aquí revienta la construcción y se ve la causa.
+RUN for servicio in seguridad productos clientes cotizaciones ventas-caja; do \
+      echo "Verificando el cliente de Prisma de $servicio..."; \
+      (cd "/app/apps/backend/services/$servicio" && node -e "require('.prisma/client')") \
+        || exit 1; \
+    done
+
+FROM base AS ejecucion
+ENV NODE_ENV=production
+COPY --from=construccion /app /app
+COPY infra/docker/entrypoint-backend.sh /usr/local/bin/entrypoint-backend.sh
+RUN chmod +x /usr/local/bin/entrypoint-backend.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-backend.sh"]
+CMD ["node", "dist/main"]

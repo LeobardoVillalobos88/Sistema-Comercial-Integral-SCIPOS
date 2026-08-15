@@ -1,0 +1,698 @@
+openapi: 3.0.3
+info:
+  title: SCIPOS - Servicio de Seguridad
+  description: >
+    Usuarios, roles y privilegios dinámicos por módulo y acción. Es la fuente de
+    verdad del sistema de privilegios y de la autenticación: firma los tokens de
+    acceso RS256 con su llave privada y publica la pública en el JWKS, para que
+    los demás servicios los verifiquen sin poder emitirlos. Access token corto
+    (15 min) más refresh token rotativo; el logout revoca al instante vía denylist.
+  version: "1.0"
+servers:
+  - url: http://localhost:4000/api/seguridad
+    description: A través del gateway
+  - url: http://localhost:4001
+    description: Directo al servicio
+
+tags:
+  - name: auth
+  - name: usuarios
+  - name: roles
+  - name: privilegios
+  - name: health
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check del servicio
+      responses:
+        "200":
+          description: Servicio disponible
+
+  /.well-known/jwks.json:
+    get:
+      tags: [auth]
+      summary: JWKS con la llave pública de verificación
+      description: >
+        Publica la llave pública (RS256) para que el gateway y los demás
+        servicios verifiquen los tokens sin poder emitirlos. Endpoint público.
+      responses:
+        "200":
+          description: Conjunto de llaves públicas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: object
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Iniciar sesión con correo y contraseña
+      description: >
+        Devuelve un access token JWT RS256 (Authorization: Bearer), un refresh
+        token, el usuario y sus privilegios efectivos (RF-01). El gateway
+        elimina el header x-usuario-id de las peticiones externas, así que el
+        token firmado es la única forma de identidad desde fuera.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, contrasena]
+              properties:
+                correo:
+                  type: string
+                  example: admin@scipos.com
+                contrasena:
+                  type: string
+                  example: Admin1234
+      responses:
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "401":
+          description: Correo o contraseña incorrectos, o usuario inactivo
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Renovar la sesión con un refresh token
+      description: >
+        Rota el refresh token (el anterior queda inutilizable) y entrega un
+        access token nuevo. Reusar un token ya consumido revoca toda la familia
+        de tokens: la sesión se cierra por seguridad. Endpoint público.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        "200":
+          description: Sesión renovada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "401":
+          description: Refresh inválido, expirado o reusado
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Cerrar sesión (revoca el token al instante)
+      description: >
+        Agrega el access token a la denylist y revoca los refresh del usuario.
+        Idempotente: funciona aunque el access ya haya expirado.
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Sesión cerrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sesionCerrada:
+                    type: boolean
+                    example: true
+
+  /auth/perfil:
+    get:
+      tags: [auth]
+      summary: Usuario y privilegios del token vigente
+      description: Restaura la sesión al recargar la página sin pedir credenciales de nuevo.
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Perfil de la sesión
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario:
+                    $ref: "#/components/schemas/Usuario"
+                  privilegios:
+                    type: array
+                    items:
+                      type: string
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+
+  /usuarios:
+    get:
+      tags: [usuarios]
+      summary: Listar usuarios
+      description: "Privilegio requerido: seguridad:ver (administración de usuarios)."
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usuario"
+    post:
+      tags: [usuarios]
+      summary: Registrar un usuario
+      description: "Privilegio requerido: seguridad:crear"
+      security:
+        - identidadUsuario: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearUsuario"
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "409":
+          description: Ya existe un usuario con ese correo
+
+  /usuarios/{id}:
+    get:
+      tags: [usuarios]
+      summary: Obtener un usuario por id
+      description: Requiere identidad (header x-usuario-id).
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    patch:
+      tags: [usuarios]
+      summary: Actualizar un usuario (datos, rol o estado)
+      description: "Privilegio requerido: seguridad:editar"
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActualizarUsuario"
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    delete:
+      tags: [usuarios]
+      summary: Eliminar definitivamente un usuario
+      description: "Privilegio requerido: seguridad:eliminar. Nadie puede eliminar su propio usuario."
+      security:
+        - tokenJwt: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      responses:
+        "200":
+          description: Usuario eliminado
+        "400":
+          description: Intento de eliminar el propio usuario
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /usuarios/{id}/privilegios:
+    get:
+      tags: [usuarios]
+      summary: Privilegios efectivos de un usuario
+      description: >
+        Privilegios del rol más los concedidos por usuario, menos los revocados.
+        El frontend lo consulta para mostrar u ocultar acciones.
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      responses:
+        "200":
+          description: Privilegios efectivos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivilegiosDeUsuario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+    post:
+      tags: [usuarios]
+      summary: Conceder o revocar un privilegio a un usuario
+      description: >
+        "Privilegio requerido: seguridad:asignar. Con concedido=true el usuario gana el
+        privilegio aunque su rol no lo tenga; con concedido=false se le revoca aunque
+        su rol sí lo tenga (RF-03)."
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AjustarPrivilegioUsuario"
+      responses:
+        "201":
+          description: Ajuste aplicado
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /usuarios/{id}/privilegios/{privilegio}:
+    delete:
+      tags: [usuarios]
+      summary: Quitar un ajuste de privilegio por usuario
+      description: >
+        "Privilegio requerido: seguridad:asignar. Elimina el ajuste; el usuario vuelve
+        a regirse por lo que dicte su rol."
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/UsuarioId"
+        - $ref: "#/components/parameters/ClavePrivilegio"
+      responses:
+        "200":
+          description: Ajuste eliminado
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /roles:
+    get:
+      tags: [roles]
+      summary: Listar roles con sus privilegios
+      security:
+        - identidadUsuario: []
+      responses:
+        "200":
+          description: Roles del sistema
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rol"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+
+  /roles/{clave}/privilegios:
+    post:
+      tags: [roles]
+      summary: Asignar un privilegio a un rol
+      description: "Privilegio requerido: seguridad:asignar"
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/ClaveRol"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [privilegio]
+              properties:
+                privilegio:
+                  type: string
+                  example: "productos:crear"
+      responses:
+        "201":
+          description: Privilegio asignado al rol
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /roles/{clave}/privilegios/{privilegio}:
+    delete:
+      tags: [roles]
+      summary: Quitar un privilegio a un rol
+      description: "Privilegio requerido: seguridad:asignar"
+      security:
+        - identidadUsuario: []
+      parameters:
+        - $ref: "#/components/parameters/ClaveRol"
+        - $ref: "#/components/parameters/ClavePrivilegio"
+      responses:
+        "200":
+          description: Privilegio revocado del rol
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+
+  /privilegios:
+    get:
+      tags: [privilegios]
+      summary: Listar el catálogo de privilegios
+      security:
+        - identidadUsuario: []
+      responses:
+        "200":
+          description: Catálogo completo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Privilegio"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+    post:
+      tags: [privilegios]
+      summary: Registrar un privilegio en el catálogo
+      description: "Privilegio requerido: seguridad:asignar"
+      security:
+        - identidadUsuario: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Privilegio"
+      responses:
+        "201":
+          description: Privilegio registrado
+        "400":
+          $ref: "#/components/responses/ErrorValidacion"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /privilegios/verificar:
+    get:
+      tags: [privilegios]
+      summary: Verificar si un usuario tiene un privilegio
+      description: >
+        Endpoint de uso interno; lo consultan los guards de los demás servicios
+        en cada petición protegida.
+      parameters:
+        - name: usuarioId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: usuario-vendedor
+        - name: privilegio
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "productos:crear"
+      responses:
+        "200":
+          description: Resultado de la verificación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultadoVerificacion"
+
+components:
+  securitySchemes:
+    tokenJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Access token RS256 emitido por POST /auth/login (o renovado en
+        /auth/refresh). Es la identidad para peticiones externas; se verifica
+        contra el JWKS y no debe estar en la denylist.
+    identidadUsuario:
+      type: apiKey
+      in: header
+      name: x-usuario-id
+      description: Canal interno entre servicios; el gateway lo elimina de peticiones externas.
+
+  parameters:
+    UsuarioId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      example: usuario-vendedor
+    ClaveRol:
+      name: clave
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [ADMINISTRADOR, VENDEDOR, CAJERO, SUPERVISOR]
+      example: VENDEDOR
+    ClavePrivilegio:
+      name: privilegio
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "pos:descuento"
+
+  responses:
+    SinIdentidad:
+      description: La petición no trae el header x-usuario-id, o el usuario no existe o está inactivo
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    SinPrivilegio:
+      description: El usuario no cuenta con el privilegio requerido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    NoEncontrado:
+      description: El recurso indicado no existe
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    ErrorValidacion:
+      description: El cuerpo de la petición no pasa las validaciones
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+
+  schemas:
+    Sesion:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Access token JWT RS256 (Authorization: Bearer).
+        refreshToken:
+          type: string
+          description: Refresh token opaco para renovar la sesión.
+        tipoToken:
+          type: string
+          example: Bearer
+        expiraEn:
+          type: string
+          format: date-time
+        usuario:
+          $ref: "#/components/schemas/Usuario"
+        privilegios:
+          type: array
+          items:
+            type: string
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: string
+          example: usuario-vendedor
+        nombre:
+          type: string
+          example: Vendedor de Mostrador
+        correo:
+          type: string
+          example: vendedor@scipos.com
+        rol:
+          type: string
+          enum: [ADMINISTRADOR, VENDEDOR, CAJERO, SUPERVISOR]
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+
+    CrearUsuario:
+      type: object
+      required: [nombre, correo, rol, contrasena]
+      properties:
+        nombre:
+          type: string
+          example: Laura Martínez
+        correo:
+          type: string
+          example: laura@scipos.com
+        rol:
+          type: string
+          example: VENDEDOR
+        contrasena:
+          type: string
+          example: Vendedor1234
+
+    ActualizarUsuario:
+      type: object
+      properties:
+        nombre:
+          type: string
+        correo:
+          type: string
+        rol:
+          type: string
+        estado:
+          type: string
+          enum: [ACTIVO, INACTIVO]
+        contrasena:
+          type: string
+          description: Nueva contraseña (opcional)
+
+    Rol:
+      type: object
+      properties:
+        clave:
+          type: string
+          example: VENDEDOR
+        nombre:
+          type: string
+          example: Vendedor
+        accesoTotal:
+          type: boolean
+          example: false
+        privilegios:
+          type: array
+          items:
+            type: string
+          example: ["productos:ver", "clientes:ver", "pos:vender"]
+
+    Privilegio:
+      type: object
+      required: [clave, descripcion]
+      properties:
+        clave:
+          type: string
+          example: "productos:crear"
+        descripcion:
+          type: string
+          example: Registrar productos y servicios
+
+    PrivilegiosDeUsuario:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          example: usuario-vendedor
+        rol:
+          type: string
+          example: VENDEDOR
+        privilegios:
+          type: array
+          items:
+            type: string
+          example: ["productos:ver", "clientes:ver", "cotizaciones:crear"]
+
+    AjustarPrivilegioUsuario:
+      type: object
+      required: [privilegio, concedido]
+      properties:
+        privilegio:
+          type: string
+          example: "pos:descuento"
+        concedido:
+          type: boolean
+          example: false
+
+    ResultadoVerificacion:
+      type: object
+      properties:
+        tiene:
+          type: boolean
+        motivo:
+          type: string
+          enum: [USUARIO_NO_ENCONTRADO, USUARIO_INACTIVO, SIN_PRIVILEGIO]
+
+    ErrorEstandar:
+      type: object
+      properties:
+        estatus:
+          type: integer
+          example: 403
+        mensaje:
+          type: string
+          example: No cuentas con el privilegio "productos:crear".
+        error:
+          type: string
+          example: Forbidden
+        ruta:
+          type: string
+          example: /productos
+        fecha:
+          type: string
+          format: date-time

@@ -1,0 +1,187 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+
+import type { ItemCarrito, ProductoPos } from "../types/pos";
+import {
+  agregarAlCarrito,
+  calcularTotales,
+  cambiarCantidad,
+  cantidadEnCarrito,
+  crearItemCarrito,
+  precioSegunModo,
+  quitarDelCarrito,
+} from "./calculos-pos";
+
+function producto(parcial: Partial<ProductoPos> = {}): ProductoPos {
+  return {
+    id: "p-001",
+    clave: "ABA-001",
+    nombre: "Abarrote surtido 1kg",
+    precioCompra: 80,
+    precioVenta: 100,
+    existencia: 10,
+    estado: "Activo",
+    ...parcial,
+  };
+}
+
+function partida(parcial: Partial<ItemCarrito> = {}): ItemCarrito {
+  return {
+    productoId: "p-001",
+    clave: "ABA-001",
+    nombre: "Abarrote surtido 1kg",
+    precioUnitario: 100,
+    cantidad: 1,
+    subtotal: 100,
+    ...parcial,
+  };
+}
+
+function claves(carrito: ItemCarrito[]): string[] {
+  return carrito.map((item) => item.productoId);
+}
+
+describe("precioSegunModo", () => {
+  it("en venta toma el precio de venta", () => {
+    assert.equal(precioSegunModo(producto(), "venta"), 100);
+  });
+
+  it("en compra toma el precio de compra", () => {
+    assert.equal(precioSegunModo(producto(), "compra"), 80);
+  });
+});
+
+describe("crearItemCarrito", () => {
+  it("arranca con una unidad y el importe igual al precio unitario", () => {
+    const item = crearItemCarrito(producto(), "venta");
+
+    assert.equal(item.productoId, "p-001");
+    assert.equal(item.cantidad, 1);
+    assert.equal(item.precioUnitario, 100);
+    assert.equal(item.subtotal, 100);
+  });
+
+  it("usa el precio de compra cuando el modo es compra", () => {
+    const item = crearItemCarrito(producto(), "compra");
+
+    assert.equal(item.precioUnitario, 80);
+    assert.equal(item.subtotal, 80);
+  });
+});
+
+describe("calcularTotales", () => {
+  it("con el carrito vacío devuelve todo en cero", () => {
+    assert.deepEqual(calcularTotales([], 0), {
+      subtotal: 0,
+      descuento: 0,
+      baseGravable: 0,
+      iva: 0,
+      total: 0,
+    });
+  });
+
+  it("suma los importes de las partidas y aplica el IVA", () => {
+    const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 0);
+
+    assert.equal(totales.subtotal, 200);
+    assert.equal(totales.baseGravable, 200);
+    assert.equal(totales.iva, 32);
+    assert.equal(totales.total, 232);
+  });
+
+  it("descuenta antes de calcular el IVA", () => {
+    const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 100);
+
+    assert.equal(totales.descuento, 100);
+    assert.equal(totales.baseGravable, 100);
+    assert.equal(totales.iva, 16);
+    assert.equal(totales.total, 116);
+  });
+
+  it("recorta un descuento mayor que el subtotal en lugar de generar un negativo", () => {
+    const totales = calcularTotales([partida({ subtotal: 100 })], 500);
+
+    assert.equal(totales.descuento, 100);
+    assert.equal(totales.baseGravable, 0);
+    assert.equal(totales.iva, 0);
+    assert.equal(totales.total, 0);
+  });
+
+  it("acumula los importes de varias partidas", () => {
+    const carrito = [
+      partida({ productoId: "p-001", subtotal: 100 }),
+      partida({ productoId: "p-002", subtotal: 250 }),
+    ];
+
+    assert.equal(calcularTotales(carrito, 0).subtotal, 350);
+  });
+});
+
+describe("agregarAlCarrito", () => {
+  it("añade el producto cuando todavía no está", () => {
+    const carrito = agregarAlCarrito([], producto(), "venta");
+
+    assert.deepEqual(claves(carrito), ["p-001"]);
+    assert.equal(cantidadEnCarrito(carrito, "p-001"), 1);
+  });
+
+  it("suma una unidad si el producto ya estaba, sin duplicar la partida", () => {
+    const inicial = agregarAlCarrito([], producto(), "venta");
+
+    const carrito = agregarAlCarrito(inicial, producto(), "venta");
+
+    assert.deepEqual(claves(carrito), ["p-001"]);
+    assert.equal(cantidadEnCarrito(carrito, "p-001"), 2);
+    assert.equal(calcularTotales(carrito, 0).subtotal, 200);
+  });
+
+  it("no modifica el carrito que recibe", () => {
+    const inicial: ItemCarrito[] = [];
+
+    agregarAlCarrito(inicial, producto(), "venta");
+
+    assert.equal(inicial.length, 0);
+  });
+});
+
+describe("cambiarCantidad", () => {
+  it("recalcula el importe al sumar unidades", () => {
+    const carrito = cambiarCantidad([partida()], "p-001", 2);
+
+    assert.equal(cantidadEnCarrito(carrito, "p-001"), 3);
+    assert.equal(calcularTotales(carrito, 0).subtotal, 300);
+  });
+
+  it("saca la partida del carrito cuando la cantidad llega a cero", () => {
+    const carrito = cambiarCantidad([partida()], "p-001", -1);
+
+    assert.deepEqual(carrito, []);
+  });
+
+  it("deja intactas las demás partidas", () => {
+    const inicial = [partida({ productoId: "p-001" }), partida({ productoId: "p-002" })];
+
+    const carrito = cambiarCantidad(inicial, "p-001", 1);
+
+    assert.deepEqual(claves(carrito), ["p-001", "p-002"]);
+    assert.equal(cantidadEnCarrito(carrito, "p-002"), 1);
+  });
+});
+
+describe("quitarDelCarrito", () => {
+  it("elimina solo la partida indicada", () => {
+    const inicial = [partida({ productoId: "p-001" }), partida({ productoId: "p-002" })];
+
+    assert.deepEqual(claves(quitarDelCarrito(inicial, "p-001")), ["p-002"]);
+  });
+});
+
+describe("cantidadEnCarrito", () => {
+  it("devuelve cero cuando el producto no está", () => {
+    assert.equal(cantidadEnCarrito([], "p-001"), 0);
+  });
+
+  it("devuelve las unidades de la partida", () => {
+    assert.equal(cantidadEnCarrito([partida({ cantidad: 4 })], "p-001"), 4);
+  });
+});

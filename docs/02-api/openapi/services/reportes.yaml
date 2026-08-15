@@ -1,0 +1,218 @@
+openapi: 3.0.3
+info:
+  title: SCIPOS - Servicio de Reportes
+  description: >
+    Reportes comerciales de ventas, cotizaciones, inventario, cortes de caja y
+    utilidad (RF-30, RF-31, RF-33). No tiene base de datos propia: agrega
+    información de los demás servicios por REST propagando la identidad del
+    solicitante. Todos los reportes exigen el privilegio reportes:ver.
+  version: "1.0"
+servers:
+  - url: http://localhost:4000/api/reportes
+    description: A través del gateway
+  - url: http://localhost:4006
+    description: Directo al servicio
+
+tags:
+  - name: reportes
+  - name: health
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check del servicio
+      responses:
+        "200":
+          description: Servicio disponible
+
+  /reportes/ventas:
+    get:
+      tags: [reportes]
+      summary: Reporte de ventas del periodo
+      description: "Privilegio requerido: reportes:ver"
+      security:
+        - tokenJwt: []
+      parameters:
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Totales del periodo y listado de ventas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalVendido:
+                    type: number
+                    example: 1245.5
+                  cantidadVentas:
+                    type: integer
+                    example: 12
+                  cantidadCanceladas:
+                    type: integer
+                    example: 1
+                  descuentosOtorgados:
+                    type: number
+                    example: 50
+                  ventas:
+                    type: array
+                    items:
+                      type: object
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /reportes/cotizaciones:
+    get:
+      tags: [reportes]
+      summary: Reporte de cotizaciones del periodo
+      description: "Privilegio requerido: reportes:ver"
+      security:
+        - tokenJwt: []
+      parameters:
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Conteos por estado y listado de cotizaciones
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /reportes/productos:
+    get:
+      tags: [reportes]
+      summary: Reporte de inventario valuado
+      description: "Privilegio requerido: reportes:ver"
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Catálogo con valuación a precio de compra y de venta
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /reportes/cortes:
+    get:
+      tags: [reportes]
+      summary: Reporte de cortes de caja
+      description: "Privilegio requerido: reportes:ver"
+      security:
+        - tokenJwt: []
+      responses:
+        "200":
+          description: Turnos de caja cerrados con montos inicial y final
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /reportes/utilidad:
+    get:
+      tags: [reportes]
+      summary: Utilidad bruta del periodo
+      description: >
+        "Privilegio requerido: reportes:ver. Ingresos menos costo de ventas
+        (precio de compra actual de cada producto vendido) y descuentos
+        otorgados (RF-33, restringido a supervisores y administradores)."
+      security:
+        - tokenJwt: []
+      parameters:
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Utilidad del periodo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ingresos:
+                    type: number
+                    example: 1500
+                  costoDeVentas:
+                    type: number
+                    example: 900
+                  descuentosOtorgados:
+                    type: number
+                    example: 50
+                  utilidadBruta:
+                    type: number
+                    example: 550
+                  margenPorcentaje:
+                    type: number
+                    example: 36.67
+                  ventasConsideradas:
+                    type: integer
+                    example: 12
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+components:
+  securitySchemes:
+    tokenJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token emitido por el servicio de seguridad en POST /auth/login.
+
+  parameters:
+    Desde:
+      name: desde
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+      example: "2026-07-01"
+    Hasta:
+      name: hasta
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+      example: "2026-07-31"
+
+  responses:
+    SinIdentidad:
+      description: La petición no trae token válido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+    SinPrivilegio:
+      description: El usuario no cuenta con el privilegio reportes:ver
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEstandar"
+
+  schemas:
+    ErrorEstandar:
+      type: object
+      properties:
+        estatus:
+          type: integer
+          example: 403
+        mensaje:
+          type: string
+          example: No cuentas con el privilegio "reportes:ver".
+        error:
+          type: string
+          example: Forbidden
+        ruta:
+          type: string
+          example: /reportes/utilidad
+        fecha:
+          type: string
+          format: date-time

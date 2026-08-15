@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+}
+
+model Rol {
+  clave       String          @id
+  nombre      String
+  accesoTotal Boolean         @default(false)
+  usuarios    Usuario[]
+  privilegios RolPrivilegio[]
+}
+
+model Privilegio {
+  clave       String              @id
+  descripcion String
+  roles       RolPrivilegio[]
+  usuarios    UsuarioPrivilegio[]
+}
+
+model RolPrivilegio {
+  rolClave        String
+  privilegioClave String
+  rol             Rol        @relation(fields: [rolClave], references: [clave], onDelete: Cascade)
+  privilegio      Privilegio @relation(fields: [privilegioClave], references: [clave], onDelete: Cascade)
+
+  @@id([rolClave, privilegioClave])
+}
+
+model Usuario {
+  id            String              @id @default(uuid())
+  nombre        String
+  correo        String              @unique
+  contrasenaHash String             @default("")
+  estado        EstadoUsuario       @default(ACTIVO)
+  rolClave    String
+  rol         Rol                 @relation(fields: [rolClave], references: [clave])
+  privilegios UsuarioPrivilegio[]
+  refreshTokens RefreshToken[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model UsuarioPrivilegio {
+  usuarioId       String
+  privilegioClave String
+  concedido       Boolean
+  usuario         Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  privilegio      Privilegio @relation(fields: [privilegioClave], references: [clave], onDelete: Cascade)
+
+  @@id([usuarioId, privilegioClave])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  usuarioId String
+  tokenHash String    @unique
+  familyId  String
+  usadoEn   DateTime?
+  revocadoEn DateTime?
+  expiraEn  DateTime
+  createdAt DateTime  @default(now())
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([usuarioId])
+}

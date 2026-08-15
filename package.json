@@ -1,0 +1,37 @@
+{
+  "name": "scipos",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SCIPOS — Sistema Comercial Integral (LOBOSOFT / UTEZ)",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "infra:up": "docker compose -f infra/docker/compose/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infra/docker/compose/docker-compose.dev.yml down",
+    "generar:llaves": "node scripts/generar-llaves.mjs",
+    "llaves:entorno": "node scripts/llaves-para-entorno.mjs",
+    "prod:build": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env build",
+    "prod:up": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env up -d",
+    "prod:down": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env down",
+    "prod:logs": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env logs -f",
+    "setup:backend": "pnpm generar:llaves && pnpm infra:up && pnpm --filter @scipos/backend-commons build && pnpm --filter @scipos/seguridad-service preparar && pnpm --filter @scipos/productos-service preparar && pnpm --filter @scipos/clientes-service preparar && pnpm --filter @scipos/cotizaciones-service preparar && pnpm --filter @scipos/ventas-caja-service preparar",
+    "start": "turbo run start",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "turbo run test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "husky": "^9.1.7",
+    "turbo": "^2.10.4",
+    "typescript": "^5.7.3"
+  }
+}

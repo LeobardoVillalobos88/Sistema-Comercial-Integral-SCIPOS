@@ -1,0 +1,45 @@
+{
+  "name": "@scipos/productos-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servicio de productos de SCIPOS: catálogo, inventario y compras a proveedor.",
+  "scripts": {
+    "build": "prisma generate && nest build",
+    "dev": "prisma generate && nest start --watch",
+    "start": "nest start",
+    "start:prod": "node dist/main",
+    "lint": "biome check .",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "preparar": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.4.5",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@scalar/nestjs-api-reference": "^1.2.9",
+    "@scipos/backend-commons": "workspace:*",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "ioredis": "^5.11.1",
+    "pg": "^8.22.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@types/node": "^22.10.5",
+    "dotenv": "^16.4.7",
+    "prisma": "^7.8.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

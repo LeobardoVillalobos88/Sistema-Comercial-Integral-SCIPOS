@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoCaja {
+  ABIERTA
+  CERRADA
+}
+
+enum EstadoVenta {
+  COMPLETA
+  CANCELADA
+}
+
+enum TipoMovimientoCaja {
+  INGRESO
+  EGRESO
+}
+
+model Caja {
+  id             String             @id @default(uuid())
+  montoInicial   Float
+  montoFinal     Float?
+  fechaApertura  DateTime           @default(now())
+  fechaCierre    DateTime?
+  estado         EstadoCaja         @default(ABIERTA)
+  ventas         Venta[]
+  movimientos    MovimientoCaja[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model Venta {
+  id            String        @id @default(uuid())
+  cajaId        String
+  caja          Caja          @relation(fields: [cajaId], references: [id])
+  clienteId     String
+  cotizacionId  String?       @unique
+  descuento     Float         @default(0)
+  iva           Float
+  total         Float
+  estado        EstadoVenta   @default(COMPLETA)
+  fecha         DateTime      @default(now())
+  partidas      PartidaVenta[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model PartidaVenta {
+  id          String @id @default(uuid())
+  ventaId     String
+  venta       Venta  @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  productoId  String
+  cantidad    Int
+  precioVenta Float
+  subtotal    Float
+}
+
+model MovimientoCaja {
+  id      String             @id @default(uuid())
+  cajaId  String
+  caja    Caja               @relation(fields: [cajaId], references: [id], onDelete: Cascade)
+  tipo    TipoMovimientoCaja
+  monto   Float
+  motivo  String
+  fecha   DateTime           @default(now())
+}

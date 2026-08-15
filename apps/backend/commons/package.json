@@ -1,0 +1,32 @@
+{
+  "name": "@scipos/backend-commons",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Librería compartida del backend de SCIPOS: guard de privilegios, extractor de identidad, cliente HTTP entre servicios, filtro de errores y contratos comunes.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "ioredis": "^5.11.1",
+    "jose": "^5.9.6"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11",
+    "@nestjs/core": "^11",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@types/node": "^22.10.5",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "typescript": "^5.7.3"
+  }
+}

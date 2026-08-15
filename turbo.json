@@ -1,0 +1,26 @@
+{
+  "$schema": "https://v2-10-5.turborepo.dev/schema.json",
+  "ui": "tui",
+  "concurrency": "20",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL", "NEXT_PUBLIC_API_URL"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {},
+    "test": {
+      "dependsOn": ["^build"]
+    }
+  }
+}

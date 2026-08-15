@@ -1,0 +1,15 @@
+# Paquetes que forman el monorepo.
+packages:
+  - "apps/frontend/*"
+  - "apps/backend/*"
+  - "apps/backend/services/*"
+  - "packages/*"
+
+# Dependencias a las que se les permite ejecutar scripts de instalación.
+allowBuilds:
+  '@biomejs/biome': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  esbuild: true
+  prisma: true
+  sharp: true

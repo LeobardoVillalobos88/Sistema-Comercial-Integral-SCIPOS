@@ -1,0 +1,27 @@
+# Infraestructura local de desarrollo de SCIPOS.
+# Levanta con:  pnpm infra:up   (o docker compose -f infra/docker/compose/docker-compose.dev.yml up -d)
+services:
+  scipos-db:
+    image: postgres:16
+    container_name: scipos-db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: scipos
+    ports:
+      - "5432:5432"
+    volumes:
+      - scipos-db-data:/var/lib/postgresql/data
+
+  scipos-redis:
+    image: redis:5
+    container_name: scipos-redis
+    command: redis-server --requirepass root
+    ports:
+      - "6379:6379"
+    volumes:
+      - scipos-redis-data:/data
+
+volumes:
+  scipos-db-data:
+  scipos-redis-data:

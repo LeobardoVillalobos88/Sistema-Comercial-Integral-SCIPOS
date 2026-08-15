@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TipoProducto {
+  PRODUCTO
+  SERVICIO
+}
+
+model Producto {
+  id             String          @id @default(uuid())
+  lote           String
+  nombre         String
+  tipo           TipoProducto    @default(PRODUCTO)
+  precioCompra   Float
+  precioVenta    Float
+  existencia     Int             @default(0)
+  fechaCaducidad DateTime?
+  activo         Boolean         @default(true)
+  partidasCompra CompraPartida[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Compra {
+  id        String          @id @default(uuid())
+  proveedor String?
+  fecha     DateTime        @default(now())
+  total     Float
+  partidas  CompraPartida[]
+  createdAt DateTime        @default(now())
+}
+
+model CompraPartida {
+  id           String   @id @default(uuid())
+  compraId     String
+  compra       Compra   @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  productoId   String
+  producto     Producto @relation(fields: [productoId], references: [id])
+  cantidad     Int
+  precioCompra Float
+}
