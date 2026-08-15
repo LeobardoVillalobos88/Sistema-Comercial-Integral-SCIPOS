@@ -11,6 +11,7 @@ OpenAPI/Scalar.
 | Documento | Para qué |
 |---|---|
 | [Guía del sistema](docs/readmes/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo (funcional) |
+| [Despliegue en AWS](docs/DESPLIEGUE-AWS.md) | Publicar el sistema en una instancia, paso a paso |
 | [Plan del Avance 3](docs/readmes/avance-3-plan-backend.md) | Reparto de trabajo del backend |
 | [Contratos de API](docs/02-api/README.md) | Flujo contrato-primero y OpenAPI por servicio |
 ---
@@ -24,7 +25,7 @@ backend (gateway + servicio de seguridad) y frontend (web-shell y microfrontends
 
 | Herramienta | Versión | Verifica con |
 |---|---|---|
-| Node | ≥ 20 | `node --version` |
+| Node | ≥ 22 | `node --version` |
 | pnpm | 11 | `pnpm --version` |
 | Docker Desktop | reciente | `docker version` |
 | Git | reciente | `git --version` |
@@ -113,10 +114,10 @@ pnpm dev
    el sistema de privilegios en acción, inicia sesión con roles distintos y
    compara qué módulos y botones aparecen. En DevTools → Network verás las
    llamadas a `localhost:4000/api/seguridad/...` de donde salen esos privilegios.
-   Los módulos de dominio (`/productos`, `/clientes`, `/cotizaciones`, `/pos`,
+   Todos los módulos (`/productos`, `/clientes`, `/cotizaciones`, `/pos`,
    `/compras`, `/caja`, `/reportes` y `/usuarios`) y las tarjetas del dashboard
-   operan contra la API real; el módulo de ejemplo es el único con datos
-   simulados.
+   operan contra la API real. Los únicos datos simulados que quedan son el
+   respaldo de `/inicio` y del dashboard cuando su servicio está caído.
 4. **La autenticación y el guard en acción** (desde otra terminal):
 
 ```bash

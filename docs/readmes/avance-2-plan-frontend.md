@@ -1,5 +1,13 @@
 # 🐺 LOBOSOFT — Plan de Trabajo Avance 2
 
+> **Documento histórico.** Es el plan con el que se construyó el frontend, y se
+> conserva como registro del proceso. No describe el estado actual del sistema:
+> el frontend ya no usa datos simulados y `example-front`, que aquí figura como
+> plantilla, se retiró una vez que todos los módulos existían.
+>
+> Para el estado real consulta [`GUIA-DEL-SISTEMA.md`](GUIA-DEL-SISTEMA.md), el
+> `README.md` de la raíz y `apps/frontend/README.md`.
+
 ## SCIPOS · Frontend Prototipo Simulado
 
 > **Para el equipo:** aquí están tus tareas, cómo nombrar tus ramas y qué poner en tus commits.

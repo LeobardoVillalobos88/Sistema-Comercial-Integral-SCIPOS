@@ -62,7 +62,7 @@ New `modulo:accion` strings are registered in the **seguridad catalog** (its see
 
 ## Commands
 
-Run from the repo root. Use **pnpm** (workspaces), not npm. Node ≥ 20 (`.nvmrc`); package manager pinned to pnpm 11 (`packageManager` field).
+Run from the repo root. Use **pnpm** (workspaces), not npm. **Node ≥ 22** (`.nvmrc` says 22; pnpm 11 uses `node:sqlite`, absent before 22.5, so Node 20 cannot even install); package manager pinned to pnpm 11 (`packageManager` field).
 
 ```bash
 pnpm install                                  # install the whole monorepo

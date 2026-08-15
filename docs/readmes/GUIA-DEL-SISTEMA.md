@@ -142,7 +142,18 @@ Eliminar siempre pide confirmación.
 
 - Todo lo compartido (componentes, tema, permisos, feedback, datos) vive en
   `@scipos/frontend-commons`.
-- Cada acción sensible se protege con `usePermisos()` / `<Permiso requiere="modulo:accion">`.
-- Si un módulo necesita un permiso nuevo, agrégalo en
-  `apps/frontend/commons/src/permisos/matriz.ts` a los roles que correspondan.
+- Cada acción sensible se protege con `usePermisos()` / `<Permiso requiere="modulo:accion">`
+  en el frontend **y** con `@RequierePrivilegio("modulo:accion")` en el endpoint que
+  ejecuta esa acción. Ocultar el botón no basta: si el endpoint queda sin guard, la
+  acción sigue siendo alcanzable con una petición directa.
+- Un permiso nuevo se registra en **dos** lugares: el catálogo del servicio de
+  seguridad (su semilla, o `POST /privilegios`), que es la fuente de verdad, y
+  `apps/frontend/commons/src/permisos/matriz.ts`, que solo es el respaldo que usa la
+  interfaz cuando la API no responde.
 - Más detalle técnico en `CLAUDE.md` y `apps/frontend/README.md`.
+
+## 7. Para publicar el sistema
+
+El despliegue se hace con contenedores sobre una sola máquina, detrás de nginx.
+El procedimiento completo —desde crear la instancia hasta verificar que responde—
+está en [`docs/DESPLIEGUE-AWS.md`](../DESPLIEGUE-AWS.md).

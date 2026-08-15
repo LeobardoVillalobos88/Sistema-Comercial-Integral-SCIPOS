@@ -1,5 +1,13 @@
 # 🐺 LOBOSOFT: Plan de Trabajo Avance 3
 
+> **Documento histórico.** Es el plan con el que se construyó el backend y el
+> reparto de trabajo del equipo, y se conserva como registro del proceso. Todo
+> lo que describe está terminado: los seis servicios, el gateway y la
+> autenticación JWT existen y operan.
+>
+> Para el estado real consulta [`GUIA-DEL-SISTEMA.md`](GUIA-DEL-SISTEMA.md), el
+> `README.md` de la raíz y [`DESPLIEGUE-AWS.md`](../DESPLIEGUE-AWS.md).
+
 ## SCIPOS · Backend con Microservicios y Privilegios Dinámicos
 
 > **Para el equipo:** aquí están tus tareas, tu servicio, tus ramas y cómo conectar tu módulo del frontend a la API real.
