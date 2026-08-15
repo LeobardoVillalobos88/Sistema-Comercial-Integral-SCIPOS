@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+
+# Imagen única para los siete procesos de backend: el gateway y los seis
+# servicios de dominio.
+#
+# Comparten monorepo, dependencias y librería común, así que compilarlos juntos
+# produce una imagen en lugar de siete casi idénticas: la construcción ocurre
+# una sola vez y la instancia guarda un artefacto en vez de siete. Cada
+# servicio sigue siendo un contenedor y un proceso aparte, con su puerto y su
+# esquema de base de datos propios; lo único compartido es el artefacto del que
+# arrancan. Cada contenedor elige qué proceso levantar con su working_dir.
+
+FROM node:20-slim AS base
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm:$PATH" \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# openssl lo requiere el motor de migraciones de Prisma sobre Debian slim.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS construccion
+COPY . .
+RUN pnpm install --frozen-lockfile
+# turbo respeta el orden del grafo: compila backend-commons antes que sus
+# consumidores. El build de cada servicio con base de datos incluye su
+# `prisma generate`, y cada esquema declara su propia carpeta de salida, así
+# que los seis clientes de Prisma conviven sin pisarse.
+RUN pnpm exec turbo run build \
+      --filter=@scipos/gateway \
+      --filter=@scipos/seguridad-service \
+      --filter=@scipos/productos-service \
+      --filter=@scipos/clientes-service \
+      --filter=@scipos/cotizaciones-service \
+      --filter=@scipos/ventas-caja-service \
+      --filter=@scipos/reportes-service
+
+FROM base AS ejecucion
+ENV NODE_ENV=production
+COPY --from=construccion /app /app
+COPY infra/docker/entrypoint-backend.sh /usr/local/bin/entrypoint-backend.sh
+RUN chmod +x /usr/local/bin/entrypoint-backend.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-backend.sh"]
+CMD ["node", "dist/main"]

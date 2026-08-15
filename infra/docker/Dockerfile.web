@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+
+# Imagen del web-shell, que embebe los microfrontends como paquetes del
+# workspace y por lo tanto se compila como una sola aplicación Next.
+
+FROM node:20-slim AS base
+ENV PNPM_HOME="/pnpm" \
+    PATH="/pnpm:$PATH" \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS construccion
+# Next resuelve las variables NEXT_PUBLIC_* al compilar, no al arrancar: por
+# eso la dirección de la API entra como argumento de construcción y no como
+# variable del contenedor.
+#
+# El valor por defecto es una ruta relativa a propósito. Detrás del proxy
+# inverso la interfaz y la API comparten origen, así que la misma imagen sirve
+# en cualquier dominio o IP sin reconstruirse.
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm exec turbo run build --filter=@scipos/web-shell
+
+FROM base AS ejecucion
+ENV NODE_ENV=production \
+    PORT=3001
+COPY --from=construccion /app /app
+WORKDIR /app/apps/frontend/web-shell
+EXPOSE 3001
+CMD ["pnpm", "start"]

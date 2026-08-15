@@ -1,0 +1,245 @@
+# Despliegue de SCIPOS sobre una sola instancia.
+#
+# Se ejecuta desde la raíz del repositorio, tomando las credenciales del .env
+# que vive ahí:
+#
+#   docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env build
+#   docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env up -d
+#
+# Solo nginx publica un puerto al host. Los seis servicios, el gateway, la base
+# y Redis quedan en la red interna y se alcanzan por nombre de contenedor.
+
+name: scipos
+
+# Configuración que comparten los siete procesos de backend. Todos arrancan de
+# la misma imagen y se diferencian por su working_dir y su puerto.
+x-backend: &backend
+  build:
+    context: ../../..
+    dockerfile: infra/docker/Dockerfile.backend
+  image: scipos-backend:1.0.0
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks:
+    - interna
+
+x-backend-env: &backend-env
+  NODE_ENV: production
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  JWT_ISSUER: ${JWT_ISSUER}
+  JWT_AUDIENCE: ${JWT_AUDIENCE}
+  AUTH_JWKS_URL: http://seguridad:4001/.well-known/jwks.json
+  SEGURIDAD_URL: http://seguridad:4001
+  PRODUCTOS_URL: http://productos:4002
+  CLIENTES_URL: http://clientes:4003
+  COTIZACIONES_URL: http://cotizaciones:4004
+  VENTAS_CAJA_URL: http://ventas-caja:4005
+  REPORTES_URL: http://reportes:4006
+  EJECUTAR_MIGRACIONES: ${EJECUTAR_MIGRACIONES:-true}
+  EJECUTAR_SEMILLA: ${EJECUTAR_SEMILLA:-false}
+
+services:
+  # --- Infraestructura de datos -------------------------------------------
+
+  db:
+    image: postgres:16
+    container_name: scipos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - scipos-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - interna
+
+  redis:
+    image: redis:7-alpine
+    container_name: scipos-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - scipos-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - interna
+
+  # --- Servicios de dominio ------------------------------------------------
+
+  # Fuente de verdad de identidad y privilegios. Es el único que firma tokens,
+  # así que es el único que recibe la llave privada.
+  seguridad:
+    <<: *backend
+    container_name: scipos-seguridad
+    working_dir: /app/apps/backend/services/seguridad
+    environment:
+      <<: *backend-env
+      PORT: 4001
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=seguridad
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ACCESS_TTL_SECONDS: ${JWT_ACCESS_TTL_SECONDS:-900}
+      JWT_REFRESH_TTL_SECONDS: ${JWT_REFRESH_TTL_SECONDS:-604800}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_VENDEDOR_PASSWORD: ${SEED_VENDEDOR_PASSWORD:-}
+      SEED_CAJERO_PASSWORD: ${SEED_CAJERO_PASSWORD:-}
+      SEED_SUPERVISOR_PASSWORD: ${SEED_SUPERVISOR_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  productos:
+    <<: *backend
+    container_name: scipos-productos
+    working_dir: /app/apps/backend/services/productos
+    environment:
+      <<: *backend-env
+      PORT: 4002
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=productos
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  clientes:
+    <<: *backend
+    container_name: scipos-clientes
+    working_dir: /app/apps/backend/services/clientes
+    environment:
+      <<: *backend-env
+      PORT: 4003
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=clientes
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  cotizaciones:
+    <<: *backend
+    container_name: scipos-cotizaciones
+    working_dir: /app/apps/backend/services/cotizaciones
+    environment:
+      <<: *backend-env
+      PORT: 4004
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=cotizaciones
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4004/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  ventas-caja:
+    <<: *backend
+    container_name: scipos-ventas-caja
+    working_dir: /app/apps/backend/services/ventas-caja
+    environment:
+      <<: *backend-env
+      PORT: 4005
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=ventas_caja
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4005/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # No tiene base de datos: agrega por REST desde los demás servicios.
+  reportes:
+    <<: *backend
+    container_name: scipos-reportes
+    working_dir: /app/apps/backend/services/reportes
+    environment:
+      <<: *backend-env
+      PORT: 4006
+      EJECUTAR_MIGRACIONES: "false"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4006/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # --- Entrada HTTP --------------------------------------------------------
+
+  gateway:
+    <<: *backend
+    container_name: scipos-gateway
+    working_dir: /app/apps/backend/gateway
+    environment:
+      <<: *backend-env
+      PORT: 4000
+      EJECUTAR_MIGRACIONES: "false"
+      ORIGENES_PERMITIDOS: ${ORIGENES_PERMITIDOS}
+    depends_on:
+      seguridad:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  web-shell:
+    build:
+      context: ../../..
+      dockerfile: infra/docker/Dockerfile.web
+      args:
+        # Ruta relativa: la interfaz y la API comparten origen tras el proxy.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    image: scipos-web:1.0.0
+    container_name: scipos-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    networks:
+      - interna
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: scipos-nginx
+    restart: unless-stopped
+    ports:
+      - "${PUERTO_PUBLICO:-80}:80"
+    volumes:
+      - ../../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web-shell
+      - gateway
+    networks:
+      - interna
+
+networks:
+  interna:
+    driver: bridge
+
+volumes:
+  scipos-db-data:
+  scipos-redis-data:
