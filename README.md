@@ -191,6 +191,28 @@ cuando expira); el menú lateral tiene el botón para cerrar sesión.
 pnpm infra:down
 ```
 
+## 7. Desplegar en producción
+
+Todo lo anterior es para desarrollo local. Para publicar el sistema en una
+instancia (por ejemplo EC2) el procedimiento completo está en
+**[docs/DESPLIEGUE-AWS.md](docs/DESPLIEGUE-AWS.md)**.
+
+En resumen: se levanta con Docker Compose detrás de nginx, que queda como único
+punto de entrada en el puerto 80. La interfaz y la API comparten origen; los
+seis servicios, Postgres y Redis viven en la red interna y no se exponen.
+
+```bash
+cp .env.example .env    # único archivo que hay que llenar
+pnpm generar:llaves     # par RSA propio de esta instalación
+pnpm llaves:entorno     # imprime las llaves listas para pegar en el .env
+pnpm prod:build
+pnpm prod:up
+```
+
+Las contraseñas semilla de la tabla de arriba son públicas por estar en este
+documento. En una instancia expuesta a internet defínelas con las variables
+`SEED_*_PASSWORD` del `.env` antes del primer arranque.
+
 ## Problemas comunes
 
 | Síntoma | Causa y solución |
