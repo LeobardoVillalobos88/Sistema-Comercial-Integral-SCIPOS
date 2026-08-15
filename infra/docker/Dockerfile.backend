@@ -47,6 +47,21 @@ COPY . .
 # proyecto en la instancia no se vuelven a descargar las dependencias enteras.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile
+
+# Prisma escribe el cliente generado en node_modules/.prisma/client, una
+# carpeta real que queda fuera del árbol de enlaces de pnpm. Desde ahí, Node no
+# encuentra las dependencias internas del propio cliente (@prisma/client-runtime-utils
+# entre ellas), porque al subir por el árbol solo ve el node_modules del
+# servicio, donde no están.
+#
+# Se exponen en la raíz los paquetes del ámbito @prisma que pnpm ya resolvió en
+# su almacén interno. Se enlaza el ámbito completo y no un paquete concreto
+# para que una versión futura de Prisma que necesite otro módulo siga
+# funcionando sin tocar esto.
+RUN mkdir -p /app/node_modules/@prisma \
+  && for paquete in /app/node_modules/.pnpm/node_modules/@prisma/*; do \
+       ln -sfn "$paquete" "/app/node_modules/@prisma/$(basename "$paquete")"; \
+     done
 # turbo respeta el orden del grafo: compila backend-commons antes que sus
 # consumidores. El build de cada servicio con base de datos incluye su
 # `prisma generate`, y cada esquema declara su propia carpeta de salida, así
@@ -66,6 +81,17 @@ RUN pnpm exec turbo run build \
       --filter=@scipos/cotizaciones-service \
       --filter=@scipos/ventas-caja-service \
       --filter=@scipos/reportes-service
+
+# Comprobación de que cada cliente de Prisma carga de verdad.
+#
+# Sin esto, un problema de resolución de módulos produce una imagen que
+# construye sin quejarse y falla al arrancar el contenedor, que es mucho más
+# caro de diagnosticar. Aquí revienta la construcción y se ve la causa.
+RUN for servicio in seguridad productos clientes cotizaciones ventas-caja; do \
+      echo "Verificando el cliente de Prisma de $servicio..."; \
+      (cd "/app/apps/backend/services/$servicio" && node -e "require('.prisma/client')") \
+        || exit 1; \
+    done
 
 FROM base AS ejecucion
 ENV NODE_ENV=production
