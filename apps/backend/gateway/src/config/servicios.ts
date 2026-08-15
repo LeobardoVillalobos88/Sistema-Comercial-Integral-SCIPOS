@@ -46,8 +46,25 @@ export function serviciosEnrutados(): ServicioEnrutado[] {
   ];
 }
 
-/** Orígenes del frontend autorizados para consumir el gateway. */
+/**
+ * Orígenes del frontend autorizados para consumir el gateway.
+ *
+ * En un despliegue se declaran en ORIGENES_PERMITIDOS, separados por comas
+ * (por ejemplo "https://scipos.example.com,http://54.12.3.4"). Sin esa
+ * variable se asumen los puertos locales de desarrollo.
+ *
+ * Detrás de un proxy inverso que sirve el frontend y el gateway bajo el mismo
+ * origen, el navegador no emite peticiones de origen cruzado y esta lista
+ * queda como respaldo para clientes externos.
+ */
 export function origenesPermitidos(): string[] {
+  const declarados = (process.env.ORIGENES_PERMITIDOS ?? "")
+    .split(",")
+    .map((origen) => origen.trim())
+    .filter((origen) => origen.length > 0);
+
+  if (declarados.length > 0) return declarados;
+
   const puertos = [3001, 3002, 3003, 3004, 3005, 3006, 3007];
   return puertos.flatMap((puerto) => [`http://localhost:${puerto}`, `http://127.0.0.1:${puerto}`]);
 }

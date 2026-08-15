@@ -96,34 +96,37 @@ const MATRIZ_ROLES: Record<string, string[]> = {
 /**
  * Usuarios semilla, uno por rol, con IDs fijos y credenciales conocidas por el
  * equipo (documentadas en el README para poder iniciar sesión).
+ *
+ * En un despliegue expuesto conviene sustituir estas contraseñas: cada una se
+ * puede sobreescribir con su variable de entorno sin tocar el código.
  */
 const USUARIOS_SEMILLA = [
   {
     id: "usuario-administrador",
     nombre: "Administrador General",
     correo: "admin@scipos.com",
-    contrasena: "Admin1234",
+    contrasena: process.env.SEED_ADMIN_PASSWORD ?? "Admin1234",
     rolClave: "ADMINISTRADOR",
   },
   {
     id: "usuario-vendedor",
     nombre: "Vendedor de Mostrador",
     correo: "vendedor@scipos.com",
-    contrasena: "Vendedor1234",
+    contrasena: process.env.SEED_VENDEDOR_PASSWORD ?? "Vendedor1234",
     rolClave: "VENDEDOR",
   },
   {
     id: "usuario-cajero",
     nombre: "Cajero Principal",
     correo: "cajero@scipos.com",
-    contrasena: "Cajero1234",
+    contrasena: process.env.SEED_CAJERO_PASSWORD ?? "Cajero1234",
     rolClave: "CAJERO",
   },
   {
     id: "usuario-supervisor",
     nombre: "Supervisor de Tienda",
     correo: "supervisor@scipos.com",
-    contrasena: "Supervisor1234",
+    contrasena: process.env.SEED_SUPERVISOR_PASSWORD ?? "Supervisor1234",
     rolClave: "SUPERVISOR",
   },
 ];

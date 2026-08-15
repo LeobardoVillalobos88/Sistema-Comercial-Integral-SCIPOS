@@ -21,6 +21,29 @@ export interface DatosToken {
 }
 
 /**
+ * Obtiene una llave en formato PEM.
+ *
+ * Prioriza el contenido en variable de entorno sobre la ruta a un archivo: al
+ * desplegar en contenedores el secreto se inyecta como variable y no hay
+ * archivo que montar, mientras que en desarrollo siguen sirviendo las llaves
+ * que genera `pnpm generar:llaves`.
+ *
+ * Acepta el PEM tal cual, con los saltos de línea escritos como "\n" (habitual
+ * al pasar por un archivo .env) o codificado en base64.
+ */
+function leerPem(variableContenido: string, variableRuta: string, archivoPorDefecto: string) {
+  const contenido = process.env[variableContenido];
+  if (contenido && contenido.trim().length > 0) {
+    const normalizado = contenido.includes("-----BEGIN")
+      ? contenido.replace(/\\n/g, "\n")
+      : Buffer.from(contenido, "base64").toString("utf8");
+    return normalizado.trim();
+  }
+  const ruta = resolve(process.env[variableRuta] ?? `../../../../keys/${archivoPorDefecto}`);
+  return readFileSync(ruta, "utf8");
+}
+
+/**
  * Firma tokens de acceso RS256 con la llave privada y publica la pública en un
  * JWKS. Solo este servicio tiene la privada, así que es el único que puede
  * emitir tokens; los demás verifican con el JWKS sin poder firmar.
@@ -33,14 +56,10 @@ export class FirmadorToken implements OnModuleInit {
   private readonly ttlAccesoSeg = Number(process.env.JWT_ACCESS_TTL_SECONDS ?? 900);
 
   async onModuleInit() {
-    const rutaPrivada = resolve(
-      process.env.JWT_PRIVATE_KEY_PATH ?? "../../../../keys/jwt_private.pem",
-    );
-    const rutaPublica = resolve(
-      process.env.JWT_PUBLIC_KEY_PATH ?? "../../../../keys/jwt_public.pem",
-    );
-    this.llavePrivada = await importPKCS8(readFileSync(rutaPrivada, "utf8"), "RS256");
-    const llavePublica = await importSPKI(readFileSync(rutaPublica, "utf8"), "RS256");
+    const pemPrivado = leerPem("JWT_PRIVATE_KEY", "JWT_PRIVATE_KEY_PATH", "jwt_private.pem");
+    const pemPublico = leerPem("JWT_PUBLIC_KEY", "JWT_PUBLIC_KEY_PATH", "jwt_public.pem");
+    this.llavePrivada = await importPKCS8(pemPrivado, "RS256");
+    const llavePublica = await importSPKI(pemPublico, "RS256");
     const jwk = await exportJWK(llavePublica);
     // El kid es el thumbprint del JWK (RFC 7638): estable ante cambios de formato del PEM.
     this.kid = await calculateJwkThumbprint(jwk);
