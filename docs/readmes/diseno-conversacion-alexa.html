@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diseño de conversación — asistente de almacén</title>
+    <style>
+      :root {
+        --utterance: #e1d5f0;
+        --utterance-borde: #a98fc4;
+        --intent: #f5c396;
+        --intent-borde: #d99a5f;
+        --slots: #9fd4e8;
+        --slots-borde: #5aa8c4;
+        --confirmacion: #c8e6c9;
+        --confirmacion-borde: #86c08a;
+        --chip-f: #e53935;
+        --chip-v: #d4a017;
+        --chip-c: #6b7d3a;
+        --handler: #f4c7c3;
+        --handler-borde: #d99189;
+        --dynamo: #fdebb0;
+        --dynamo-borde: #d9bd63;
+        --api: #7fd4d4;
+        --api-borde: #4aa8a8;
+        --resultado: #4a5568;
+        --capa: #d9d9d9;
+        --capa-borde: #9a9a9a;
+        --linea: #9a9a9a;
+        --texto: #1a1a1a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 28px 24px 40px;
+        background: #ffffff;
+        color: var(--texto);
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 13px;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .subtitulo {
+        margin: 0 0 22px;
+        color: #555;
+        font-size: 13px;
+      }
+
+      .subtitulo strong {
+        color: var(--texto);
+      }
+
+      .diagrama {
+        display: grid;
+        grid-template-columns: 78px 1fr 1.55fr 1.35fr 0.95fr;
+        min-width: 1180px;
+      }
+
+      .celda {
+        padding: 10px 14px;
+      }
+
+      /* Las líneas divisorias de capa se dibujan como borde izquierdo de cada
+         celda: al apilarse las filas forman una vertical continua. */
+      .diagrama > .celda:nth-child(5n + 2),
+      .diagrama > .celda:nth-child(5n + 3),
+      .diagrama > .celda:nth-child(5n + 4),
+      .diagrama > .celda:nth-child(5n + 5) {
+        border-left: 2px dashed var(--linea);
+      }
+
+      .encabezado {
+        padding-bottom: 18px;
+      }
+
+      .etiqueta-capa {
+        display: inline-block;
+        background: var(--capa);
+        border: 1px solid var(--capa-borde);
+        border-radius: 7px;
+        padding: 8px 16px;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .fila {
+        padding-top: 16px;
+        padding-bottom: 16px;
+        border-top: 1px solid #ececec;
+      }
+
+      .caja {
+        border-radius: 3px;
+        border: 1px solid;
+        padding: 7px 11px;
+        text-align: center;
+        font-size: 12.5px;
+      }
+
+      .utterance {
+        background: var(--utterance);
+        border-color: var(--utterance-borde);
+        margin-bottom: 7px;
+        font-style: italic;
+      }
+
+      .utterance:last-child {
+        margin-bottom: 0;
+      }
+
+      .intent {
+        background: var(--intent);
+        border-color: var(--intent-borde);
+        font-weight: 600;
+        margin-bottom: 9px;
+      }
+
+      .slots {
+        background: var(--slots);
+        border-color: var(--slots-borde);
+        font-weight: 600;
+        width: 130px;
+      }
+
+      .confirmacion {
+        background: var(--confirmacion);
+        border-color: var(--confirmacion-borde);
+      }
+
+      .handler {
+        background: var(--handler);
+        border-color: var(--handler-borde);
+        font-weight: 600;
+        margin-bottom: 9px;
+      }
+
+      .dynamo {
+        background: var(--dynamo);
+        border-color: var(--dynamo-borde);
+      }
+
+      .api {
+        background: var(--api);
+        border-color: var(--api-borde);
+      }
+
+      .resultado {
+        background: var(--resultado);
+        border-color: #2f3746;
+        color: #ffffff;
+        text-align: left;
+      }
+
+      .sangria {
+        margin-left: 26px;
+      }
+
+      .linea-slot {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 7px;
+      }
+
+      .nombre-slot {
+        background: #b8c4d0;
+        border: 1px solid #8b99a8;
+        border-radius: 3px 0 0 3px;
+        padding: 4px 10px;
+        font-size: 12px;
+        min-width: 122px;
+      }
+
+      .chip {
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 11.5px;
+        padding: 4px 9px;
+        border-radius: 2px;
+        letter-spacing: 0.5px;
+      }
+
+      .chip-f {
+        background: var(--chip-f);
+      }
+
+      .chip-v {
+        background: var(--chip-v);
+      }
+
+      .chip-c {
+        background: var(--chip-c);
+      }
+
+      .cadena {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .flecha {
+        color: #666;
+        font-size: 15px;
+        line-height: 1;
+      }
+
+      .orden {
+        margin-top: 8px;
+        font-size: 11.5px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .actor {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: #333;
+        font-size: 12px;
+      }
+
+      .nota {
+        margin-top: 26px;
+        border-top: 2px dashed var(--linea);
+        padding-top: 14px;
+        font-size: 12.5px;
+        color: #444;
+        line-height: 1.6;
+        max-width: 1180px;
+      }
+
+      .leyenda {
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .leyenda span {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      @media print {
+        @page {
+          size: landscape;
+          margin: 10mm;
+        }
+
+        body {
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Diseño de conversación — asistente de almacén</h1>
+    <p class="subtitulo">
+      SCIPOS · Skill de Alexa · Nombre de invocación: <strong>asistente de almacen</strong> ·
+      Configuración de slots en orden <strong>F</strong> (llenado) →
+      <strong>V</strong> (validación) → <strong>C</strong> (confirmación)
+    </p>
+
+    <div class="diagrama">
+      <!-- Encabezados de capa -->
+      <div class="celda encabezado"></div>
+      <div class="celda encabezado"><span class="etiqueta-capa">Capa de usuario</span></div>
+      <div class="celda encabezado"><span class="etiqueta-capa">Capa de intención</span></div>
+      <div class="celda encabezado"><span class="etiqueta-capa">Capa de control</span></div>
+      <div class="celda encabezado"><span class="etiqueta-capa">Capa de resultado</span></div>
+
+      <!-- Fila 1: Registrar producto -->
+      <div class="celda fila actor">
+        <svg width="42" height="60" viewBox="0 0 42 60" aria-hidden="true">
+          <circle cx="21" cy="11" r="9" fill="none" stroke="#333" stroke-width="1.6" />
+          <line x1="21" y1="20" x2="21" y2="40" stroke="#333" stroke-width="1.6" />
+          <line x1="7" y1="28" x2="35" y2="28" stroke="#333" stroke-width="1.6" />
+          <line x1="21" y1="40" x2="9" y2="57" stroke="#333" stroke-width="1.6" />
+          <line x1="21" y1="40" x2="33" y2="57" stroke="#333" stroke-width="1.6" />
+        </svg>
+        Almacenista
+      </div>
+      <div class="celda fila">
+        <div class="caja utterance">registra un producto nuevo</div>
+        <div class="caja utterance">da de alta un producto</div>
+        <div class="caja utterance">agrega un producto al catalogo</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja intent">RegistrarProductoIntent</div>
+        <div class="cadena sangria">
+          <div class="caja slots">Slots</div>
+          <span class="flecha">→</span>
+          <div class="caja confirmacion">IntentConfirmation</div>
+        </div>
+        <div class="sangria">
+          <div class="linea-slot">
+            <span class="nombre-slot">nombreProducto</span>
+            <span class="chip chip-f">F</span><span class="chip chip-c">C</span>
+          </div>
+          <div class="linea-slot">
+            <span class="nombre-slot">precioCompra</span>
+            <span class="chip chip-f">F</span><span class="chip chip-v">V</span>
+          </div>
+          <div class="linea-slot">
+            <span class="nombre-slot">precioVenta</span>
+            <span class="chip chip-f">F</span><span class="chip chip-v">V</span
+            ><span class="chip chip-c">C</span>
+          </div>
+          <div class="linea-slot">
+            <span class="nombre-slot">fechaCaducidad</span>
+            <span class="chip chip-f">F</span><span class="chip chip-c">C</span>
+          </div>
+        </div>
+      </div>
+      <div class="celda fila">
+        <div class="caja handler">RegistrarProductoHandler</div>
+        <div class="cadena sangria">
+          <div class="caja api">API consulta</div>
+          <span class="flecha">→</span>
+          <div class="caja api">API crea</div>
+          <span class="flecha">→</span>
+          <div class="caja dynamo">DynamoDB</div>
+        </div>
+        <div class="orden sangria">
+          El duplicado se decide contra el catálogo, que es la fuente de verdad
+        </div>
+      </div>
+      <div class="celda fila">
+        <div class="caja resultado">
+          El producto queda en el catálogo con su lote VOZ-XXX y sin existencias, listo para
+          surtirse
+        </div>
+      </div>
+
+      <!-- Fila 2: Surtir inventario -->
+      <div class="celda fila actor"></div>
+      <div class="celda fila">
+        <div class="caja utterance">surte inventario</div>
+        <div class="caja utterance">llego mercancia</div>
+        <div class="caja utterance">surte cincuenta de leche</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja intent">SurtirInventarioIntent</div>
+        <div class="cadena sangria">
+          <div class="caja slots">Slots</div>
+          <span class="flecha">→</span>
+          <div class="caja confirmacion">IntentConfirmation</div>
+        </div>
+        <div class="sangria">
+          <div class="linea-slot">
+            <span class="nombre-slot">producto</span>
+            <span class="chip chip-f">F</span><span class="chip chip-c">C</span>
+          </div>
+          <div class="linea-slot">
+            <span class="nombre-slot">cantidad</span>
+            <span class="chip chip-f">F</span><span class="chip chip-v">V</span>
+          </div>
+          <div class="linea-slot">
+            <span class="nombre-slot">proveedor</span>
+            <span class="chip chip-f">F</span>
+          </div>
+        </div>
+      </div>
+      <div class="celda fila">
+        <div class="caja handler">SurtirInventarioHandler</div>
+        <div class="cadena sangria">
+          <div class="caja dynamo">DynamoDB</div>
+          <span class="flecha">→</span>
+          <div class="caja api">API</div>
+          <span class="flecha">→</span>
+          <div class="caja dynamo">DynamoDB</div>
+        </div>
+        <div class="orden sangria">
+          Dynamo va primero: repetir la frase no debe duplicar la entrada
+        </div>
+      </div>
+      <div class="celda fila">
+        <div class="caja resultado">
+          Las existencias suben y Alexa dice cuántas piezas quedaron; si se repitió la frase,
+          avisa y no vuelve a sumar
+        </div>
+      </div>
+
+      <!-- Fila 3: Revisar inventario -->
+      <div class="celda fila actor"></div>
+      <div class="celda fila">
+        <div class="caja utterance">revisa las alertas del inventario</div>
+        <div class="caja utterance">que productos estan por caducar</div>
+        <div class="caja utterance">como anda el inventario</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja intent">RevisarInventarioIntent</div>
+        <div class="cadena sangria">
+          <div class="caja slots">Slots</div>
+        </div>
+        <div class="sangria">
+          <div class="linea-slot">
+            <span class="nombre-slot">tipoRevision</span>
+            <span class="chip chip-f">F</span>
+          </div>
+        </div>
+      </div>
+      <div class="celda fila">
+        <div class="caja handler">RevisarInventarioHandler</div>
+        <div class="cadena sangria">
+          <div class="caja api">API</div>
+        </div>
+        <div class="orden sangria">Lectura pura: no pasa por Dynamo</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja resultado">
+          Alexa resume cuántos lotes están vencidos o por vencer y cuáles se están agotando,
+          nombrando el caso más urgente
+        </div>
+      </div>
+
+      <!-- Fila 4: Bitácora de voz -->
+      <div class="celda fila actor"></div>
+      <div class="celda fila">
+        <div class="caja utterance">que registre hoy por voz</div>
+        <div class="caja utterance">dame mi bitacora</div>
+        <div class="caja utterance">cuantas operaciones llevo hoy</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja intent">BitacoraVozIntent</div>
+        <div class="orden">Sin slots y sin confirmación: la pregunta no necesita datos</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja handler">BitacoraVozHandler</div>
+        <div class="cadena sangria">
+          <div class="caja dynamo">DynamoDB</div>
+        </div>
+        <div class="orden sangria">Ese dato solo existe del lado de la voz</div>
+      </div>
+      <div class="celda fila">
+        <div class="caja resultado">
+          Alexa dice cuántas altas y cuántas entradas se dictaron hoy, por cuánto dinero, y cuál
+          fue la última
+        </div>
+      </div>
+    </div>
+
+    <div class="nota">
+      <div class="leyenda">
+        <span><span class="chip chip-f">F</span> Slot Filling</span>
+        <span><span class="chip chip-v">V</span> Validación</span>
+        <span><span class="chip chip-c">C</span> Confirmación de slot</span>
+      </div>
+      <p>
+        <strong>Los cuatro recorridos de la capa de control son distintos a propósito.</strong>
+        DynamoDB no duplica la base del sistema: guarda la bitácora de lo dictado, la huella que
+        evita el doble dictado y el folio de los lotes VOZ-XXX, más el token de sesión en caché.
+        Los precios, las existencias y los umbrales de las alertas los calcula siempre el backend,
+        que además valida en cada llamada los privilegios del usuario con el que la skill inicia
+        sesión.
+      </p>
+    </div>
+  </body>
+</html>
