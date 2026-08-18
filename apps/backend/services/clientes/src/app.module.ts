@@ -12,8 +12,6 @@ import { RedisModule } from "./redis/redis.module";
     PrismaModule,
     RedisModule,
     ClientesModule,
-    // El guard valida privilegios consultando al servicio de seguridad
-    // (SEGURIDAD_URL) en cada endpoint decorado con @RequierePrivilegio.
     ModuloSeguridad.registrar(),
   ],
   controllers: [HealthController],

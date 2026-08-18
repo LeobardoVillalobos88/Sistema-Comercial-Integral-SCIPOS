@@ -18,11 +18,6 @@ interface CotizacionesContextValue {
 
 const CotizacionesContext = createContext<CotizacionesContextValue | null>(null);
 
-/**
- * Estado del módulo respaldado por el servicio de cotizaciones. Todas las
- * operaciones pasan por el gateway y conservan al backend como fuente de
- * verdad para folios, precios, impuestos y cambios de estado.
- */
 export function CotizacionesProvider({ children }: { children: React.ReactNode }) {
   const { usuario, cargandoPermisos } = usePermisos();
   const [cotizaciones, setCotizaciones] = useState<CotizacionApi[]>([]);

@@ -105,7 +105,6 @@ function mensajeError(error: unknown, mensajePorDefecto: string): string {
   return error instanceof ErrorApi ? error.message : mensajePorDefecto;
 }
 
-/** Descarga filas como archivo CSV (RF: exportación de información). */
 function exportarCsv(nombreArchivo: string, encabezados: string[], filas: string[][]): void {
   const escapar = (valor: string) => `"${valor.replaceAll('"', '""')}"`;
   const lineas = [encabezados, ...filas].map((fila) => fila.map(escapar).join(","));
@@ -117,11 +116,6 @@ function exportarCsv(nombreArchivo: string, encabezados: string[], filas: string
   URL.revokeObjectURL(enlace.href);
 }
 
-/**
- * Panel de reportes comerciales (RF-30, RF-31, RF-33): ventas, cotizaciones,
- * inventario, cortes y utilidad, con filtro por periodo y exportación CSV.
- * El backend exige reportes:ver en cada consulta.
- */
 export function PanelReportes() {
   const { can, usuario, cargandoPermisos } = usePermisos();
   const toast = useToast();

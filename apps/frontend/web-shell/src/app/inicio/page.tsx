@@ -12,13 +12,11 @@ import Typography from "@mui/material/Typography";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PRODUCTOS_MOCK, PageHeader, StatCard, formatearMoneda } from "@scipos/frontend-commons";
 
-// Colores del par categórico compra/venta (validados para daltonismo).
 const COLOR_COMPRA = "#2f6f9f";
 const COLOR_VENTA = "#e08e0b";
 
 const productos = PRODUCTOS_MOCK.filter((p) => p.tipo === "PRODUCTO");
 
-// Resumen del negocio a partir del catálogo.
 const productosActivos = PRODUCTOS_MOCK.filter((p) => p.activo).length;
 const valorCompra = productos.reduce((acc, p) => acc + p.precioCompra * p.existencia, 0);
 const valorVenta = productos.reduce((acc, p) => acc + p.precioVenta * p.existencia, 0);
@@ -29,7 +27,6 @@ const margenPromedio =
       productos.length
     : 0;
 
-// Datos para las gráficas: los 8 productos con mayor precio de venta.
 const productosGrafica = [...productos].sort((a, b) => b.precioVenta - a.precioVenta).slice(0, 8);
 const etiquetas = productosGrafica.map((p) => p.nombre);
 const datosCompra = productosGrafica.map((p) => p.precioCompra);

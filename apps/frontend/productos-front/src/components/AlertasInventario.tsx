@@ -12,7 +12,6 @@ import {
 import { alertaDetallada, escaparHtml } from "@scipos/frontend-commons/feedback";
 import { useEffect, useRef } from "react";
 
-/** Bandera de sesión: el aviso se da una vez por entrada, no en cada recarga. */
 const CLAVE_AVISADO = "alertas-inventario";
 
 interface AlertaCaducidad {
@@ -40,11 +39,9 @@ interface RespuestaAlertas {
 }
 
 export interface AlertasInventarioProps {
-  /** Lleva al catálogo de productos. Lo provee el armazón, que es quien rutea. */
   onVerProductos?: () => void;
 }
 
-/** Cuánto falta (o hace cuánto se pasó), dicho como lo diría una persona. */
 function plazoEnPalabras(dias: number): string {
   if (dias < -1) {
     return `venció hace ${Math.abs(dias)} días`;
@@ -83,20 +80,8 @@ function seccion(titulo: string, renglones: string[]): string {
     <ul style="list-style:none;margin:0;padding:0;font-size:.875rem">${renglones.join("")}</ul>`;
 }
 
-/**
- * Aviso de inventario al entrar al sistema: lo que ya venció o está por vencer,
- * y lo que se agotó o está por agotarse.
- *
- * Se muestra una sola vez por sesión. Cerrar sesión limpia la bandera, así que
- * quien vuelve a entrar lo recibe de nuevo; recargar la página no vuelve a
- * interrumpirlo.
- *
- * Va en un modal y no en toasts a propósito: con veinte productos vencidos,
- * veinte notificaciones apiladas no se leen.
- */
 export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
   const { can, usuario, cargandoPermisos } = usePermisos();
-  // Evita que el modal se dispare dos veces con el montaje doble de React.
   const yaLanzado = useRef(false);
 
   useEffect(() => {
@@ -108,18 +93,11 @@ export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
     }
     yaLanzado.current = true;
 
-    // Sin bandera de "sigo montado" a propósito: la referencia de arriba ya
-    // garantiza una sola ejecución, y en modo estricto React monta, desmonta y
-    // vuelve a montar. Descartar el resultado al desmontar tiraba justo la
-    // petición buena, y el aviso no aparecía nunca. El modal vive fuera de React,
-    // así que abrirlo tras un desmontaje no deja nada colgando.
     (async () => {
       let alertas: RespuestaAlertas;
       try {
         alertas = await llamarApi<RespuestaAlertas>("/productos/productos/alertas");
       } catch {
-        // Un aviso que no se pudo cargar no debe estropearle la entrada a nadie.
-        // Sin marcar la bandera: el siguiente intento vuelve a probar.
         yaLanzado.current = false;
         return;
       }
@@ -167,6 +145,5 @@ export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
     })();
   }, [can, usuario, cargandoPermisos, onVerProductos]);
 
-  // No pinta nada: su salida es el modal.
   return null;
 }

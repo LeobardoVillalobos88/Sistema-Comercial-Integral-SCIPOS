@@ -1,26 +1,19 @@
 import type { ItemCarrito, ModoPos, ProductoPos } from "../types/pos";
 
-/** Tasa de IVA aplicada sobre la base gravable. */
 export const IVA = 0.16;
 
-/** Importes de una venta o compra, derivados del carrito y el descuento. */
 export interface TotalesCarrito {
-  /** Suma de los importes de las partidas, antes de descuento. */
   subtotal: number;
-  /** Descuento realmente aplicado: nunca supera al subtotal. */
   descuento: number;
-  /** Monto sobre el que se calcula el IVA. */
   baseGravable: number;
   iva: number;
   total: number;
 }
 
-/** En compra manda el precio de compra; en venta, el de venta. */
 export function precioSegunModo(producto: ProductoPos, modo: ModoPos): number {
   return modo === "compra" ? producto.precioCompra : producto.precioVenta;
 }
 
-/** Primera partida de un producto, con cantidad uno. */
 export function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarrito {
   const precio = precioSegunModo(producto, modo);
   return {
@@ -33,14 +26,6 @@ export function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarr
   };
 }
 
-/**
- * Importes del carrito. El descuento se recorta al subtotal para que la base
- * gravable nunca sea negativa y el total no se vuelva un reembolso.
- *
- * Estos importes son los que se muestran en pantalla. El backend vuelve a
- * calcular el precio de cada partida desde el catálogo al registrar la
- * operación, así que aquí no se decide cuánto se cobra.
- */
 export function calcularTotales(carrito: ItemCarrito[], descuentoAplicado: number): TotalesCarrito {
   const subtotal = carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0);
   const descuento = Math.min(descuentoAplicado, subtotal);
@@ -49,7 +34,6 @@ export function calcularTotales(carrito: ItemCarrito[], descuentoAplicado: numbe
   return { subtotal, descuento, baseGravable, iva, total: baseGravable + iva };
 }
 
-/** Agrega el producto al carrito, o suma uno si ya estaba. */
 export function agregarAlCarrito(
   carrito: ItemCarrito[],
   producto: ProductoPos,
@@ -62,10 +46,6 @@ export function agregarAlCarrito(
   return cambiarCantidad(carrito, producto.id, 1);
 }
 
-/**
- * Suma o resta unidades a una partida y recalcula su importe. Las partidas que
- * quedan en cero o menos salen del carrito.
- */
 export function cambiarCantidad(
   carrito: ItemCarrito[],
   productoId: string,
@@ -82,12 +62,10 @@ export function cambiarCantidad(
     .filter((item) => item.cantidad > 0);
 }
 
-/** Quita por completo la partida de un producto. */
 export function quitarDelCarrito(carrito: ItemCarrito[], productoId: string): ItemCarrito[] {
   return carrito.filter((item) => item.productoId !== productoId);
 }
 
-/** Unidades de un producto que ya están en el carrito. */
 export function cantidadEnCarrito(carrito: ItemCarrito[], productoId: string): number {
   return carrito.find((item) => item.productoId === productoId)?.cantidad ?? 0;
 }

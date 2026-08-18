@@ -8,7 +8,6 @@ import { RedisService } from "../redis/redis.service";
 import type { IniciarSesionDto } from "./dto/iniciar-sesion.dto";
 import { FirmadorToken } from "./firmador-token";
 
-/** Sesión iniciada: par de tokens, usuario y sus privilegios. */
 export interface SesionIniciada {
   token: string;
   refreshToken: string;
@@ -18,12 +17,10 @@ export interface SesionIniciada {
   privilegios: string[];
 }
 
-/** Convierte un token opaco en su hash (no se guarda el token en claro). */
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** Genera un refresh token opaco de alta entropía. */
 function nuevoTokenOpaco(): string {
   return randomBytes(48).toString("base64url");
 }
@@ -39,12 +36,10 @@ export class AuthService {
     private readonly redis: RedisService,
   ) {}
 
-  /** JWKS con la llave pública para que los demás servicios verifiquen (RS256). */
   obtenerJwks() {
     return this.firmador.obtenerJwks();
   }
 
-  /** Valida credenciales y abre una sesión nueva (RF-01). */
   async iniciarSesion(dto: IniciarSesionDto): Promise<SesionIniciada> {
     const usuario = await this.prisma.usuario.findUnique({ where: { correo: dto.correo } });
     const hashValido =
@@ -60,10 +55,6 @@ export class AuthService {
     return this.emitirSesion(usuario.id);
   }
 
-  /**
-   * Rota el refresh token: consume el actual y emite uno nuevo en su familia.
-   * Reusar un token ya consumido revoca toda la familia (posible robo).
-   */
   async refrescar(refreshToken: string): Promise<SesionIniciada> {
     const tokenHash = hashToken(refreshToken);
     const nuevoRefresh = nuevoTokenOpaco();
@@ -73,8 +64,6 @@ export class AuthService {
       if (!guardado) {
         throw new UnauthorizedException("Refresh inválido. Inicia sesión de nuevo.");
       }
-      // Consumir y crear el reemplazo en la misma transacción: si el token ya
-      // fue usado, el updateMany afecta 0 filas y se revoca la familia entera.
       const consumido = await tx.refreshToken.updateMany({
         where: { id: guardado.id, usadoEn: null, revocadoEn: null, expiraEn: { gt: new Date() } },
         data: { usadoEn: new Date() },
@@ -109,10 +98,6 @@ export class AuthService {
     return this.emitirSesion(rotado.usuarioId, rotado.familyId, nuevoRefresh);
   }
 
-  /**
-   * Cierra la sesión al instante: revoca el access token (denylist) y todos los
-   * refresh del usuario para que no puedan reanimar la sesión (RF: logout).
-   */
   async cerrarSesion(usuarioId: string, jti: string | undefined, expSeg: number | undefined) {
     if (jti) {
       const ttl = expSeg
@@ -127,7 +112,6 @@ export class AuthService {
     return { sesionCerrada: true };
   }
 
-  /** Usuario y privilegios del token vigente (para restaurar la sesión al recargar). */
   async perfil(usuarioId: string): Promise<{ usuario: UsuarioSesion; privilegios: string[] }> {
     const usuario = await this.prisma.usuario.findUnique({ where: { id: usuarioId } });
     if (!usuario || usuario.estado !== "ACTIVO") {
@@ -137,7 +121,6 @@ export class AuthService {
     return { usuario: this.aSesion(usuario), privilegios };
   }
 
-  /** Firma el access, persiste el refresh y arma la respuesta de sesión. */
   private async emitirSesion(
     usuarioId: string,
     familyId?: string,
@@ -158,7 +141,6 @@ export class AuthService {
     });
 
     const refreshToken = refreshRotado ?? nuevoTokenOpaco();
-    // En una rotación el refresh nuevo ya se creó dentro de la transacción.
     if (!refreshRotado) {
       await this.prisma.refreshToken.create({
         data: {

@@ -8,7 +8,6 @@ export interface EstadoChipProps {
   etiquetaInactivo?: string;
 }
 
-/** Chip de estado activo/inactivo reutilizable en tablas. */
 export function EstadoChip({
   activo,
   etiquetaActivo = "Activo",

@@ -54,7 +54,6 @@ export class AuthController {
         typeof payload.exp === "number" ? payload.exp : undefined,
       );
     } catch {
-      // Token ya inválido o expirado: el logout sigue siendo idempotente.
       return { sesionCerrada: true };
     }
   }

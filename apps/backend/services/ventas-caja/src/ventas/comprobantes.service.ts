@@ -5,16 +5,10 @@ import PDFDocument from "pdfkit";
 import { PrismaService } from "../prisma/prisma.service";
 import { redondearMoneda } from "../utils/calculos-venta";
 
-/** Formatea un monto como moneda mexicana para el comprobante. */
 function moneda(valor: number): string {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor);
 }
 
-/**
- * Genera el comprobante PDF no fiscal de una venta (RF-27, RF-28, RF-29):
- * folio, fecha, cliente, partidas con importes y totales. La facturación es
- * simulada, por lo que el documento lo declara explícitamente.
- */
 @Injectable()
 export class ComprobantesService {
   constructor(
@@ -48,7 +42,6 @@ export class ComprobantesService {
       doc.on("end", () => resolver(Buffer.concat(partes)));
       doc.on("error", rechazar);
 
-      // Encabezado
       doc.fontSize(20).font("Helvetica-Bold").text("SCIPOS · Sistema Comercial Integral");
       doc.moveDown(0.3);
       doc
@@ -58,7 +51,6 @@ export class ComprobantesService {
         .text("COMPROBANTE DE VENTA NO FISCAL (facturación simulada, sin validez tributaria)");
       doc.moveDown(1);
 
-      // Datos generales
       doc.fillColor("#000000").fontSize(11);
       doc.font("Helvetica-Bold").text("Folio: ", { continued: true });
       doc.font("Helvetica").text(venta.id);
@@ -80,7 +72,6 @@ export class ComprobantesService {
       doc.font("Helvetica").text(venta.estado === "CANCELADA" ? "CANCELADA" : "COMPLETA");
       doc.moveDown(1);
 
-      // Tabla de partidas
       const xProducto = 50;
       const xCantidad = 320;
       const xPrecio = 390;
@@ -116,7 +107,6 @@ export class ComprobantesService {
         .stroke();
       doc.moveDown(0.6);
 
-      // Totales
       const totales: Array<[string, string]> = [
         ["Subtotal", moneda(subtotal)],
         ["Descuento", moneda(venta.descuento)],

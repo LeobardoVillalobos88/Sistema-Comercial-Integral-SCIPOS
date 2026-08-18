@@ -16,7 +16,6 @@ import { CrearClienteDto } from "./dto/crear-cliente.dto";
 export class ClientesController {
   constructor(private readonly clientes: ClientesService) {}
 
-  // Declarado antes de las rutas con ":id" para que la ruta dinámica no lo capture.
   @Get("resumen")
   @RequiereIdentidad()
   @ApiOperation({ summary: "Resumen de clientes para el dashboard" })
