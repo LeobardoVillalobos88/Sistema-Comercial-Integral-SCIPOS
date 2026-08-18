@@ -94,8 +94,9 @@ const MATRIZ_ROLES: Record<string, string[]> = {
 };
 
 /**
- * Usuarios semilla, uno por rol, con IDs fijos y credenciales conocidas por el
- * equipo (documentadas en el README para poder iniciar sesión).
+ * Usuarios semilla con IDs fijos y credenciales conocidas por el equipo
+ * (documentadas en el README para poder iniciar sesión): uno por cada rol, más
+ * el asistente de voz que consume la skill de Alexa.
  *
  * En un despliegue expuesto conviene sustituir estas contraseñas: cada una se
  * puede sobreescribir con su variable de entorno sin tocar el código.
@@ -133,6 +134,47 @@ const USUARIOS_SEMILLA = [
     correo: "supervisor@scipos.com",
     contrasena: process.env.SEED_SUPERVISOR_PASSWORD || "Supervisor1234",
     rolClave: "SUPERVISOR",
+  },
+  {
+    id: "usuario-asistente-voz",
+    nombre: "Asistente de Voz",
+    correo: "asistente@scipos.com",
+    contrasena: process.env.SEED_ASISTENTE_PASSWORD || "Asistente1234",
+    rolClave: "VENDEDOR",
+  },
+];
+
+/**
+ * Ajustes de privilegios por usuario sobre lo que otorga su rol.
+ *
+ * El asistente de voz parte del rol Vendedor y termina con exactamente tres
+ * privilegios: consultar el catálogo, registrar productos y registrar entradas
+ * de inventario. Para llegar ahí se le conceden los dos que su rol no trae y se
+ * le revocan los nueve que sí trae pero que la skill nunca usa.
+ *
+ * Ajustar al usuario en vez de crear un rol nuevo mantiene intactos los cuatro
+ * roles del sistema, y deja unas credenciales cuyo daño posible, si se filtran,
+ * se limita al almacén: no pueden vender, ni cobrar, ni tocar clientes.
+ */
+const PRIVILEGIOS_POR_USUARIO: Array<{
+  usuarioId: string;
+  concedidos: string[];
+  revocados: string[];
+}> = [
+  {
+    usuarioId: "usuario-asistente-voz",
+    concedidos: ["productos:crear", "compras:ver"],
+    revocados: [
+      "clientes:ver",
+      "clientes:crear",
+      "clientes:editar",
+      "cotizaciones:ver",
+      "cotizaciones:crear",
+      "cotizaciones:enviar",
+      "cotizaciones:convertir",
+      "pos:ver",
+      "pos:vender",
+    ],
   },
 ];
 
@@ -182,10 +224,34 @@ async function main() {
     });
   }
 
+  for (const asignacion of PRIVILEGIOS_POR_USUARIO) {
+    const ajustes = [
+      ...asignacion.concedidos.map((clave) => ({ clave, concedido: true })),
+      ...asignacion.revocados.map((clave) => ({ clave, concedido: false })),
+    ];
+    for (const ajuste of ajustes) {
+      await prisma.usuarioPrivilegio.upsert({
+        where: {
+          usuarioId_privilegioClave: {
+            usuarioId: asignacion.usuarioId,
+            privilegioClave: ajuste.clave,
+          },
+        },
+        update: { concedido: ajuste.concedido },
+        create: {
+          usuarioId: asignacion.usuarioId,
+          privilegioClave: ajuste.clave,
+          concedido: ajuste.concedido,
+        },
+      });
+    }
+  }
+
   const totales = {
     privilegios: await prisma.privilegio.count(),
     roles: await prisma.rol.count(),
     usuarios: await prisma.usuario.count(),
+    concesiones: await prisma.usuarioPrivilegio.count(),
   };
   console.log("Semilla de seguridad aplicada:", totales);
   await prisma.$disconnect();
