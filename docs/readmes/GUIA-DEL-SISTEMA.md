@@ -85,6 +85,17 @@ Eliminar siempre pide confirmación.
 
 *(El Vendedor y el Cajero solo consultan el catálogo.)*
 
+**Aviso de inventario al entrar.** Cada vez que inicias sesión, si hay algo que
+atender, el sistema abre un aviso con dos secciones: los lotes **vencidos o por
+vencer** (con nombre, lote y fecha) y los productos **agotados o por agotarse**
+(con lo que queda). Lo ven los cuatro roles, porque todos consultan el catálogo.
+Aparece una sola vez por sesión: si recargas la página no vuelve a interrumpirte,
+pero si cierras sesión y entras otra vez, lo recibes de nuevo.
+
+Por omisión avisa cuando quedan **5 unidades o menos** y cuando faltan **2 semanas
+o menos** para la caducidad. Esos dos números se configuran en el servicio de
+productos y son los mismos que usan las cifras del dashboard.
+
 ### 👥 Clientes
 | Acción | Quién puede |
 |--------|-------------|
@@ -135,6 +146,15 @@ Eliminar siempre pide confirmación.
 - Al realizar acciones el sistema responde con **notificaciones** (arriba a la
   derecha): verde = éxito, azul = información, rojo = error; y pide **confirmación**
   antes de acciones destructivas.
+- Donde hay que elegir de una lista que puede crecer (clientes, productos), el
+  campo **se puede escribir además de desplegar**: teclea parte del nombre y la
+  lista se filtra sola. Se reconoce por la lupa en lugar de la flecha.
+- Si algo sale mal el sistema **explica qué pasó y ofrece por dónde salir**, en
+  lugar de dejar una pantalla en blanco: sesión terminada, pantalla sin acceso,
+  dirección que no existe, falla interna o servidor sin responder.
+- El **menú lateral** se abre y se cierra con la flecha de su orilla. Cerrado
+  deja solo los iconos y el monograma SC; al abrirse se desliza y aparecen los
+  nombres de los módulos.
 
 ---
 
