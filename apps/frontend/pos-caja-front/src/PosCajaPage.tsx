@@ -16,14 +16,10 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
-import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Table from "@mui/material/Table";
@@ -39,6 +35,7 @@ import {
   ETIQUETAS_ROL,
   EstadoChip,
   PageHeader,
+  SelectBuscable,
   SkeletonTabla,
   formatearMoneda,
   usePermisos,
@@ -665,22 +662,16 @@ export function PosCajaPage({
               >
                 <Stack spacing={2}>
                   {!esCompra ? (
-                    <FormControl fullWidth size="small">
-                      <InputLabel id="cliente-pos-label">Cliente</InputLabel>
-                      <Select
-                        labelId="cliente-pos-label"
-                        label="Cliente"
-                        value={clienteId}
-                        onChange={(event) => setClienteId(event.target.value)}
-                        disabled={clientes.length === 0 || procesando}
-                      >
-                        {clientes.map((cliente) => (
-                          <MenuItem key={cliente.id} value={cliente.id}>
-                            {cliente.nombre}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <SelectBuscable
+                      etiqueta="Cliente"
+                      opciones={clientes}
+                      valor={clientes.find((cliente) => cliente.id === clienteId) ?? null}
+                      onCambio={(cliente) => setClienteId(cliente?.id ?? "")}
+                      obtenerEtiqueta={(cliente) => cliente.nombre}
+                      obtenerClave={(cliente) => cliente.id}
+                      tamano="small"
+                      deshabilitado={clientes.length === 0 || procesando}
+                    />
                   ) : null}
 
                   {carrito.length === 0 ? (

@@ -193,6 +193,9 @@ Lo mínimo que debes cambiar:
 | `SEED_*_PASSWORD` | contraseñas propias para los cuatro usuarios |
 
 El resto de las variables ya viene con valores correctos para este montaje.
+Opcionalmente puedes ajustar `UMBRAL_STOCK_BAJO` (5) y `DIAS_AVISO_CADUCIDAD`
+(14), los umbrales del aviso de inventario que el sistema muestra al iniciar
+sesión; son también los que alimentan las cifras del dashboard.
 
 > Las contraseñas de los usuarios semilla están documentadas en el README y son
 > públicas. Si la instancia queda expuesta a internet y no defines las

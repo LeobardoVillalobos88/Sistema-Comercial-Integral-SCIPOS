@@ -1,10 +1,13 @@
 "use client";
 
+import { NAVEGACION } from "@/config/navegacion";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import { usePermisos } from "@scipos/frontend-commons";
+import { AlertasInventario } from "@scipos/productos-front";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PantallaError } from "./PantallaError";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -16,18 +19,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { usuario, cargandoPermisos } = usePermisos();
+  const { usuario, cargandoPermisos, can, sesionExpirada, apiInalcanzable } = usePermisos();
 
   const enLogin = pathname === "/login";
+  const enPantallaError = pathname.startsWith("/error");
+  const sinArmazon = enLogin || enPantallaError;
 
   useEffect(() => {
-    if (!cargandoPermisos && !usuario && !enLogin) {
+    if (!cargandoPermisos && !usuario && !sinArmazon && !sesionExpirada && !apiInalcanzable) {
       router.replace("/login");
     }
-  }, [cargandoPermisos, usuario, enLogin, router]);
+  }, [cargandoPermisos, usuario, sinArmazon, sesionExpirada, apiInalcanzable, router]);
 
-  if (enLogin) {
+  if (sinArmazon) {
     return <Box component="main">{children}</Box>;
+  }
+
+  if (apiInalcanzable) {
+    return <PantallaError codigo={503} />;
+  }
+
+  if (sesionExpirada) {
+    return <PantallaError codigo={401} />;
   }
 
   if (cargandoPermisos || !usuario) {
@@ -44,6 +57,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Box>
     );
   }
+
+  const moduloActual = NAVEGACION.find(
+    (item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`),
+  );
+  const sinPrivilegio = Boolean(moduloActual?.privilegio && !can(moduloActual.privilegio));
 
   const anchoActual = sidebarAbierto ? ANCHO_MENU_ABIERTO : ANCHO_MENU_CERRADO;
 
@@ -65,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           bgcolor: "background.default",
           transition: (theme) =>
             theme.transitions.create("width", {
-              easing: theme.transitions.easing.sharp,
+              easing: theme.transitions.easing.easeInOut,
               duration: theme.transitions.duration.enteringScreen,
             }),
         }}
@@ -75,7 +93,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Box sx={{ height: { xs: 52, md: 48 } }} />
         {/* Sin relleno propio: cada módulo trae su Container con el suyo, y
             sumarlos dejaba un hueco muerto sobre el rótulo. */}
-        <Box>{children}</Box>
+        <Box>
+          {sinPrivilegio ? <PantallaError codigo={403} enMarco /> : children}
+          {/* Avisa una vez por sesión de lo vencido y lo agotado. */}
+          <AlertasInventario onVerProductos={() => router.push("/productos")} />
+        </Box>
       </Box>
     </Box>
   );

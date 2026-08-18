@@ -42,3 +42,39 @@ export function alertaError(titulo: string, texto?: string): Promise<unknown> {
     confirmButtonColor: COLOR_PRIMARIO,
   });
 }
+
+const ESCAPES_HTML: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+export function escaparHtml(texto: string): string {
+  return texto.replace(/[&<>"']/g, (caracter) => ESCAPES_HTML[caracter] ?? caracter);
+}
+
+interface OpcionesAlertaDetallada {
+  titulo: string;
+  html: string;
+  confirmar?: string;
+  cancelar?: string;
+  icono?: "warning" | "info" | "question";
+  ancho?: string;
+}
+
+export function alertaDetallada(opciones: OpcionesAlertaDetallada): Promise<boolean> {
+  return Swal.fire({
+    title: opciones.titulo,
+    html: opciones.html,
+    icon: opciones.icono ?? "warning",
+    width: opciones.ancho ?? "40rem",
+    showCancelButton: Boolean(opciones.cancelar),
+    confirmButtonText: opciones.confirmar ?? "Entendido",
+    cancelButtonText: opciones.cancelar,
+    confirmButtonColor: COLOR_PRIMARIO,
+    cancelButtonColor: COLOR_CANCELAR,
+    reverseButtons: true,
+  }).then((resultado) => resultado.isConfirmed);
+}

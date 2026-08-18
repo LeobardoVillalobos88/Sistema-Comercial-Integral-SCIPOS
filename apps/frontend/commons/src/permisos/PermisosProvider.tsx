@@ -2,11 +2,14 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
+  ErrorApi,
   establecerRefreshToken,
   establecerToken,
   llamarApi,
   registrarRenovacionTokens,
+  registrarSesionExpirada,
 } from "../api";
+import { limpiarEstadoDeSesion } from "./estadoDeSesion";
 import { rolTienePrivilegio } from "./matriz";
 import type { PermisosContextValue, Privilegio, Rol, UsuarioSesion } from "./tipos";
 
@@ -57,6 +60,8 @@ export function PermisosProvider({
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [privilegios, setPrivilegios] = useState<Privilegio[] | null>(null);
   const [cargandoPermisos, setCargandoPermisos] = useState(true);
+  const [sesionExpirada, setSesionExpirada] = useState(false);
+  const [apiInalcanzable, setApiInalcanzable] = useState(false);
 
   const aplicarPerfil = useCallback((perfil: PerfilApi) => {
     setUsuario(perfil.usuario);
@@ -66,6 +71,7 @@ export function PermisosProvider({
 
   const limpiarSesion = useCallback(() => {
     persistirTokens(null, null);
+    limpiarEstadoDeSesion();
     setUsuario(null);
     setPrivilegios(null);
   }, []);
@@ -78,6 +84,8 @@ export function PermisosProvider({
       });
       persistirTokens(sesion.token, sesion.refreshToken);
       aplicarPerfil(sesion);
+      setSesionExpirada(false);
+      setApiInalcanzable(false);
     },
     [aplicarPerfil],
   );
@@ -85,6 +93,7 @@ export function PermisosProvider({
   const cerrarSesion = useCallback(() => {
     llamarApi("/seguridad/auth/logout", { method: "POST" }).catch(() => undefined);
     limpiarSesion();
+    setSesionExpirada(false);
   }, [limpiarSesion]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: el arranque de sesión debe correr una sola vez
@@ -93,6 +102,11 @@ export function PermisosProvider({
     registrarRenovacionTokens(({ token, refreshToken }) => {
       window.sessionStorage.setItem(CLAVE_TOKEN, token);
       window.sessionStorage.setItem(CLAVE_REFRESH, refreshToken);
+    });
+    registrarSesionExpirada(() => {
+      if (vigente) {
+        setSesionExpirada(true);
+      }
     });
 
     async function arrancar() {
@@ -107,8 +121,13 @@ export function PermisosProvider({
             aplicarPerfil(perfil);
           }
           return;
-        } catch {
-          if (vigente) {
+        } catch (error) {
+          if (!vigente) {
+            return;
+          }
+          if (error instanceof ErrorApi && error.esDeConectividad) {
+            setApiInalcanzable(true);
+          } else {
             limpiarSesion();
           }
         }
@@ -122,6 +141,7 @@ export function PermisosProvider({
     return () => {
       vigente = false;
       registrarRenovacionTokens(null);
+      registrarSesionExpirada(null);
     };
   }, []);
 
@@ -139,10 +159,22 @@ export function PermisosProvider({
       usuario,
       origenPermisos: privilegios ? "api" : "local",
       cargandoPermisos,
+      sesionExpirada,
+      apiInalcanzable,
       iniciarSesion,
       cerrarSesion,
     }),
-    [rol, can, usuario, privilegios, cargandoPermisos, iniciarSesion, cerrarSesion],
+    [
+      rol,
+      can,
+      usuario,
+      privilegios,
+      cargandoPermisos,
+      sesionExpirada,
+      apiInalcanzable,
+      iniciarSesion,
+      cerrarSesion,
+    ],
   );
 
   return <PermisosContext.Provider value={value}>{children}</PermisosContext.Provider>;

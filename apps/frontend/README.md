@@ -110,6 +110,57 @@ if (await confirmar({ titulo: "¿Eliminar registro?" })) { /* ... */ }
 Para estados de carga está `SkeletonTabla`: renderízalo mientras la vista espera
 sus datos (mientras la petición al backend está en curso).
 
+Cuando el aviso trae una lista y no cabe en una línea está `alertaDetallada`. Su
+cuerpo es HTML, así que **todo dato que venga de la base pasa antes por
+`escaparHtml`**: sin eso, un nombre de producto con `<` rompería el modal y sería
+una vía de inyección.
+
+```tsx
+import { alertaDetallada, escaparHtml } from "@scipos/frontend-commons/feedback";
+
+await alertaDetallada({
+  titulo: "Revisa tu inventario",
+  html: `<ul><li>${escaparHtml(producto.nombre)}</li></ul>`,
+  confirmar: "Ir a Productos",
+  cancelar: "Entendido",
+});
+```
+
+### Campos de selección
+
+Cuando la lista de opciones crece con el catálogo —clientes, productos, cualquier
+cosa que pueda llegar a cien— usa `SelectBuscable` en vez de un `Select`: además
+de desplegarse, se puede escribir para filtrar, y lleva lupa en lugar de flecha
+para que se note.
+
+```tsx
+<SelectBuscable
+  etiqueta="Cliente"
+  opciones={clientes}
+  valor={cliente}
+  onCambio={setCliente}
+  obtenerEtiqueta={(c) => c.nombre}
+  obtenerClave={(c) => c.id}
+/>
+```
+
+Pasa siempre `obtenerClave`: al recargar la lista desde la API llegan objetos
+nuevos, y comparar por identidad dejaría el campo en blanco.
+
+Las listas cortas y fijas (estado, tipo, rol, tipo de movimiento) se quedan como
+`Select` normal a propósito: buscar entre dos opciones estorba.
+
+### Pantallas de error
+
+`PaginaError` pinta las fallas de navegación a página completa, y `CONTENIDO_ERROR`
+guarda el texto de cada código en un solo lugar. El web-shell las cablea: 404 por
+`not-found.tsx`, 500 por la frontera de error, 403 cuando entras por URL a un
+módulo sin privilegio, 401 cuando la sesión se vence y 503 cuando el servidor no
+contesta.
+
+Un error a media tarea dentro de un módulo **no** usa estas pantallas: eso es un
+toast. Sacar al usuario de lo que estaba haciendo sería peor que el error.
+
 ### Convención de acciones en tablas
 
 Orden fijo de los botones de acción: **Ver → Activar/Desactivar → Editar →

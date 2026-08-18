@@ -17,7 +17,7 @@ x-backend: &backend
   build:
     context: ../../..
     dockerfile: infra/docker/Dockerfile.backend
-  image: scipos-backend:1.0.0
+  image: scipos-backend:1.1.0
   restart: unless-stopped
   depends_on:
     db:
@@ -115,6 +115,10 @@ services:
       <<: *backend-env
       PORT: 4002
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=productos
+      # Umbrales de las alertas de inventario. Si se dejan vacíos, el servicio
+      # usa sus valores por defecto (5 de existencia, 14 días de anticipación).
+      UMBRAL_STOCK_BAJO: ${UMBRAL_STOCK_BAJO:-5}
+      DIAS_AVISO_CADUCIDAD: ${DIAS_AVISO_CADUCIDAD:-14}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
@@ -213,7 +217,7 @@ services:
       args:
         # Ruta relativa: la interfaz y la API comparten origen tras el proxy.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
-    image: scipos-web:1.0.0
+    image: scipos-web:1.1.0
     container_name: scipos-web
     restart: unless-stopped
     environment:

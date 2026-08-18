@@ -6,14 +6,14 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisService } from "../redis/redis.service";
+import { calcularAlertas } from "./alertas-inventario";
+import { configuracionInventario } from "./configuracion-inventario";
 import type { ActualizarProductoDto } from "./dto/actualizar-producto.dto";
 import type { AjustarStockDto } from "./dto/ajustar-stock.dto";
 import type { CambiarEstadoProductoDto } from "./dto/cambiar-estado-producto.dto";
 import type { CrearProductoDto } from "./dto/crear-producto.dto";
 
 const CLAVE_CACHE_LISTA = "productos:lista";
-const UMBRAL_STOCK_BAJO = 10;
-const DIAS_PROXIMO_A_CADUCAR = 30;
 
 export interface FiltrosListado {
   estado?: "ACTIVO" | "INACTIVO";
@@ -125,14 +125,36 @@ export class ProductosService {
     return actualizado;
   }
 
+  async alertas() {
+    const configuracion = configuracionInventario();
+    const productos = await this.prisma.producto.findMany({
+      where: { activo: true },
+      select: {
+        id: true,
+        nombre: true,
+        lote: true,
+        tipo: true,
+        existencia: true,
+        fechaCaducidad: true,
+        activo: true,
+      },
+    });
+    return calcularAlertas(productos, configuracion);
+  }
+
   async resumen() {
+    const configuracion = configuracionInventario();
     const limiteCaducidad = new Date();
-    limiteCaducidad.setDate(limiteCaducidad.getDate() + DIAS_PROXIMO_A_CADUCAR);
+    limiteCaducidad.setDate(limiteCaducidad.getDate() + configuracion.diasAvisoCaducidad);
 
     const [productosActivos, stockBajo, proximosACaducar] = await Promise.all([
       this.prisma.producto.count({ where: { activo: true } }),
       this.prisma.producto.count({
-        where: { activo: true, tipo: "PRODUCTO", existencia: { lte: UMBRAL_STOCK_BAJO } },
+        where: {
+          activo: true,
+          tipo: "PRODUCTO",
+          existencia: { lte: configuracion.umbralStockBajo },
+        },
       }),
       this.prisma.producto.count({
         where: {

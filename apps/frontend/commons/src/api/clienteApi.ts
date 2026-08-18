@@ -19,14 +19,25 @@ export function registrarRenovacionTokens(
   alRenovarTokens = callback;
 }
 
+const ESTATUS_SIN_SERVICIO = new Set([502, 503, 504]);
+const MENSAJE_SIN_CONEXION = "No se pudo contactar al servidor.";
+
 export class ErrorApi extends Error {
   readonly estatus: number;
+  readonly esDeConectividad: boolean;
 
-  constructor(estatus: number, mensaje: string) {
+  constructor(estatus: number, mensaje: string, esDeConectividad = false) {
     super(mensaje);
     this.name = "ErrorApi";
     this.estatus = estatus;
+    this.esDeConectividad = esDeConectividad;
   }
+}
+
+let alExpirarSesion: (() => void) | null = null;
+
+export function registrarSesionExpirada(callback: (() => void) | null): void {
+  alExpirarSesion = callback;
 }
 
 interface CuerpoErrorBackend {
@@ -69,7 +80,11 @@ async function ejecutar(ruta: string, init: RequestInit): Promise<Response> {
   if (tokenSesion) {
     encabezados.set("Authorization", `Bearer ${tokenSesion}`);
   }
-  return fetch(`${URL_API}${ruta}`, { ...init, headers: encabezados });
+  try {
+    return await fetch(`${URL_API}${ruta}`, { ...init, headers: encabezados });
+  } catch {
+    throw new ErrorApi(503, MENSAJE_SIN_CONEXION, true);
+  }
 }
 
 export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T> {
@@ -79,8 +94,13 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
 
   let respuesta = await ejecutar(ruta, opciones);
   const esRutaAuth = ruta.startsWith("/seguridad/auth/");
-  if (respuesta.status === 401 && !esRutaAuth && (await refrescarSesion())) {
-    respuesta = await ejecutar(ruta, opciones);
+  if (respuesta.status === 401 && !esRutaAuth) {
+    const habiaSesion = Boolean(tokenSesion || refreshTokenSesion);
+    if (await refrescarSesion()) {
+      respuesta = await ejecutar(ruta, opciones);
+    } else if (habiaSesion) {
+      alExpirarSesion?.();
+    }
   }
 
   const texto = await respuesta.text();
@@ -90,7 +110,7 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
     const cuerpo = (datos ?? {}) as CuerpoErrorBackend;
     const crudo = cuerpo.mensaje ?? cuerpo.message ?? `Error ${respuesta.status} de la API.`;
     const mensaje = Array.isArray(crudo) ? crudo.join(" ") : crudo;
-    throw new ErrorApi(respuesta.status, mensaje);
+    throw new ErrorApi(respuesta.status, mensaje, ESTATUS_SIN_SERVICIO.has(respuesta.status));
   }
   return datos as T;
 }
@@ -101,7 +121,11 @@ export async function descargarArchivo(ruta: string): Promise<Blob> {
     respuesta = await ejecutar(ruta, { method: "GET" });
   }
   if (!respuesta.ok) {
-    throw new ErrorApi(respuesta.status, `No se pudo descargar el archivo (${respuesta.status}).`);
+    throw new ErrorApi(
+      respuesta.status,
+      `No se pudo descargar el archivo (${respuesta.status}).`,
+      ESTATUS_SIN_SERVICIO.has(respuesta.status),
+    );
   }
   return respuesta.blob();
 }

@@ -17,6 +17,8 @@ export interface PermisosContextValue {
   usuario: UsuarioSesion | null;
   origenPermisos: "api" | "local";
   cargandoPermisos: boolean;
+  sesionExpirada: boolean;
+  apiInalcanzable: boolean;
   iniciarSesion: (correo: string, contrasena: string) => Promise<void>;
   cerrarSesion: () => void;
 }
