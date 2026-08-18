@@ -6,16 +6,14 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisService } from "../redis/redis.service";
+import { calcularAlertas } from "./alertas-inventario";
+import { configuracionInventario } from "./configuracion-inventario";
 import type { ActualizarProductoDto } from "./dto/actualizar-producto.dto";
 import type { AjustarStockDto } from "./dto/ajustar-stock.dto";
 import type { CambiarEstadoProductoDto } from "./dto/cambiar-estado-producto.dto";
 import type { CrearProductoDto } from "./dto/crear-producto.dto";
 
 const CLAVE_CACHE_LISTA = "productos:lista";
-/** Bajo este umbral de existencia, un producto cuenta como "stock bajo" en el resumen. */
-const UMBRAL_STOCK_BAJO = 10;
-/** Ventana de días para considerar un lote "próximo a caducar" en el resumen. */
-const DIAS_PROXIMO_A_CADUCAR = 30;
 
 export interface FiltrosListado {
   estado?: "ACTIVO" | "INACTIVO";
@@ -128,16 +126,46 @@ export class ProductosService {
     return actualizado;
   }
 
+  /**
+   * Alertas de inventario (caducidad y existencias) para avisar al operador al
+   * entrar al sistema. Trae el catálogo activo y delega la clasificación al
+   * módulo puro, que es donde vive —y se prueba— la regla de qué es urgente.
+   */
+  async alertas() {
+    const configuracion = configuracionInventario();
+    const productos = await this.prisma.producto.findMany({
+      where: { activo: true },
+      select: {
+        id: true,
+        nombre: true,
+        lote: true,
+        tipo: true,
+        existencia: true,
+        fechaCaducidad: true,
+        activo: true,
+      },
+    });
+    return calcularAlertas(productos, configuracion);
+  }
+
   /** Resumen para el dashboard: productos activos, stock bajo y próximos a caducar. */
   async resumen() {
+    const configuracion = configuracionInventario();
     const limiteCaducidad = new Date();
-    limiteCaducidad.setDate(limiteCaducidad.getDate() + DIAS_PROXIMO_A_CADUCAR);
+    limiteCaducidad.setDate(limiteCaducidad.getDate() + configuracion.diasAvisoCaducidad);
 
     const [productosActivos, stockBajo, proximosACaducar] = await Promise.all([
       this.prisma.producto.count({ where: { activo: true } }),
       this.prisma.producto.count({
-        where: { activo: true, tipo: "PRODUCTO", existencia: { lte: UMBRAL_STOCK_BAJO } },
+        where: {
+          activo: true,
+          tipo: "PRODUCTO",
+          existencia: { lte: configuracion.umbralStockBajo },
+        },
       }),
+      // El dashboard rotula esta cifra como "por caducar", así que cuenta solo
+      // lo que aún no vence. Las alertas sí incluyen lo ya vencido: son avisos
+      // para actuar, no un conteo de lo que viene. La diferencia es a propósito.
       this.prisma.producto.count({
         where: {
           activo: true,

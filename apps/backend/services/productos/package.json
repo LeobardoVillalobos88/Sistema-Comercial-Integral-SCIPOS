@@ -14,7 +14,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "preparar": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "test": "tsx --test src/productos/*.spec.ts",
+    "test:watch": "tsx --test --watch src/productos/*.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

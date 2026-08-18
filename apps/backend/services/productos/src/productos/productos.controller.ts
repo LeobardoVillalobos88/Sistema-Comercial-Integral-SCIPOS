@@ -20,6 +20,19 @@ export class ProductosController {
     return this.productos.resumen();
   }
 
+  // Debe declararse antes de @Get(":id") o la ruta la absorbería como un id.
+  @Get("alertas")
+  @RequierePrivilegio("productos:ver")
+  @ApiOperation({
+    summary: "Alertas de caducidad y de existencias del inventario",
+    description:
+      "Productos activos vencidos o por vencer, y agotados o por agotarse. Los umbrales " +
+      "se configuran por entorno (UMBRAL_STOCK_BAJO, DIAS_AVISO_CADUCIDAD).",
+  })
+  alertas() {
+    return this.productos.alertas();
+  }
+
   @Get()
   @RequierePrivilegio("productos:ver")
   @ApiOperation({ summary: "Listar productos y servicios, con filtros opcionales" })
