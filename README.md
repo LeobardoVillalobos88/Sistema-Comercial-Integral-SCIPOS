@@ -114,6 +114,20 @@ pnpm dev
 | Servicio de ventas POS y caja | http://localhost:4005 |
 | Servicio de reportes y utilidad | http://localhost:4006 |
 
+### La skill de Alexa no se levanta aquí
+
+El módulo `apps/alexa-skill` no tiene puerto ni proceso local: el código vive en
+la consola de Alexa Developer y consume la API a través de internet, así que
+necesita una instancia desplegada y alcanzable, no `localhost`. Lo que sí corre
+en local son sus pruebas, que no tocan la red:
+
+```bash
+pnpm --filter @scipos/alexa-skill test
+```
+
+El procedimiento de alta en la consola, las variables de entorno y la lista de
+comprobación están en [`apps/alexa-skill/README.md`](apps/alexa-skill/README.md).
+
 ## 5. Verificar que todo funciona
 
 1. **Salud del backend:** http://localhost:4000/health debe responder `"status": "ok"`
@@ -185,6 +199,14 @@ descuento mayor al subtotal se recorta en lugar de producir un total negativo.
 | `vendedor@scipos.com` | `Vendedor1234` | VENDEDOR |
 | `cajero@scipos.com` | `Cajero1234` | CAJERO |
 | `supervisor@scipos.com` | `Supervisor1234` | SUPERVISOR |
+| `asistente@scipos.com` | `Asistente1234` | VENDEDOR (usuario de la skill de Alexa) |
+
+El asistente no es una cuenta para personas: es con la que la skill de Alexa
+consume la API. Parte del rol Vendedor y termina con **tres privilegios
+efectivos** —`productos:ver`, `productos:crear` y `compras:ver`— porque la
+semilla le concede los dos que su rol no trae y le revoca los nueve que sí trae
+pero que la skill no usa. Es un buen sitio para ver el sistema de privilegios
+dinámicos por usuario funcionando de verdad.
 
 Con estas cuentas inicias sesión en `/login`. Desde el primer clic todo el
 tráfico viaja con token RS256 (el access se renueva solo con el refresh token
