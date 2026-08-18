@@ -5,6 +5,7 @@ const {
   buscarProducto,
   describirAlertas,
   esOperacionRepetida,
+  interpretarTipoRevision,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
@@ -156,6 +157,44 @@ describe("validarPrecios", () => {
 
   it("rechaza vender exactamente al costo", () => {
     assert.notEqual(validarPrecios(20, 20), null);
+  });
+});
+
+describe("interpretarTipoRevision", () => {
+  it("reconoce el valor canonico", () => {
+    assert.equal(interpretarTipoRevision("caducidad"), "caducidad");
+    assert.equal(interpretarTipoRevision("existencias"), "existencias");
+    assert.equal(interpretarTipoRevision("todo"), "todo");
+  });
+
+  it("reconoce los sinonimos de caducidad, que es lo que devuelve el slot", () => {
+    for (const dicho of [
+      "caducidades",
+      "vencimiento",
+      "vencimientos",
+      "lo que se vence",
+      "fechas",
+    ]) {
+      assert.equal(interpretarTipoRevision(dicho), "caducidad", `fallo con "${dicho}"`);
+    }
+  });
+
+  it("reconoce los sinonimos de existencias", () => {
+    for (const dicho of ["existencia", "stock", "lo que se acaba", "inventario bajo", "piezas"]) {
+      assert.equal(interpretarTipoRevision(dicho), "existencias", `fallo con "${dicho}"`);
+    }
+  });
+
+  it("reconoce los sinonimos de todo", () => {
+    for (const dicho of ["todas", "completo", "general", "todas las alertas", "ambas"]) {
+      assert.equal(interpretarTipoRevision(dicho), "todo", `fallo con "${dicho}"`);
+    }
+  });
+
+  it("cae en todo cuando no entiende o no llega nada", () => {
+    assert.equal(interpretarTipoRevision(""), "todo");
+    assert.equal(interpretarTipoRevision(undefined), "todo");
+    assert.equal(interpretarTipoRevision("cualquier cosa"), "todo");
   });
 });
 

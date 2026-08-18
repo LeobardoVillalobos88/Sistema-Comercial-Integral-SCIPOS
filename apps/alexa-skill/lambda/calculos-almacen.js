@@ -112,6 +112,20 @@ function validarPrecios(precioCompra, precioVenta) {
   return `El precio de venta debe ser mayor al de compra, que es de ${precioCompra} pesos. ¿En cuánto lo vendes?`;
 }
 
+/**
+ * Traduce lo que dijo la persona al grupo de alertas que quiere revisar.
+ *
+ * Hace falta porque el slot entrega la frase tal como se escuchó y no el valor
+ * canónico del tipo: quien dice "vencimientos" recibe "vencimientos", no
+ * "caducidad". Compararlo contra el valor exacto dejaría fuera a los sinónimos.
+ */
+function interpretarTipoRevision(valor) {
+  const dicho = normalizarTexto(valor);
+  if (/caduc|venc|fecha/.test(dicho)) return "caducidad";
+  if (/exist|stock|acab|agot|pieza|bajo/.test(dicho)) return "existencias";
+  return "todo";
+}
+
 /** Cómo se dice cuántos días le quedan a un lote. */
 function frasePlazo(diasRestantes) {
   if (diasRestantes < 0) {
@@ -177,6 +191,7 @@ module.exports = {
   buscarProducto,
   describirAlertas,
   esOperacionRepetida,
+  interpretarTipoRevision,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
