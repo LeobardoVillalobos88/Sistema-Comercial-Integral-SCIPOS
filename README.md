@@ -61,6 +61,17 @@ Los valores por defecto ya apuntan a la infraestructura local (Postgres y Redis 
 paso 3), no hay que editar nada. El frontend no necesita `.env`: usa
 `http://localhost:4000/api` por defecto.
 
+El de productos trae además los dos umbrales con los que el sistema avisa del
+inventario al entrar. Si no los defines, usa estos mismos valores:
+
+| Variable | Por defecto | Qué controla |
+|---|---|---|
+| `UMBRAL_STOCK_BAJO` | `5` | Existencia igual o menor cuenta como stock bajo; en cero, agotado |
+| `DIAS_AVISO_CADUCIDAD` | `14` | Días de anticipación del aviso de caducidad. Lo ya vencido se reporta siempre |
+
+Son también los umbrales de las cifras del dashboard, para que el aviso y el
+tablero no digan cosas distintas del mismo catálogo.
+
 ## 3. Infraestructura + base de datos (un solo comando)
 
 ```bash
@@ -118,6 +129,12 @@ pnpm dev
    `/compras`, `/caja`, `/reportes` y `/usuarios`) y las tarjetas del dashboard
    operan contra la API real. Los únicos datos simulados que quedan son el
    respaldo de `/inicio` y del dashboard cuando su servicio está caído.
+   Al entrar aparece, una sola vez por sesión, el aviso de inventario con lo
+   vencido o por vencer y lo agotado o por agotarse (si hay algo que avisar).
+   Cierra sesión y vuelve a entrar para verlo de nuevo; recargar no lo repite.
+   Para probar las pantallas de error, abre una dirección inventada como
+   http://localhost:3001/nada (404) o entra con el cajero a
+   http://localhost:3001/reportes (403, porque su rol no tiene `reportes:ver`).
 4. **La autenticación y el guard en acción** (desde otra terminal):
 
 ```bash

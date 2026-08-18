@@ -24,6 +24,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import type { Theme } from "@mui/material/styles";
 import { ESMALTE, SOBRE_ESMALTE, sombraRotulo, usePermisos } from "@scipos/frontend-commons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,6 +41,24 @@ const ICONOS = {
   assessment: AssessmentIcon,
   manage_accounts: ManageAccountsIcon,
 } as const;
+
+/**
+ * Geometría del carril: el ancho del muro cerrado. Los iconos y el monograma se
+ * plantan aquí y no se mueven nunca; abrir el menú solo descubre lo que hay a
+ * su derecha. Por eso el padding, el tamaño del icono y su columna son fijos:
+ * en cuanto uno de esos valores depende del estado, el panel deja de deslizarse
+ * y empieza a reacomodarse.
+ */
+const SANGRIA = 2;
+const COLUMNA_ICONO = 40;
+const SEPARACION_TEXTO = 2;
+
+/** Una sola curva y una sola duración para todo lo que se mueve al abrir. */
+const transicionMenu = (theme: Theme, propiedades: string | string[]) =>
+  theme.transitions.create(propiedades, {
+    easing: theme.transitions.easing.easeInOut,
+    duration: theme.transitions.duration.enteringScreen,
+  });
 
 interface SidebarProps {
   ancho: number;
@@ -64,6 +83,13 @@ function Contenido({
   // Solo se muestran los módulos cuyo privilegio tiene el rol actual.
   const itemsVisibles = NAVEGACION.filter((item) => !item.privilegio || can(item.privilegio));
 
+  /** Lo que se recorta al cerrar: el texto sigue montado, solo deja de caber. */
+  const revelado = {
+    whiteSpace: "nowrap" as const,
+    opacity: sidebarAbierto ? 1 : 0,
+    transition: (theme: Theme) => transicionMenu(theme, "opacity"),
+  };
+
   return (
     <Box
       sx={{
@@ -81,6 +107,7 @@ function Contenido({
         <IconButton
           onClick={onToggleSidebar}
           size="small"
+          aria-label={sidebarAbierto ? "Contraer el menú" : "Expandir el menú"}
           sx={{
             position: "absolute",
             top: "50%",
@@ -103,46 +130,52 @@ function Contenido({
         </IconButton>
       )}
 
-      {/* El sistema se identifica como SCIPOS; LOBOSOFT firma al pie. */}
+      {/* El rótulo no se reemplaza, se revela: SC está siempre plantado en el
+          carril e IPOS crece a su derecha. Así las dos primeras letras no se
+          mueven ni cambian de tamaño al abrir. */}
       <Box
         sx={{
-          px: 2,
-          py: 2.25,
+          px: SANGRIA,
           minHeight: 76,
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: sidebarAbierto ? "flex-start" : "center",
+          alignItems: "center",
+          overflow: "hidden",
           borderBottom: `1px solid ${SOBRE_ESMALTE.divisor}`,
         }}
       >
         <Typography
           component="p"
           sx={{
+            display: "flex",
             fontWeight: 900,
+            fontSize: 26,
             lineHeight: 1,
             letterSpacing: "-0.03em",
-            fontSize: sidebarAbierto ? 26 : 17,
             textShadow: sombraRotulo(),
           }}
         >
-          {sidebarAbierto ? "SCIPOS" : "SC"}
-        </Typography>
-        {sidebarAbierto && (
-          <Typography
-            variant="overline"
-            sx={{ mt: 0.75, fontSize: 9, color: SOBRE_ESMALTE.textoTenue, lineHeight: 1.2 }}
+          <Box component="span">SC</Box>
+          <Box
+            component="span"
+            sx={{
+              maxWidth: sidebarAbierto ? 160 : 0,
+              overflow: "hidden",
+              ...revelado,
+              transition: (theme) => transicionMenu(theme, ["max-width", "opacity"]),
+            }}
           >
-            Sistema Comercial
-          </Typography>
-        )}
+            IPOS
+          </Box>
+        </Typography>
       </Box>
+
       <List
         sx={{
-          px: 1,
+          px: 0,
           mt: 1,
           flexGrow: 1,
           overflowY: "auto",
+          overflowX: "hidden",
           "&::-webkit-scrollbar": { display: "none" },
           msOverflowStyle: "none",
           scrollbarWidth: "none",
@@ -161,8 +194,10 @@ function Contenido({
                 sx={{
                   borderRadius: 0,
                   mb: 0.25,
-                  justifyContent: sidebarAbierto ? "initial" : "center",
-                  px: sidebarAbierto ? 2 : 1,
+                  px: SANGRIA,
+                  // El renglón mide lo que mide el muro: lo que no cabe se
+                  // recorta aquí, sin empujar ni reordenar nada.
+                  overflow: "hidden",
                   // Etiqueta de rótulo: versalitas espaciadas.
                   "& .MuiListItemText-primary": {
                     fontSize: "0.6875rem",
@@ -185,21 +220,16 @@ function Contenido({
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 40,
-                    mr: sidebarAbierto ? 2 : "auto",
+                    minWidth: COLUMNA_ICONO,
+                    mr: SEPARACION_TEXTO,
+                    flexShrink: 0,
                     justifyContent: "center",
                     color: "inherit",
                   }}
                 >
                   <Icono fontSize="small" />
                 </ListItemIcon>
-                <ListItemText
-                  primary={item.etiqueta}
-                  sx={{
-                    opacity: sidebarAbierto ? 1 : 0,
-                    display: sidebarAbierto ? "block" : "none",
-                  }}
-                />
+                <ListItemText primary={item.etiqueta} sx={revelado} />
               </ListItemButton>
             </Tooltip>
           );
@@ -208,35 +238,44 @@ function Contenido({
 
       <Divider sx={{ borderColor: SOBRE_ESMALTE.divisor }} />
 
-      {/* Cerrar sesión, y la firma del equipo al pie del muro. */}
+      {/* Cerrar sesión, y la firma del equipo al pie del muro. Comparten la
+          retícula de los renglones: el icono cae en la columna del carril. */}
       <Box
         sx={{
-          px: 2,
+          px: SANGRIA,
           py: 1.5,
           display: "flex",
           alignItems: "center",
-          justifyContent: sidebarAbierto ? "space-between" : "center",
-          gap: 1,
+          overflow: "hidden",
         }}
       >
-        {sidebarAbierto && (
-          <Typography
-            variant="overline"
-            sx={{ fontSize: 8.5, color: SOBRE_ESMALTE.textoFirma, lineHeight: 1 }}
-          >
-            LOBOSOFT
-          </Typography>
-        )}
-        <Tooltip title="Cerrar sesión" placement={sidebarAbierto ? "top" : "right"}>
-          <IconButton
-            color="inherit"
-            onClick={cerrarSesion}
-            size="small"
-            sx={{ color: SOBRE_ESMALTE.textoTenue, "&:hover": { color: ESMALTE.ocre } }}
-          >
-            <LogoutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Box
+          sx={{
+            width: COLUMNA_ICONO,
+            mr: SEPARACION_TEXTO,
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Tooltip title="Cerrar sesión" placement="right">
+            <IconButton
+              color="inherit"
+              onClick={cerrarSesion}
+              size="small"
+              aria-label="Cerrar sesión"
+              sx={{ color: SOBRE_ESMALTE.textoTenue, "&:hover": { color: ESMALTE.ocre } }}
+            >
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Typography
+          variant="overline"
+          sx={{ fontSize: 8.5, color: SOBRE_ESMALTE.textoFirma, lineHeight: 1, ...revelado }}
+        >
+          LOBOSOFT
+        </Typography>
       </Box>
     </Box>
   );
@@ -256,11 +295,7 @@ export function Sidebar({
       sx={{
         width: { md: ancho },
         flexShrink: { md: 0 },
-        transition: (theme) =>
-          theme.transitions.create("width", {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
+        transition: (theme) => transicionMenu(theme, "width"),
       }}
     >
       {/* Móvil */}
@@ -288,12 +323,10 @@ export function Sidebar({
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: ancho,
-            overflow: "visible", // Permitir que la flechita sobresalga
-            transition: (theme) =>
-              theme.transitions.create("width", {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
+            // El panel no recorta: si lo hiciera se comería la flechita que
+            // sobresale. Cada renglón recorta su propio texto.
+            overflow: "visible",
+            transition: (theme) => transicionMenu(theme, "width"),
           },
         }}
         PaperProps={{

@@ -6,4 +6,5 @@ export {
   establecerToken,
   llamarApi,
   registrarRenovacionTokens,
+  registrarSesionExpirada,
 } from "./clienteApi";

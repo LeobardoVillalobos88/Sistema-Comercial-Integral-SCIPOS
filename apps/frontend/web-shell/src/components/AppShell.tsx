@@ -1,10 +1,13 @@
 "use client";
 
+import { NAVEGACION } from "@/config/navegacion";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import { usePermisos } from "@scipos/frontend-commons";
+import { AlertasInventario } from "@scipos/productos-front";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PantallaError } from "./PantallaError";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -15,25 +18,43 @@ const ANCHO_MENU_CERRADO = 80;
  * Armazón principal de la aplicación: barra superior + menú lateral + área de
  * contenido donde se renderiza cada módulo. Exige sesión: sin usuario redirige
  * al login (el backend valida cada acción de todos modos).
+ *
+ * También es donde se decide qué pantalla de error toca: sesión vencida,
+ * servidor caído o módulo sin privilegio.
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { usuario, cargandoPermisos } = usePermisos();
+  const { usuario, cargandoPermisos, can, sesionExpirada, apiInalcanzable } = usePermisos();
 
   const enLogin = pathname === "/login";
+  // Las pantallas de error se pintan solas. Si pasaran por el armazón, un 401
+  // dispararía la redirección al login antes de que alguien alcance a leerlo.
+  const enPantallaError = pathname.startsWith("/error");
+  const sinArmazon = enLogin || enPantallaError;
 
   useEffect(() => {
-    if (!cargandoPermisos && !usuario && !enLogin) {
+    // Sin sesión se va al login, salvo que haya un error que explicar primero.
+    if (!cargandoPermisos && !usuario && !sinArmazon && !sesionExpirada && !apiInalcanzable) {
       router.replace("/login");
     }
-  }, [cargandoPermisos, usuario, enLogin, router]);
+  }, [cargandoPermisos, usuario, sinArmazon, sesionExpirada, apiInalcanzable, router]);
 
-  // El login se pinta sin armazón.
-  if (enLogin) {
+  if (sinArmazon) {
     return <Box component="main">{children}</Box>;
+  }
+
+  // El servidor no contestó al restaurar la sesión: los tokens siguen guardados,
+  // así que reintentar puede bastar.
+  if (apiInalcanzable) {
+    return <PantallaError codigo={503} />;
+  }
+
+  // La sesión murió a media faena. Se explica, en vez de rebotar en silencio.
+  if (sesionExpirada) {
+    return <PantallaError codigo={401} />;
   }
 
   // Mientras se resuelve la sesión (o se redirige al login) no mostramos el
@@ -52,6 +73,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Box>
     );
   }
+
+  // Entrar por dirección directa a un módulo ajeno: el menú ya lo esconde, pero
+  // la URL no lo impedía. El backend rechaza la acción de todos modos; esto es
+  // para que el usuario lea por qué y no se tope con una pantalla vacía.
+  const moduloActual = NAVEGACION.find(
+    (item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`),
+  );
+  const sinPrivilegio = Boolean(moduloActual?.privilegio && !can(moduloActual.privilegio));
 
   const anchoActual = sidebarAbierto ? ANCHO_MENU_ABIERTO : ANCHO_MENU_CERRADO;
 
@@ -73,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           bgcolor: "background.default",
           transition: (theme) =>
             theme.transitions.create("width", {
-              easing: theme.transitions.easing.sharp,
+              easing: theme.transitions.easing.easeInOut,
               duration: theme.transitions.duration.enteringScreen,
             }),
         }}
@@ -83,7 +112,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Box sx={{ height: { xs: 52, md: 48 } }} />
         {/* Sin relleno propio: cada módulo trae su Container con el suyo, y
             sumarlos dejaba un hueco muerto sobre el rótulo. */}
-        <Box>{children}</Box>
+        <Box>
+          {sinPrivilegio ? <PantallaError codigo={403} enMarco /> : children}
+          {/* Avisa una vez por sesión de lo vencido y lo agotado. */}
+          <AlertasInventario onVerProductos={() => router.push("/productos")} />
+        </Box>
       </Box>
     </Box>
   );

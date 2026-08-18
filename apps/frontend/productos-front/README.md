@@ -26,6 +26,16 @@ pnpm --filter @scipos/productos-front dev   # http://localhost:3003
   `apps/backend/services/productos`, así que ocultar el botón no basta: la
   API responde 401/403 igual si se fuerza la petición.
 - Notificaciones toast al guardar, cambiar estado o si la API falla.
+- **`AlertasInventario`**: el aviso que recibe el usuario al entrar al sistema con
+  los lotes vencidos o por vencer y los productos agotados o por agotarse. Consulta
+  `GET /productos/alertas` (privilegio `productos:ver`) y abre un solo modal
+  agrupado, no una lluvia de toasts. Se muestra una vez por sesión: cerrar sesión y
+  volver a entrar lo repite, recargar la página no.
+
+  No lo monta este módulo sino el web-shell, que le pasa `onVerProductos` para el
+  botón *Ir a Productos*; así este paquete no depende del enrutador del anfitrión.
+  Los umbrales (`UMBRAL_STOCK_BAJO`, `DIAS_AVISO_CADUCIDAD`) los decide el servicio,
+  no el frontend.
 
 ## Backend
 

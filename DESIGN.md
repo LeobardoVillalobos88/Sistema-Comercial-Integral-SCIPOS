@@ -274,6 +274,27 @@ transformación ocurre en el tema, no reemplazando la librería.
   redondeada. Las etiquetas van en versalitas espaciadas.
 - Solo aparecen los módulos cuyo privilegio tiene el usuario: el muro se repinta
   por rol.
+- **El muro se desliza, no se reacomoda.** Al plegarse solo cambia el ancho: la
+  sangría, la columna del icono y el tamaño del icono son fijos en ambos estados,
+  y las etiquetas siguen montadas, recortadas por el propio renglón. Si alguno de
+  esos valores dependiera del estado, los iconos parecerían saltar de tamaño y de
+  sitio.
+- El rótulo se revela en vez de reemplazarse: **SC** está plantado en el carril e
+  **IPOS** crece a su derecha, mismo cuerpo y misma línea base. Cerrado se lee SC,
+  abierto SCIPOS, y las dos primeras letras no se mueven.
+- Una sola curva (`easeInOut`) y una sola duración para todo lo que se mueve al
+  abrir: cajón, franja superior, contenido y opacidad del texto.
+
+### Error screens
+- Pantalla completa de esmalte con el **código a escala display en ocre y sombra
+  dura**, banda ocre recta debajo, título y una explicación de dos renglones.
+- **Se habla en humano.** Nada de "error de red" ni códigos internos: se dice qué
+  pasó, si se perdió algo y qué hacer. Nunca se promete lo que el sistema no hace
+  (por ejemplo, que el equipo ya fue notificado).
+- Siempre hay salida de emergencia: al menos un botón a un destino seguro. El
+  inicio no exige privilegio, así que sirve para cualquier rol.
+- El número grande es decorativo (`aria-hidden`); quien usa lector de pantalla
+  recibe el título y la explicación, que es donde está la información.
 
 ## Do's and Don'ts
 

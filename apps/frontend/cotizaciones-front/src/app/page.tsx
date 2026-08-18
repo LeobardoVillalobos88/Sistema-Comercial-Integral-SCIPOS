@@ -9,7 +9,6 @@ import SendIcon from "@mui/icons-material/Send";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
-import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
@@ -40,6 +39,7 @@ import {
   PageHeader,
   Permiso,
   type Producto,
+  SelectBuscable,
   formatearFecha,
   formatearMoneda,
   llamarApi,
@@ -167,15 +167,15 @@ function ModalNuevaCotizacion({
           </Alert>
         ) : null}
         <Stack spacing={3}>
-          <Autocomplete
-            options={clientesActivos}
-            getOptionLabel={(c) => c.nombre}
-            value={cliente}
-            onChange={(_, value) => setCliente(value)}
-            loading={catalogosCargando}
-            renderInput={(params) => (
-              <TextField {...params} label="Cliente" placeholder="Buscar cliente..." />
-            )}
+          <SelectBuscable
+            etiqueta="Cliente"
+            opciones={clientesActivos}
+            valor={cliente}
+            onCambio={setCliente}
+            obtenerEtiqueta={(c) => c.nombre}
+            obtenerClave={(c) => c.id}
+            cargando={catalogosCargando}
+            placeholder="Busca al cliente por nombre…"
           />
 
           <Box>
@@ -231,16 +231,17 @@ function ModalNuevaCotizacion({
                       return (
                         <TableRow key={`${partida.productoId}-${index}`}>
                           <TableCell sx={{ minWidth: 240 }}>
-                            <Autocomplete
-                              size="small"
-                              options={opcionesDisponibles}
-                              getOptionLabel={(p: Producto) => `${p.lote} · ${p.nombre}`}
-                              value={producto}
-                              onChange={(_, value) =>
+                            <SelectBuscable
+                              tamano="small"
+                              opciones={opcionesDisponibles}
+                              valor={producto ?? null}
+                              onCambio={(value) =>
                                 value && actualizarPartida(index, { productoId: value.id })
                               }
-                              renderInput={(params) => <TextField {...params} />}
-                              disableClearable
+                              obtenerEtiqueta={(p: Producto) => `${p.lote} · ${p.nombre}`}
+                              obtenerClave={(p: Producto) => p.id}
+                              permitirVacio={false}
+                              placeholder="Busca el producto…"
                             />
                           </TableCell>
                           <TableCell align="right">
@@ -632,21 +633,19 @@ export default function CotizacionesPage() {
             },
           }}
         />
-        <TextField
-          select
-          size="small"
-          label="Cliente"
-          value={clienteId}
-          onChange={(e) => setClienteId(e.target.value)}
-          sx={{ minWidth: 220 }}
-        >
-          <MenuItem value="TODOS">Todos los clientes</MenuItem>
-          {clientes.map((c) => (
-            <MenuItem key={c.id} value={c.id}>
-              {c.nombre}
-            </MenuItem>
-          ))}
-        </TextField>
+        <Box sx={{ minWidth: 220 }}>
+          <SelectBuscable
+            etiqueta="Cliente"
+            tamano="small"
+            opciones={clientes}
+            valor={clientes.find((c) => c.id === clienteId) ?? null}
+            // Vaciar el campo es la forma de volver a "todos los clientes".
+            onCambio={(cliente) => setClienteId(cliente?.id ?? "TODOS")}
+            obtenerEtiqueta={(c) => c.nombre}
+            obtenerClave={(c) => c.id}
+            placeholder="Todos los clientes"
+          />
+        </Box>
         <TextField
           select
           size="small"

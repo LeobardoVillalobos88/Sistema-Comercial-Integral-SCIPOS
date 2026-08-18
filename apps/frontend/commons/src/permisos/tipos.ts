@@ -34,6 +34,13 @@ export interface PermisosContextValue {
   origenPermisos: "api" | "local";
   /** true mientras se inicia o restaura la sesión. */
   cargandoPermisos: boolean;
+  /**
+   * true cuando la sesión murió a media faena: el token venció y no se pudo
+   * renovar. Distinto de no tener sesión, que es simplemente no haber entrado.
+   */
+  sesionExpirada: boolean;
+  /** true cuando no se pudo contactar al servidor al restaurar la sesión. */
+  apiInalcanzable: boolean;
   /** Inicia sesión contra la API con correo y contraseña (lo consume la pantalla de login). */
   iniciarSesion: (correo: string, contrasena: string) => Promise<void>;
   /** Cierra la sesión activa y descarta el token. */

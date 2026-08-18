@@ -32,15 +32,38 @@ export function registrarRenovacionTokens(
   alRenovarTokens = callback;
 }
 
+/** Estatus con los que el gateway avisa que un servicio no está respondiendo. */
+const ESTATUS_SIN_SERVICIO = new Set([502, 503, 504]);
+const MENSAJE_SIN_CONEXION = "No se pudo contactar al servidor.";
+
 /** Error de la API con el estatus HTTP y el mensaje del backend. */
 export class ErrorApi extends Error {
   readonly estatus: number;
+  /**
+   * Cierto cuando no se pudo hablar con el servidor (red caída, gateway abajo,
+   * servicio sin responder). Distinto de un backend que sí contestó, pero con
+   * un error: eso se le explica al usuario de otra manera.
+   */
+  readonly esDeConectividad: boolean;
 
-  constructor(estatus: number, mensaje: string) {
+  constructor(estatus: number, mensaje: string, esDeConectividad = false) {
     super(mensaje);
     this.name = "ErrorApi";
     this.estatus = estatus;
+    this.esDeConectividad = esDeConectividad;
   }
+}
+
+/** Aviso a la sesión de que el token venció y no se pudo renovar. */
+let alExpirarSesion: (() => void) | null = null;
+
+/**
+ * Registra a quién avisar cuando la sesión muere a media faena: el access
+ * expiró y el refresh ya no sirve. Lo usa el proveedor de permisos para
+ * mandar al usuario a la pantalla de sesión terminada.
+ */
+export function registrarSesionExpirada(callback: (() => void) | null): void {
+  alExpirarSesion = callback;
 }
 
 interface CuerpoErrorBackend {
@@ -84,7 +107,12 @@ async function ejecutar(ruta: string, init: RequestInit): Promise<Response> {
   if (tokenSesion) {
     encabezados.set("Authorization", `Bearer ${tokenSesion}`);
   }
-  return fetch(`${URL_API}${ruta}`, { ...init, headers: encabezados });
+  try {
+    return await fetch(`${URL_API}${ruta}`, { ...init, headers: encabezados });
+  } catch {
+    // fetch solo rechaza cuando la petición no llegó a ningún lado.
+    throw new ErrorApi(503, MENSAJE_SIN_CONEXION, true);
+  }
 }
 
 /**
@@ -99,8 +127,15 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
   let respuesta = await ejecutar(ruta, opciones);
   // Access expirado: renueva con el refresh y reintenta una sola vez.
   const esRutaAuth = ruta.startsWith("/seguridad/auth/");
-  if (respuesta.status === 401 && !esRutaAuth && (await refrescarSesion())) {
-    respuesta = await ejecutar(ruta, opciones);
+  if (respuesta.status === 401 && !esRutaAuth) {
+    // Solo cuenta como sesión caída si de verdad había una; un 401 sin tokens
+    // es alguien que todavía no entra, y a ese lo espera el login.
+    const habiaSesion = Boolean(tokenSesion || refreshTokenSesion);
+    if (await refrescarSesion()) {
+      respuesta = await ejecutar(ruta, opciones);
+    } else if (habiaSesion) {
+      alExpirarSesion?.();
+    }
   }
 
   const texto = await respuesta.text();
@@ -110,7 +145,7 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
     const cuerpo = (datos ?? {}) as CuerpoErrorBackend;
     const crudo = cuerpo.mensaje ?? cuerpo.message ?? `Error ${respuesta.status} de la API.`;
     const mensaje = Array.isArray(crudo) ? crudo.join(" ") : crudo;
-    throw new ErrorApi(respuesta.status, mensaje);
+    throw new ErrorApi(respuesta.status, mensaje, ESTATUS_SIN_SERVICIO.has(respuesta.status));
   }
   return datos as T;
 }
@@ -125,7 +160,11 @@ export async function descargarArchivo(ruta: string): Promise<Blob> {
     respuesta = await ejecutar(ruta, { method: "GET" });
   }
   if (!respuesta.ok) {
-    throw new ErrorApi(respuesta.status, `No se pudo descargar el archivo (${respuesta.status}).`);
+    throw new ErrorApi(
+      respuesta.status,
+      `No se pudo descargar el archivo (${respuesta.status}).`,
+      ESTATUS_SIN_SERVICIO.has(respuesta.status),
+    );
   }
   return respuesta.blob();
 }

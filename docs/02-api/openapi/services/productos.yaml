@@ -44,6 +44,31 @@ paths:
         "401":
           $ref: "#/components/responses/SinIdentidad"
 
+  /productos/alertas:
+    get:
+      tags: [productos]
+      summary: Alertas de caducidad y de existencias del inventario
+      description: >
+        Productos activos que ya vencieron o están por vencer, y productos que ya se
+        agotaron o están por agotarse. Los umbrales se configuran por entorno
+        (UMBRAL_STOCK_BAJO, DIAS_AVISO_CADUCIDAD) y son los mismos que usa el resumen
+        del dashboard. Las existencias solo aplican a tipo PRODUCTO: un servicio no
+        tiene inventario.
+        Privilegio requerido: productos:ver
+      security:
+        - identidadUsuario: []
+      responses:
+        "200":
+          description: Alertas vigentes, agrupadas y ordenadas de más grave a menos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertasInventario"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
   /productos:
     get:
       tags: [productos]
@@ -329,6 +354,77 @@ components:
             $ref: "#/components/schemas/ErrorEstandar"
 
   schemas:
+    AlertasInventario:
+      type: object
+      properties:
+        generadoEn:
+          type: string
+          format: date-time
+        umbrales:
+          type: object
+          description: Umbrales vigentes con los que se calcularon estas alertas.
+          properties:
+            stockBajo:
+              type: integer
+              example: 5
+            diasCaducidad:
+              type: integer
+              example: 14
+        total:
+          type: integer
+          description: Suma de alertas de caducidad y de existencias.
+          example: 3
+        caducidad:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertaCaducidad"
+        stock:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlertaStock"
+
+    AlertaCaducidad:
+      type: object
+      properties:
+        id:
+          type: string
+          example: p-001
+        nombre:
+          type: string
+          example: Yogur natural 1L
+        lote:
+          type: string
+          example: LAC-014
+        fechaCaducidad:
+          type: string
+          format: date-time
+        diasRestantes:
+          type: integer
+          description: Días que faltan para vencer. Negativo si el lote ya venció.
+          example: -7
+        severidad:
+          type: string
+          enum: [VENCIDO, POR_VENCER]
+
+    AlertaStock:
+      type: object
+      properties:
+        id:
+          type: string
+          example: p-002
+        nombre:
+          type: string
+          example: Café molido 500g
+        lote:
+          type: string
+          example: ABA-007
+        existencia:
+          type: integer
+          example: 0
+        severidad:
+          type: string
+          enum: [AGOTADO, BAJO]
+
     Producto:
       type: object
       properties:
