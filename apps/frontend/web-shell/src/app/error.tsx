@@ -19,5 +19,5 @@ export default function ErrorDeRuta({
     console.error(error);
   }, [error]);
 
-  return <PantallaError codigo={500} onReintentar={reset} />;
+  return <PantallaError codigo={500} onReintentar={reset} enMarco />;
 }

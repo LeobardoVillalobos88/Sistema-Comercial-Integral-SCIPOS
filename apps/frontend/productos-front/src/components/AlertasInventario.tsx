@@ -108,7 +108,11 @@ export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
     }
     yaLanzado.current = true;
 
-    let vigente = true;
+    // Sin bandera de "sigo montado" a propósito: la referencia de arriba ya
+    // garantiza una sola ejecución, y en modo estricto React monta, desmonta y
+    // vuelve a montar. Descartar el resultado al desmontar tiraba justo la
+    // petición buena, y el aviso no aparecía nunca. El modal vive fuera de React,
+    // así que abrirlo tras un desmontaje no deja nada colgando.
     (async () => {
       let alertas: RespuestaAlertas;
       try {
@@ -117,9 +121,6 @@ export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
         // Un aviso que no se pudo cargar no debe estropearle la entrada a nadie.
         // Sin marcar la bandera: el siguiente intento vuelve a probar.
         yaLanzado.current = false;
-        return;
-      }
-      if (!vigente) {
         return;
       }
       marcarEnSesion(CLAVE_AVISADO);
@@ -164,10 +165,6 @@ export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
         onVerProductos?.();
       }
     })();
-
-    return () => {
-      vigente = false;
-    };
   }, [can, usuario, cargandoPermisos, onVerProductos]);
 
   // No pinta nada: su salida es el modal.
