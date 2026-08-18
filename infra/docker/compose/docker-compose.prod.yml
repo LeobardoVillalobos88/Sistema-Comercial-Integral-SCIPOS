@@ -17,7 +17,7 @@ x-backend: &backend
   build:
     context: ../../..
     dockerfile: infra/docker/Dockerfile.backend
-  image: scipos-backend:1.0.0
+  image: scipos-backend:1.1.0
   restart: unless-stopped
   depends_on:
     db:
@@ -217,7 +217,7 @@ services:
       args:
         # Ruta relativa: la interfaz y la API comparten origen tras el proxy.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
-    image: scipos-web:1.0.0
+    image: scipos-web:1.1.0
     container_name: scipos-web
     restart: unless-stopped
     environment:
