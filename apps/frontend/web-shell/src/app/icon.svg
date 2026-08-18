@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SCIPOS">
+  <title>SCIPOS</title>
+  <!-- Campo de esmalte: el mismo muro del menú lateral. -->
+  <rect width="64" height="64" fill="#101F52"/>
+  <!-- Sombra dura del rótulo, sólida y desplazada, como en el resto del sistema. -->
+  <text x="32" y="40" fill="#060F33" font-family="Archivo, Arial Black, Helvetica, sans-serif"
+        font-size="32" font-weight="900" letter-spacing="-1.5" text-anchor="middle">SC</text>
+  <text x="30" y="38" fill="#FFFFFF" font-family="Archivo, Arial Black, Helvetica, sans-serif"
+        font-size="32" font-weight="900" letter-spacing="-1.5" text-anchor="middle">SC</text>
+  <!-- Banda ocre: marca lo que hay que mirar. -->
+  <rect y="55" width="64" height="9" fill="#D98A00"/>
+</svg>

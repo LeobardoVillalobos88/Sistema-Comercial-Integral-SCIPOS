@@ -22,6 +22,12 @@ export interface PaginaErrorProps {
   descripcion: string;
   /** Salidas de emergencia. La primera se pinta como acción principal. */
   acciones?: AccionError[];
+  /**
+   * La pantalla se muestra dentro del armazón, no sola. Se usa para el acceso
+   * denegado: el usuario sigue con sesión, así que conviene dejarle el menú a
+   * la vista en lugar de taparle el sistema entero.
+   */
+  enMarco?: boolean;
 }
 
 /**
@@ -33,11 +39,19 @@ export interface PaginaErrorProps {
  * Sigue el muro rotulado: campo de esmalte, cifra display con sombra dura y
  * banda ocre recta. El texto habla en humano y siempre ofrece por dónde salir.
  */
-export function PaginaError({ codigo, titulo, descripcion, acciones = [] }: PaginaErrorProps) {
+export function PaginaError({
+  codigo,
+  titulo,
+  descripcion,
+  acciones = [],
+  enMarco = false,
+}: PaginaErrorProps) {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        // Dentro del armazón se descuenta la franja superior, para llenar lo
+        // que queda del alto sin empujar la página a tener barra de scroll.
+        minHeight: enMarco ? { xs: "calc(100vh - 52px)", md: "calc(100vh - 48px)" } : "100vh",
         width: "100%",
         bgcolor: ESMALTE.azul,
         color: SOBRE_ESMALTE.texto,

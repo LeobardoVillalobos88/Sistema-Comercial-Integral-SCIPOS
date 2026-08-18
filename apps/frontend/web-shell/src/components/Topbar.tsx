@@ -35,7 +35,7 @@ export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
         boxShadow: "none",
         transition: (theme) =>
           theme.transitions.create(["width", "margin"], {
-            easing: theme.transitions.easing.sharp,
+            easing: theme.transitions.easing.easeInOut,
             duration: theme.transitions.duration.enteringScreen,
           }),
       }}
