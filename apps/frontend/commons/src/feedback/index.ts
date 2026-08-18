@@ -1,3 +1,3 @@
-export { alertaError, alertaExito, confirmar } from "./alertas";
+export { alertaDetallada, alertaError, alertaExito, confirmar, escaparHtml } from "./alertas";
 export { ToastProvider, useToast } from "./ToastProvider";
 export type { ToastContextValue } from "./ToastProvider";

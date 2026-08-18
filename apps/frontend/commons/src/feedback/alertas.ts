@@ -56,3 +56,51 @@ export function alertaError(titulo: string, texto?: string): Promise<unknown> {
     confirmButtonColor: COLOR_PRIMARIO,
   });
 }
+
+const ESCAPES_HTML: Record<string, string> = {
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+};
+
+/**
+ * Escapa un texto para poder incrustarlo en el cuerpo HTML de una alerta.
+ * Obligatorio para cualquier dato venido de la base (nombres, lotes): SweetAlert
+ * los inserta como HTML, y sin escapar se convierten en una vía de inyección.
+ */
+export function escaparHtml(texto: string): string {
+  return texto.replace(/[&<>"']/g, (caracter) => ESCAPES_HTML[caracter] ?? caracter);
+}
+
+interface OpcionesAlertaDetallada {
+  titulo: string;
+  /** Cuerpo en HTML. Todo dato interpolado debe pasar antes por `escaparHtml`. */
+  html: string;
+  /** Texto del botón de confirmar. */
+  confirmar?: string;
+  /** Texto del botón de cerrar. Si se omite, solo se muestra el de confirmar. */
+  cancelar?: string;
+  icono?: "warning" | "info" | "question";
+  ancho?: string;
+}
+
+/**
+ * Sweet alert con cuerpo compuesto: para avisos que traen una lista y no caben
+ * en una línea. Resuelve a `true` si el usuario presionó el botón de confirmar.
+ */
+export function alertaDetallada(opciones: OpcionesAlertaDetallada): Promise<boolean> {
+  return Swal.fire({
+    title: opciones.titulo,
+    html: opciones.html,
+    icon: opciones.icono ?? "warning",
+    width: opciones.ancho ?? "40rem",
+    showCancelButton: Boolean(opciones.cancelar),
+    confirmButtonText: opciones.confirmar ?? "Entendido",
+    cancelButtonText: opciones.cancelar,
+    confirmButtonColor: COLOR_PRIMARIO,
+    cancelButtonColor: COLOR_CANCELAR,
+    reverseButtons: true,
+  }).then((resultado) => resultado.isConfirmed);
+}
