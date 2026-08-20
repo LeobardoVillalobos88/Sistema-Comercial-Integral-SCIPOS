@@ -1,15 +1,3 @@
-/**
- * Asistente de almacén: skill de Alexa que opera el inventario de SCIPOS.
- *
- * Cuatro acciones, cada una con un recorrido distinto por la persistencia:
- *   RegistrarProducto  -> API (consulta) -> API (crea) -> Dynamo (folio y bitácora)
- *   SurtirInventario   -> Dynamo (idempotencia) -> API (compra) -> Dynamo (bitácora)
- *   RevisarInventario  -> solo API
- *   BitacoraVoz        -> solo Dynamo
- *
- * La skill no calcula precios ni existencias: eso lo hace el backend. Aquí solo
- * se traduce voz a llamadas y respuestas a frases.
- */
 const Alexa = require("ask-sdk-core");
 const AWS = require("aws-sdk");
 
@@ -26,48 +14,23 @@ const {
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-// --------------------------------------------------------------------------
-// Conexión con la API de SCIPOS
-//
-// Las skills alojadas por Alexa no tienen editor de variables de entorno: eso
-// solo existe cuando el Lambda vive en una cuenta propia de AWS. Por eso los
-// valores están aquí, y se leen primero del entorno para que mover la skill a
-// un Lambda propio no obligue a tocar el código.
-//
-// El respaldo se resuelve con || y no con ??, igual que en la semilla del
-// backend: una variable declarada y vacía debe caer al valor de abajo en vez
-// de darse por buena.
-//
-// Al pegar el archivo en la consola hay que cambiar la IP por la de la
-// instancia donde corre el sistema. La URL termina en /api y no lleva barra
-// final ni puerto: nginx sirve la API bajo esa ruta en el puerto 80.
-// --------------------------------------------------------------------------
 const API_URL = process.env.SCIPOS_API_URL || "http://TU_IP_PUBLICA/api";
 const CORREO = process.env.SCIPOS_CORREO || "asistente@scipos.com";
 const CONTRASENA = process.env.SCIPOS_CONTRASENA || "Asistente1234";
 
-// Esta sí la inyecta Alexa-hosted por su cuenta; no hay que declararla.
 const TABLA = process.env.DYNAMODB_PERSISTENCE_TABLE_NAME;
 const CLAVE_ALMACEN = "sciposAlmacen";
 const CLAVE_SESION = "sciposSesion";
 
-/** Ventana en la que repetir la misma frase se considera un doble dictado. */
 const VENTANA_IDEMPOTENCIA_MS = 120000;
-/** El access token dura 15 minutos; se renueva con dos de margen. */
 const VIDA_TOKEN_MS = 900000;
 const MARGEN_TOKEN_MS = 120000;
-/** Corta la espera antes de que el Lambda agote su propio tiempo. */
 const TIEMPO_LIMITE_MS = 6000;
 
 const MENU =
   "Puedes decir: registra un producto nuevo, surte inventario, " +
   "revisa las alertas del inventario, o pregúntame qué registraste hoy.";
 
-// --------------------------------------------------------------------------
-// Errores de la API
-// --------------------------------------------------------------------------
-
-/** Error de la API con el mensaje ya listo para decirse en voz alta. */
 class ErrorApi extends Error {
   constructor(estatus, mensaje) {
     super(mensaje);
@@ -75,7 +38,6 @@ class ErrorApi extends Error {
   }
 }
 
-/** Traduce un código HTTP a una frase útil, nunca a un error crudo. */
 function frasePorEstatus(estatus, mensajeBackend) {
   if (estatus === 401 || estatus === 403) {
     return "No tengo permiso para hacer eso en el sistema";
@@ -89,7 +51,6 @@ function frasePorEstatus(estatus, mensajeBackend) {
   return mensajeBackend || "El sistema rechazó la operación";
 }
 
-/** Frase de cierre ante cualquier fallo, sin cerrar la sesión. */
 function responderError(handlerInput, error, respaldo) {
   console.error(error);
   const mensaje = error instanceof ErrorApi ? error.message : respaldo;
@@ -99,17 +60,11 @@ function responderError(handlerInput, error, respaldo) {
     .getResponse();
 }
 
-// --------------------------------------------------------------------------
-// DynamoDB
-// --------------------------------------------------------------------------
-
-/** Lee un item de la tabla; devuelve null si no existe todavía. */
 async function leerItem(id) {
   const { Item } = await dynamodb.get({ TableName: TABLA, Key: { id } }).promise();
   return Item || null;
 }
 
-/** Escribe una columna del item, dejando el resto intacto. */
 async function guardarColumna(id, columna, valor) {
   await dynamodb
     .update({
@@ -122,27 +77,16 @@ async function guardarColumna(id, columna, valor) {
     .promise();
 }
 
-/** Devuelve el item del almacén, con sus valores iniciales si aún no existe. */
 async function leerAlmacen() {
   const almacen = await leerItem(CLAVE_ALMACEN);
   return almacen || { data: [], folio: 0 };
 }
 
-/** Agrega una operación a la bitácora de voz. */
 async function registrarEnBitacora(almacen, operacion) {
   const data = [...(almacen.data || []), operacion];
   await guardarColumna(CLAVE_ALMACEN, "data", data);
 }
 
-// --------------------------------------------------------------------------
-// API de SCIPOS
-// --------------------------------------------------------------------------
-
-/**
- * Devuelve un token vigente de la API. Reutiliza el guardado en Dynamo mientras
- * le queden más de dos minutos de vida; si no, inicia sesión de nuevo. Evita un
- * inicio de sesión por cada frase que dice la persona.
- */
 async function obtenerToken() {
   const sesion = await leerItem(CLAVE_SESION);
   if (sesion?.token && sesion.expiraEn - Date.now() > MARGEN_TOKEN_MS) {
@@ -178,11 +122,6 @@ async function obtenerToken() {
   return datos.token;
 }
 
-/**
- * Llama a la API propagando el token. El backend responde sus errores con la
- * forma { estatus, mensaje, error, ruta, fecha }, y el mensaje ya viene en
- * español y escrito para personas, así que se aprovecha tal cual.
- */
 async function llamarApi(ruta, opciones = {}) {
   const token = await obtenerToken();
 
@@ -215,17 +154,11 @@ async function llamarApi(ruta, opciones = {}) {
   return respuesta.status === 204 ? null : respuesta.json();
 }
 
-// --------------------------------------------------------------------------
-// Handlers
-// --------------------------------------------------------------------------
-
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === "LaunchRequest";
   },
   async handle(handlerInput) {
-    // El item se crea solo si falta. Sobrescribirlo en cada arranque borraría
-    // la bitácora de operaciones que la skill ya registró.
     try {
       const almacen = await leerItem(CLAVE_ALMACEN);
       if (!almacen) {
@@ -242,7 +175,6 @@ const LaunchRequestHandler = {
   },
 };
 
-/** Alta al catálogo. Recorrido: API (consulta) -> API (crea) -> Dynamo. */
 const RegistrarProductoIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -287,8 +219,6 @@ const RegistrarProductoIntentHandler = {
     }
 
     try {
-      // El duplicado se busca contra el catálogo, que es la fuente de verdad:
-      // el producto pudo haberse capturado desde la interfaz web.
       const catalogo = await llamarApi("/productos/productos");
       const existente = buscarProducto(catalogo, nombre);
       if (existente) {
@@ -340,7 +270,6 @@ const RegistrarProductoIntentHandler = {
   },
 };
 
-/** Entrada de mercancía. Recorrido: Dynamo -> API -> Dynamo. */
 const SurtirInventarioIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -368,9 +297,6 @@ const SurtirInventarioIntentHandler = {
     const proveedor = Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor");
 
     try {
-      // Dynamo va primero a propósito: si la frase se repitió, hay que cortar
-      // antes de llamar a la API. Surtir dos veces deja piezas que no existen
-      // en el anaquel, y eso no se nota hasta el siguiente conteo físico.
       const almacen = await leerAlmacen();
       const huella = `surtir:${normalizarTexto(nombre)}:${cantidad}`;
       const repetida = esOperacionRepetida(
@@ -398,8 +324,6 @@ const SurtirInventarioIntentHandler = {
           .getResponse();
       }
 
-      // El precio no viaja en la petición: el servicio usa el precio de compra
-      // vigente del producto, así el importe no depende de lo que mande la voz.
       await llamarApi("/productos/compras", {
         method: "POST",
         body: {
@@ -434,7 +358,6 @@ const SurtirInventarioIntentHandler = {
   },
 };
 
-/** Alertas de caducidad y existencias. Recorrido: solo API. */
 const RevisarInventarioIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -457,7 +380,6 @@ const RevisarInventarioIntentHandler = {
   },
 };
 
-/** Resumen de lo dictado hoy. Recorrido: solo Dynamo. */
 const BitacoraVozIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -553,7 +475,6 @@ const SessionEndedRequestHandler = {
   },
 };
 
-/** Atrapa cualquier intent sin handler propio; útil al depurar el modelo. */
 const IntentReflectorHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest";
@@ -580,7 +501,6 @@ const ErrorHandler = {
   },
 };
 
-// El orden importa: se procesan de arriba abajo y el reflector atrapa todo.
 exports.handler = Alexa.SkillBuilders.custom()
   .addRequestHandlers(
     LaunchRequestHandler,

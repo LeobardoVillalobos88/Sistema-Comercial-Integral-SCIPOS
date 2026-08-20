@@ -43,18 +43,10 @@ const ICONOS = {
   manage_accounts: ManageAccountsIcon,
 } as const;
 
-/**
- * Geometría del carril: el ancho del muro cerrado. Los iconos y el monograma se
- * plantan aquí y no se mueven nunca; abrir el menú solo descubre lo que hay a
- * su derecha. Por eso el padding, el tamaño del icono y su columna son fijos:
- * en cuanto uno de esos valores depende del estado, el panel deja de deslizarse
- * y empieza a reacomodarse.
- */
 const SANGRIA = 2;
 const COLUMNA_ICONO = 40;
 const SEPARACION_TEXTO = 2;
 
-/** Una sola curva y una sola duración para todo lo que se mueve al abrir. */
 const transicionMenu = (theme: Theme, propiedades: string | string[]) =>
   theme.transitions.create(propiedades, {
     easing: theme.transitions.easing.easeInOut,
@@ -81,14 +73,8 @@ function Contenido({
   const pathname = usePathname();
   const { can, cerrarSesion } = usePermisos();
 
-  // Solo se muestran los módulos cuyo privilegio tiene el rol actual.
   const itemsVisibles = NAVEGACION.filter((item) => !item.privilegio || can(item.privilegio));
 
-  /**
-   * Cerrar sesión pide confirmación como cualquier otra acción que no se puede
-   * deshacer: el botón vive junto al menú y basta un clic desviado para perder
-   * lo que se estuviera capturando.
-   */
   const confirmarCierre = async () => {
     const confirmado = await confirmar({
       titulo: "¿Cerrar sesión?",
@@ -100,7 +86,6 @@ function Contenido({
     }
   };
 
-  /** Lo que se recorta al cerrar: el texto sigue montado, solo deja de caber. */
   const revelado = {
     whiteSpace: "nowrap" as const,
     opacity: sidebarAbierto ? 1 : 0,
@@ -114,7 +99,6 @@ function Contenido({
         flexDirection: "column",
         height: "100%",
         position: "relative",
-        // Campo de esmalte plano: el muro es de un solo color, sin degradado.
         bgcolor: ESMALTE.azul,
         color: SOBRE_ESMALTE.texto,
       }}
@@ -212,10 +196,7 @@ function Contenido({
                   borderRadius: 0,
                   mb: 0.25,
                   px: SANGRIA,
-                  // El renglón mide lo que mide el muro: lo que no cabe se
-                  // recorta aquí, sin empujar ni reordenar nada.
                   overflow: "hidden",
-                  // Etiqueta de rótulo: versalitas espaciadas.
                   "& .MuiListItemText-primary": {
                     fontSize: "0.6875rem",
                     fontWeight: 700,
@@ -223,7 +204,6 @@ function Contenido({
                     textTransform: "uppercase",
                   },
                   color: activo ? SOBRE_ESMALTE.texto : SOBRE_ESMALTE.textoTenue,
-                  // El módulo activo se marca con banda de pintura, no con píldora.
                   borderLeft: "4px solid",
                   borderLeftColor: activo ? ESMALTE.ocre : "transparent",
                   bgcolor: activo ? SOBRE_ESMALTE.activo : "transparent",
@@ -298,7 +278,6 @@ function Contenido({
   );
 }
 
-/** Menú lateral. Permanente en escritorio, temporal (cajón) en móvil. */
 export function Sidebar({
   ancho,
   menuMovilAbierto,
@@ -340,8 +319,6 @@ export function Sidebar({
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
             width: ancho,
-            // El panel no recorta: si lo hiciera se comería la flechita que
-            // sobresale. Cada renglón recorta su propio texto.
             overflow: "visible",
             transition: (theme) => transicionMenu(theme, "width"),
           },

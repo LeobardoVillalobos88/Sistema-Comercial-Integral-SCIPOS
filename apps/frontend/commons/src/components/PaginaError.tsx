@@ -9,36 +9,18 @@ import { ESMALTE, SOBRE_ESMALTE, sombraRotulo } from "../theme";
 export interface AccionError {
   etiqueta: string;
   onClick?: () => void;
-  /** Destino, para las salidas que son un enlace y no una acción. */
   href?: string;
   variante?: "principal" | "secundaria";
 }
 
 export interface PaginaErrorProps {
-  /** Código HTTP. Se pinta a escala de rótulo, como decoración. */
   codigo: number | string;
   titulo: string;
-  /** Qué pasó y qué hacer, en dos renglones y en español de persona. */
   descripcion: string;
-  /** Salidas de emergencia. La primera se pinta como acción principal. */
   acciones?: AccionError[];
-  /**
-   * La pantalla se muestra dentro del armazón, no sola. Se usa para el acceso
-   * denegado: el usuario sigue con sesión, así que conviene dejarle el menú a
-   * la vista en lugar de taparle el sistema entero.
-   */
   enMarco?: boolean;
 }
 
-/**
- * Pantalla de error a página completa. Se usa para las fallas de navegación
- * (no existe, no tienes acceso, se cayó el servidor); un error a media tarea
- * dentro de un módulo se avisa con un toast, porque sacar al usuario de lo que
- * estaba haciendo sería peor que el error.
- *
- * Sigue el muro rotulado: campo de esmalte, cifra display con sombra dura y
- * banda ocre recta. El texto habla en humano y siempre ofrece por dónde salir.
- */
 export function PaginaError({
   codigo,
   titulo,
@@ -49,8 +31,6 @@ export function PaginaError({
   return (
     <Box
       sx={{
-        // Dentro del armazón se descuenta la franja superior, para llenar lo
-        // que queda del alto sin empujar la página a tener barra de scroll.
         minHeight: enMarco ? { xs: "calc(100vh - 52px)", md: "calc(100vh - 48px)" } : "100vh",
         width: "100%",
         bgcolor: ESMALTE.azul,

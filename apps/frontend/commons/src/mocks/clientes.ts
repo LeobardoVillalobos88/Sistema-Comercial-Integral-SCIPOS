@@ -1,6 +1,5 @@
 import type { Cliente } from "./tipos";
 
-/** Catálogo de clientes del sistema. */
 export const CLIENTES_MOCK: Cliente[] = [
   {
     id: "c-001",

@@ -1,15 +1,8 @@
 import type { ConfiguracionInventario } from "./configuracion-inventario";
 
-/**
- * Clasificación de las alertas del inventario. Es un módulo puro: recibe los
- * productos ya consultados y devuelve los grupos, sin tocar Prisma, Redis ni
- * Nest. Así la regla que decide qué es urgente se puede probar sola.
- */
-
 export type SeveridadCaducidad = "VENCIDO" | "POR_VENCER";
 export type SeveridadStock = "AGOTADO" | "BAJO";
 
-/** Lo que la clasificación necesita saber de un producto. */
 export interface ProductoInventario {
   id: string;
   nombre: string;
@@ -25,7 +18,6 @@ export interface AlertaCaducidad {
   nombre: string;
   lote: string;
   fechaCaducidad: Date;
-  /** Días que faltan para vencer. Negativo si el lote ya venció. */
   diasRestantes: number;
   severidad: SeveridadCaducidad;
 }
@@ -48,24 +40,12 @@ export interface AlertasInventario {
 
 const MILISEGUNDOS_POR_DIA = 86_400_000;
 
-/**
- * Días naturales entre dos fechas, ignorando la hora: un lote que vence hoy
- * a las 23:00 vence "hoy", no "en cero horas".
- */
 export function diasNaturalesEntre(desde: Date, hasta: Date): number {
   const inicio = Date.UTC(desde.getFullYear(), desde.getMonth(), desde.getDate());
   const fin = Date.UTC(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
   return Math.round((fin - inicio) / MILISEGUNDOS_POR_DIA);
 }
 
-/**
- * Reparte los productos en las alertas que merecen. Solo entran los activos;
- * las existencias solo aplican a tipo PRODUCTO, porque un servicio no tiene
- * inventario que se acabe.
- *
- * Cada grupo sale ordenado de más urgente a menos: lo ya vencido antes que lo
- * que está por vencer, y lo agotado antes que lo escaso.
- */
 export function calcularAlertas(
   productos: ProductoInventario[],
   configuracion: ConfiguracionInventario,
@@ -102,8 +82,6 @@ export function calcularAlertas(
     }
   }
 
-  // Ordenar por el número basta para que la severidad quede en orden: lo
-  // vencido tiene días negativos, y lo agotado, existencia cero.
   caducidad.sort(
     (a, b) => a.diasRestantes - b.diasRestantes || a.nombre.localeCompare(b.nombre, "es"),
   );

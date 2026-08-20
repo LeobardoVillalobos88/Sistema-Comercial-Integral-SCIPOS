@@ -1,15 +1,8 @@
-/**
- * Verificación JWT en el borde del gateway: rechaza tokens inválidos o
- * revocados antes de proxyear al servicio (política uniforme y ahorro de red).
- * Los servicios re-validan igual (defensa en profundidad): si alguien alcanza
- * un servicio sin pasar por el gateway, no confía ciegamente.
- */
 import { PREFIJO_DENYLIST, audienciaToken, emisorToken, urlJwks } from "@scipos/backend-commons";
 import type { NextFunction, Request, Response } from "express";
 import Redis from "ioredis";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 
-/** Rutas que no exigen token (login, refresh, logout, JWKS, health y docs). */
 function esPublica(ruta: string, metodo: string): boolean {
   if (metodo === "OPTIONS") {
     return true;
@@ -25,7 +18,6 @@ function esPublica(ruta: string, metodo: string): boolean {
   if (publicasExactas.includes(ruta)) {
     return true;
   }
-  // Health y documentación Scalar de cada servicio.
   return ruta.endsWith("/health") || ruta.includes("/docs") || ruta.endsWith("/api-json");
 }
 
@@ -33,7 +25,6 @@ function responder401(res: Response, mensaje: string) {
   res.status(401).json({ estatus: 401, mensaje, error: "No autorizado" });
 }
 
-/** Crea el middleware de verificación en el edge. */
 export function crearMiddlewareJwt() {
   const jwks = createRemoteJWKSet(new URL(urlJwks()));
   const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
@@ -48,8 +39,6 @@ export function crearMiddlewareJwt() {
     try {
       return (await redis.get(`${PREFIJO_DENYLIST}${jti}`)) === "1";
     } catch {
-      // Redis caído: se degrada a solo-firma (los servicios conservan su propia
-      // verificación). Mismo criterio fail-open que la caché de privilegios.
       return false;
     }
   }

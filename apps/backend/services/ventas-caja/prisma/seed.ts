@@ -2,10 +2,6 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from ".prisma/client";
 
-/**
- * Semilla del servicio ventas-caja. Usa IDs fijos conocidos por el equipo y los
- * IDs de productos del servicio de productos (`p-00x`).
- */
 const CAJA_HISTORICA = {
   id: "CORTE-HIST-001",
   montoInicial: 1000,

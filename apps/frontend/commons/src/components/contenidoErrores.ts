@@ -1,11 +1,3 @@
-/**
- * Texto de cada pantalla de error, en un solo lugar: la ruta navegable y el
- * armazón que la muestra sola deben decir exactamente lo mismo.
- *
- * Dos renglones por error. Lo suficiente para orientar a quien solo quiere
- * volver a trabajar, sin lenguaje de máquina ni sermón.
- */
-
 export type CodigoError = 401 | 403 | 404 | 500 | 503;
 
 export interface ContenidoError {

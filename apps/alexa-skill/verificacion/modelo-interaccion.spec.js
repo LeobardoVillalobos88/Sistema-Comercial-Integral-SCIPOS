@@ -7,7 +7,6 @@ const MODELO = modelo.interactionModel.languageModel;
 const DIALOGO = modelo.interactionModel.dialog;
 const PROMPTS = modelo.interactionModel.prompts;
 
-/** Intents propios de la skill: los de AMAZON no llevan utterances nuestras. */
 const INTENTS_PROPIOS = [
   "RegistrarProductoIntent",
   "SurtirInventarioIntent",
@@ -15,7 +14,6 @@ const INTENTS_PROPIOS = [
   "BitacoraVozIntent",
 ];
 
-/** Slots que declaran slot filling y por tanto deben cumplir el criterio de 4 y 8. */
 const SLOTS_CON_LLENADO = [
   ["RegistrarProductoIntent", "nombreProducto"],
   ["RegistrarProductoIntent", "precioCompra"],
@@ -47,8 +45,6 @@ function prompt(id) {
 
 describe("modelo de interaccion", () => {
   it("declara el nombre de invocacion sin tilde y sin preposiciones", () => {
-    // Amazon rechaza los nombres de invocacion con articulos o preposiciones,
-    // asi que no puede llevar el "de" que pediria el espanol.
     assert.equal(MODELO.invocationName, "asistente almacen");
   });
 

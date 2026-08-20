@@ -16,7 +16,6 @@ interface OpcionesUsuario {
   revocados?: string[];
 }
 
-/** Usuario tal como lo devuelve Prisma con su rol y sus ajustes individuales. */
 function usuarioFalso(opciones: OpcionesUsuario = {}) {
   const {
     rolClave = "VENDEDOR",
@@ -48,10 +47,6 @@ interface OpcionesServicio {
   cacheado?: unknown;
 }
 
-/**
- * Arma el servicio con dobles de Prisma y Redis, y expone un registro de
- * llamadas para poder afirmar sobre la caché.
- */
 function crearServicio(opciones: OpcionesServicio = {}) {
   const { usuario = usuarioFalso(), catalogo = [], cacheado = null } = opciones;
 
