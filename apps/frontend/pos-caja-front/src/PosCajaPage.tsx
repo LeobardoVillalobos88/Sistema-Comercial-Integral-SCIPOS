@@ -99,6 +99,9 @@ export function PosCajaPage({
   const [montoInicialCaptura, setMontoInicialCaptura] = useState("0");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
+  // A quién se le compró. El servicio lo guarda como opcional, así que se envía
+  // solo si se capturó, en vez de mandar una cadena vacía.
+  const [proveedor, setProveedor] = useState("");
   const [ventasHistorial, setVentasHistorial] = useState<VentaPOS[]>([]);
   const [cortesCaja, setCortesCaja] = useState<CorteCaja[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
@@ -344,13 +347,16 @@ export function PosCajaPage({
     setProcesando(true);
     try {
       if (esCompra) {
+        const nombreProveedor = proveedor.trim();
         await crearCompra({
+          proveedor: nombreProveedor || undefined,
           partidas: carrito.map((item) => ({
             productoId: item.productoId,
             cantidad: item.cantidad,
             precioCompra: item.precioUnitario,
           })),
         });
+        setProveedor("");
         setFolioCobro(`COM-${Date.now()}`);
         setTotalCobro(totalVenta);
         toast.exito("La compra fue registrada y el inventario se actualizó.");
@@ -664,7 +670,18 @@ export function PosCajaPage({
                 }
               >
                 <Stack spacing={2}>
-                  {!esCompra ? (
+                  {esCompra ? (
+                    <TextField
+                      label="Proveedor (opcional)"
+                      value={proveedor}
+                      onChange={(event) => setProveedor(event.target.value)}
+                      size="small"
+                      fullWidth
+                      disabled={procesando}
+                      helperText="Quién surtió la mercancía. Queda guardado en la compra."
+                      inputProps={{ maxLength: 80 }}
+                    />
+                  ) : (
                     <SelectBuscable
                       etiqueta="Cliente"
                       opciones={clientes}
@@ -675,7 +692,7 @@ export function PosCajaPage({
                       tamano="small"
                       deshabilitado={clientes.length === 0 || procesando}
                     />
-                  ) : null}
+                  )}
 
                   {carrito.length === 0 ? (
                     <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
