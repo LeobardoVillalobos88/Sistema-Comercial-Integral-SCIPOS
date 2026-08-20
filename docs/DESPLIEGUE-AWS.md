@@ -232,7 +232,7 @@ en llegar a ese estado casi siempre están esperando a la base de datos.
 ## 7. Cargar los datos iniciales
 
 Si pusiste `EJECUTAR_SEMILLA=true` antes de levantar, ya están cargados: el
-catálogo de privilegios, la matriz de roles, los cuatro usuarios y los datos de
+catálogo de privilegios, la matriz de roles, los cinco usuarios y los datos de
 demostración.
 
 **Vuelve a ponerlo en `false`** y reinicia, para que no se recarguen en cada
@@ -266,6 +266,12 @@ tiene datos reales.
 > La pérdida es silenciosa: ningún error, solo números equivocados en el
 > inventario.
 
+> **Reconstruye la imagen antes de sembrar.** El comando de abajo ejecuta el
+> `seed.ts` que está *dentro del contenedor*, no el del repositorio. Si todavía
+> corre la imagen anterior, se sembrará la semilla vieja: imprimirá sus conteos
+> como si todo hubiera ido bien y no creará nada nuevo. Primero `git pull`,
+> `pnpm prod:build` y `pnpm prod:up`; después esto.
+
 La semilla de seguridad sí es segura de repetir: solo hace `upsert` de
 privilegios, roles, la matriz rol-privilegio, los usuarios y sus ajustes de
 privilegio, y no borra nada. Se ejecuta sola, sobre su propio contenedor:
@@ -291,6 +297,12 @@ El arreglo `privilegios` de la respuesta debe traer exactamente
 
 Los privilegios efectivos se guardan 60 segundos en Redis, así que un cambio
 puede tardar hasta un minuto en verse reflejado.
+
+> **No crees a mano un usuario que la semilla también crea.** El campo `correo`
+> es único, y la semilla busca por `id`. Un usuario creado desde la API o desde
+> `/usuarios` recibe un identificador distinto, así que la semilla intentaría
+> crearlo de nuevo, chocaría contra el correo repetido y fallaría a media
+> ejecución. Si ya existe uno hecho a mano, bórralo antes de sembrar.
 
 ---
 
@@ -335,6 +347,16 @@ pnpm prod:up
 ```
 
 Las migraciones pendientes se aplican solas al arrancar cada servicio.
+
+**Si la versión nueva agrega usuarios o privilegios, falta un paso más.** Las
+migraciones cambian la forma de las tablas, pero no su contenido: un usuario
+nuevo vive en la semilla, y la semilla no se ejecuta sola. Después de
+reconstruir, sigue *Aplicar cambios de la semilla a una instancia que ya está en
+marcha*, más abajo.
+
+Es el caso de la versión que incorpora la skill de Alexa: trae el usuario
+`asistente@scipos.com`, y sin ese paso la skill responde "no pude iniciar sesión
+en el sistema" en todas sus acciones.
 
 ### Respaldar la base de datos
 

@@ -82,7 +82,7 @@ Ese comando hace, en orden: genera el par de llaves RSA para firmar los tokens
 (en `keys/`, ignorada por git), levanta los contenedores `scipos-db` (Postgres 16)
 y `scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
 (genera el cliente de Prisma, aplica migraciones y siembra datos): la matriz de
-privilegios con los 4 usuarios semilla, el catálogo de productos, los clientes, unas
+privilegios con los 5 usuarios semilla, el catálogo de productos, los clientes, unas
 cotizaciones de ejemplo y un turno de caja con ventas históricas.
 
 Si todo salió bien, la última línea dice algo como `Semilla aplicada: { cajas: 2, ventas: 2, movimientos: 4 }`
@@ -191,7 +191,7 @@ revocación individual gana incluso sobre un rol con acceso total. Las del punto
 de venta cubren el cálculo de subtotal, descuento, IVA y total, incluido que un
 descuento mayor al subtotal se recorta en lugar de producir un total negativo.
 
-### Credenciales semilla (una cuenta por rol)
+### Credenciales semilla (una cuenta por rol, más el asistente de voz)
 
 | Correo | Contraseña | Rol |
 |---|---|---|
