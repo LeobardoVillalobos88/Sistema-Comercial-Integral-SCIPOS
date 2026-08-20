@@ -1,13 +1,3 @@
-/**
- * Imprime el par de llaves RSA codificado en base64, en el formato exacto que
- * espera el archivo .env del despliegue.
- *
- * Un PEM ocupa varias líneas y un archivo .env no admite valores multilínea,
- * así que se transporta en base64. El servicio de seguridad acepta ambas
- * formas y decodifica sola la que reciba.
- *
- * Uso:  pnpm llaves:entorno
- */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

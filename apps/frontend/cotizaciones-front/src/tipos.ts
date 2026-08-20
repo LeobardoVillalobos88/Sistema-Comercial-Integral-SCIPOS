@@ -1,6 +1,5 @@
 import type { EstadoCotizacion } from "@scipos/frontend-commons";
 
-/** Partida tal como la devuelve el servicio de cotizaciones. */
 export interface PartidaCotizacionApi {
   id: string;
   productoId: string;
@@ -10,7 +9,6 @@ export interface PartidaCotizacionApi {
   importe: number;
 }
 
-/** Cotización con snapshots, importes y fechas calculados por el backend. */
 export interface CotizacionApi {
   id: string;
   folio: string;

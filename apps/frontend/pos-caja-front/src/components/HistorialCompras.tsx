@@ -19,14 +19,6 @@ export interface HistorialComprasProps {
   cargando: boolean;
 }
 
-/**
- * Historial de compras a proveedores.
- *
- * Es la única vista donde se lee el proveedor: la pantalla de captura lo pide y
- * la skill de Alexa también, pero hasta aquí no había dónde consultarlo. Cada
- * renglón resume la compra y enumera sus partidas, porque una compra sin saber
- * qué entró no dice nada útil.
- */
 export function HistorialCompras({ compras, cargando }: HistorialComprasProps) {
   if (cargando) {
     return (

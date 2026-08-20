@@ -14,11 +14,6 @@ interface TopbarProps {
   onAbrirMenu: () => void;
 }
 
-/**
- * Franja superior del armazón. Deliberadamente callada: el rótulo del módulo
- * es quien nombra la pantalla, así que aquí solo viven el acceso al menú en
- * móvil y la identidad de quien opera.
- */
 export function Topbar({ anchoMenu, onAbrirMenu }: TopbarProps) {
   const { usuario, rol } = usePermisos();
 

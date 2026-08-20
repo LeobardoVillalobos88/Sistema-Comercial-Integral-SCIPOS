@@ -77,26 +77,21 @@ export default function ClientesPage() {
   const toast = useToast();
   const { cargandoPermisos } = usePermisos();
 
-  // Estado principal de clientes (cargado desde la API)
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [cargando, setCargando] = useState(true);
 
-  // Estados para modales
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalDetalleAbierto, setModalDetalleAbierto] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
 
-  // Estados de carga de datos para formularios y detalle
   const [clienteEdicion, setClienteEdicion] = useState<Cliente | null>(null);
   const [clienteDetalle, setClienteDetalle] = useState<Cliente | null>(null);
 
-  // Estados del historial del cliente (cargados dinámicamente)
   const [cotizacionesCliente, setCotizacionesCliente] = useState<CotizacionHistorial[]>([]);
   const [ventasCliente, setVentasCliente] = useState<VentaHistorial[]>([]);
   const [historialCargando, setHistorialCargando] = useState(false);
   const [historialError, setHistorialError] = useState<string | null>(null);
 
-  // Campos de formulario
   const [nombre, setNombre] = useState("");
   const [rfc, setRfc] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -104,7 +99,6 @@ export default function ClientesPage() {
   const [direccion, setDireccion] = useState("");
   const [errores, setErrores] = useState<ErroresFormulario>({});
 
-  // Cargar lista de clientes desde la API
   const cargarClientes = useCallback(async () => {
     try {
       setCargando(true);
@@ -125,7 +119,6 @@ export default function ClientesPage() {
     }
   }, [cargandoPermisos, cargarClientes]);
 
-  // Cargar historial del cliente al abrir el modal de detalles
   useEffect(() => {
     if (!clienteDetalle) {
       setCotizacionesCliente([]);
@@ -173,7 +166,6 @@ export default function ClientesPage() {
     };
   }, [clienteDetalle]);
 
-  // 1. Abrir Modal para crear un nuevo cliente
   const handleNuevoCliente = () => {
     setClienteEdicion(null);
     setNombre("");
@@ -185,7 +177,6 @@ export default function ClientesPage() {
     setModalAbierto(true);
   };
 
-  // 2. Abrir Modal para editar un cliente existente
   const handleEditarCliente = (cliente: Cliente) => {
     setClienteEdicion(cliente);
     setNombre(cliente.nombre);
@@ -197,14 +188,12 @@ export default function ClientesPage() {
     setModalAbierto(true);
   };
 
-  // 3. Abrir Modal para ver detalle e historial
   const handleVerDetalle = (cliente: Cliente) => {
     setClienteDetalle(cliente);
     setTabIndex(0);
     setModalDetalleAbierto(true);
   };
 
-  // 4. Activar/Desactivar Cliente (RF-11/RF-12 lógico)
   const handleAlternarEstado = async (cliente: Cliente) => {
     if (cliente.activo) {
       const confirmado = await confirmar({
@@ -230,7 +219,6 @@ export default function ClientesPage() {
     }
   };
 
-  // 4b. Eliminar cliente (acción destructiva, solo Admin).
   const handleEliminarCliente = async (cliente: Cliente) => {
     const confirmado = await confirmar({
       titulo: "¿Eliminar cliente?",
@@ -252,7 +240,6 @@ export default function ClientesPage() {
     }
   };
 
-  // 5. Validaciones básicas del formulario
   const validarFormulario = (): boolean => {
     const nuevosErrores: ErroresFormulario = {};
 
@@ -279,14 +266,12 @@ export default function ClientesPage() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  // 6. Guardar formulario (Crear o Editar)
   const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validarFormulario()) return;
 
     try {
       if (clienteEdicion) {
-        // Editar
         const actualizado = await llamarApi<Cliente>(`/clientes/${clienteEdicion.id}`, {
           method: "PATCH",
           body: JSON.stringify({
@@ -300,7 +285,6 @@ export default function ClientesPage() {
         setClientes((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
         toast.exito("Cliente actualizado correctamente.");
       } else {
-        // Crear
         const nuevo = await llamarApi<Cliente>("/clientes", {
           method: "POST",
           body: JSON.stringify({
@@ -321,10 +305,8 @@ export default function ClientesPage() {
     }
   };
 
-  // Cuentas de historial asociadas al cliente seleccionado para detalle
   const montoTotalComprado = ventasCliente.reduce((sum, vta) => sum + vta.total, 0);
 
-  // Columnas para la tabla principal
   const columnas: Columna<Cliente>[] = [
     { clave: "nombre", titulo: "Nombre", render: (c) => c.nombre },
     {

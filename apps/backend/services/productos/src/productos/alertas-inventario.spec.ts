@@ -5,7 +5,6 @@ import { type ProductoInventario, calcularAlertas } from "./alertas-inventario";
 import { configuracionInventario } from "./configuracion-inventario";
 
 const CONFIGURACION = { umbralStockBajo: 5, diasAvisoCaducidad: 14 };
-// Fecha local fija: las pruebas no deben depender de la zona horaria del equipo.
 const HOY = new Date("2026-08-17T12:00:00");
 
 function producto(datos: Partial<ProductoInventario> = {}): ProductoInventario {
@@ -166,7 +165,6 @@ describe("calcularAlertas: alcance y orden", () => {
       HOY,
     );
 
-    // El mismo producto puede estar agotado y vencido: son dos avisos distintos.
     assert.equal(alertas.total, 2);
     assert.deepEqual(alertas.umbrales, { stockBajo: 5, diasCaducidad: 14 });
   });

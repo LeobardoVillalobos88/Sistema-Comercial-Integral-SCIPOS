@@ -3,10 +3,6 @@ import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { HEADER_USUARIO_ID, RequierePrivilegio, UsuarioActual } from "@scipos/backend-commons";
 import { ReportesService } from "./reportes.service";
 
-/**
- * Todos los reportes exigen el privilegio reportes:ver (RF-31); la utilidad
- * queda así restringida a supervisores y administradores (RF-33).
- */
 @ApiTags("reportes")
 @ApiHeader({ name: HEADER_USUARIO_ID, required: false })
 @Controller("reportes")

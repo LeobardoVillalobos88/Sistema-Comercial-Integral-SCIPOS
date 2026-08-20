@@ -12,7 +12,6 @@ export interface PanelSeccionProps {
   children: ReactNode;
 }
 
-/** Tarjeta con encabezado que agrupa una sección del punto de venta o de la caja. */
 export function PanelSeccion({ titulo, descripcion, acciones, children }: PanelSeccionProps) {
   return (
     <Card variant="outlined" sx={{ height: "100%" }}>

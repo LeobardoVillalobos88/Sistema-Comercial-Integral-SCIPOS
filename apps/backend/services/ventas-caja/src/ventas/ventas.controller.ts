@@ -11,7 +11,6 @@ import { ConvertirCotizacionDto } from "./dto/convertir-cotizacion.dto";
 import { CrearVentaDto } from "./dto/crear-venta.dto";
 import { VentasService } from "./ventas.service";
 
-/** Forma mínima de la respuesta HTTP que necesita la descarga del PDF. */
 interface RespuestaBinaria {
   setHeader: (nombre: string, valor: string) => void;
   send: (cuerpo: Buffer) => void;

@@ -1,11 +1,8 @@
 import type { Privilegio } from "@scipos/frontend-commons";
 
 export interface ItemNavegacion {
-  /** Texto del menú. */
   etiqueta: string;
-  /** Ruta dentro del shell. */
   ruta: string;
-  /** Nombre del icono de MUI (se resuelve en el Sidebar). */
   icono:
     | "insights"
     | "dashboard"
@@ -17,14 +14,9 @@ export interface ItemNavegacion {
     | "savings"
     | "assessment"
     | "manage_accounts";
-  /** Privilegio necesario para ver el módulo (si aplica). */
   privilegio?: Privilegio;
 }
 
-/**
- * Módulos del sistema y su orden en el menú lateral. Los ítems se ocultan
- * según los privilegios del rol activo.
- */
 export const NAVEGACION: ItemNavegacion[] = [
   { etiqueta: "Inicio", ruta: "/inicio", icono: "insights" },
   { etiqueta: "Dashboard", ruta: "/dashboard", icono: "dashboard" },
