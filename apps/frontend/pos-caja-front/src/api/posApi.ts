@@ -180,6 +180,30 @@ export async function crearCompra(payload: CrearCompraPayload): Promise<unknown>
   });
 }
 
+/** Partida de una compra, ya resuelta a nombre de producto por el servicio. */
+export interface PartidaCompraApi {
+  productoId: string;
+  nombre: string;
+  lote: string;
+  cantidad: number;
+  precioCompra: number;
+  subtotal: number;
+}
+
+export interface CompraApi {
+  id: string;
+  proveedor: string | null;
+  fecha: string;
+  total: number;
+  piezas: number;
+  partidas: PartidaCompraApi[];
+}
+
+/** Historial de compras a proveedores, de la más reciente a la más antigua. */
+export async function listarCompras(): Promise<CompraApi[]> {
+  return llamarApi<CompraApi[]>("/productos/compras");
+}
+
 export async function consultarEstadoCaja(): Promise<EstadoCajaApi> {
   return llamarApi<EstadoCajaApi>("/ventas-caja/caja/estado");
 }

@@ -66,7 +66,7 @@ Registra la mercancía que llega de un proveedor e incrementa las existencias.
 
 - "surte inventario"
 - "llego mercancia"
-- "surte cincuenta de leche"
+- "surte {cantidad} de {producto}"
 
 **Capa de intención** — `SurtirInventarioIntent`, con confirmación de intent.
 

@@ -66,6 +66,23 @@
           }
         }
       }
+    },
+    {
+      "include": ["apps/alexa-skill/lambda/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useNodejsImportProtocol": "off"
+          },
+          "complexity": {
+            "useOptionalChain": "off",
+            "useRegexLiterals": "off"
+          },
+          "suspicious": {
+            "noMisleadingCharacterClass": "off"
+          }
+        }
+      }
     }
   ]
 }

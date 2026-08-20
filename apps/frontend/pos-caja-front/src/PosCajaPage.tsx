@@ -43,6 +43,7 @@ import {
 import { useToast } from "@scipos/frontend-commons/feedback";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  type CompraApi,
   abrirCaja as abrirCajaApi,
   abrirComprobanteVenta,
   cargarHistorialVentas,
@@ -51,6 +52,7 @@ import {
   crearCompra,
   crearVenta,
   listarClientesActivos,
+  listarCompras,
   listarProductosPos,
   mensajeErrorApi,
   registrarMovimientoCaja,
@@ -58,7 +60,7 @@ import {
   ventaApiAUi,
 } from "./api/posApi";
 import { precioSegunModo } from "./calculos/calculos-pos";
-import { PanelCaja, PanelSeccion, ResumenMonto } from "./components";
+import { HistorialCompras, PanelCaja, PanelSeccion, ResumenMonto } from "./components";
 import { CajaProvider, type TipoMovimientoCaja, useCaja } from "./context/CajaContext";
 import { useCarrito } from "./hooks/useCarrito";
 import type { CorteCaja, ModoPos, ProductoPos, VentaPOS } from "./types/pos";
@@ -99,9 +101,14 @@ export function PosCajaPage({
   const [montoInicialCaptura, setMontoInicialCaptura] = useState("0");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
+  // A quién se le compró. El servicio lo guarda como opcional, así que se envía
+  // solo si se capturó, en vez de mandar una cadena vacía.
+  const [proveedor, setProveedor] = useState("");
   const [ventasHistorial, setVentasHistorial] = useState<VentaPOS[]>([]);
   const [cortesCaja, setCortesCaja] = useState<CorteCaja[]>([]);
+  const [comprasHistorial, setComprasHistorial] = useState<CompraApi[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [cargandoCompras, setCargandoCompras] = useState(false);
   const [tipoFlujo, setTipoFlujo] = useState<TipoMovimientoCaja>("Ingreso");
   const [conceptoMovimiento, setConceptoMovimiento] = useState("");
   const [montoMovimiento, setMontoMovimiento] = useState("0");
@@ -175,6 +182,17 @@ export function PosCajaPage({
     }
   }, [inventario, toast]);
 
+  const cargarCompras = useCallback(async () => {
+    setCargandoCompras(true);
+    try {
+      setComprasHistorial(await listarCompras());
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo cargar el historial de compras."));
+    } finally {
+      setCargandoCompras(false);
+    }
+  }, [toast]);
+
   const verComprobante = useCallback(
     async (ventaId: string) => {
       try {
@@ -215,6 +233,13 @@ export function PosCajaPage({
     }
     cargarHistorial();
   }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarHistorial]);
+
+  useEffect(() => {
+    if (permisos.cargandoPermisos || !permisos.usuario || activeTab !== 1 || !esCompra) {
+      return;
+    }
+    cargarCompras();
+  }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarCompras]);
 
   const {
     subtotal: subtotalCarrito,
@@ -344,13 +369,16 @@ export function PosCajaPage({
     setProcesando(true);
     try {
       if (esCompra) {
+        const nombreProveedor = proveedor.trim();
         await crearCompra({
+          proveedor: nombreProveedor || undefined,
           partidas: carrito.map((item) => ({
             productoId: item.productoId,
             cantidad: item.cantidad,
             precioCompra: item.precioUnitario,
           })),
         });
+        setProveedor("");
         setFolioCobro(`COM-${Date.now()}`);
         setTotalCobro(totalVenta);
         toast.exito("La compra fue registrada y el inventario se actualizó.");
@@ -373,7 +401,7 @@ export function PosCajaPage({
       limpiarCarrito();
       await cargarProductos();
       if (activeTab === 1) {
-        await cargarHistorial();
+        await (esCompra ? cargarCompras() : cargarHistorial());
       }
     } catch (error) {
       toast.error(
@@ -538,13 +566,13 @@ export function PosCajaPage({
               icon={<PointOfSaleIcon />}
               iconPosition="start"
               value={0}
-              label="Punto de Venta (POS)"
+              label={esCompra ? "Punto de compra" : "Punto de Venta (POS)"}
             />
             <Tab
               icon={<CreditScoreIcon />}
               iconPosition="start"
               value={1}
-              label="Gestión de Caja & Cortes"
+              label={esCompra ? "Historial de compras" : "Gestión de Caja & Cortes"}
             />
           </Tabs>
         </Paper>
@@ -664,7 +692,18 @@ export function PosCajaPage({
                 }
               >
                 <Stack spacing={2}>
-                  {!esCompra ? (
+                  {esCompra ? (
+                    <TextField
+                      label="Proveedor (opcional)"
+                      value={proveedor}
+                      onChange={(event) => setProveedor(event.target.value)}
+                      size="small"
+                      fullWidth
+                      disabled={procesando}
+                      helperText="Quién surtió la mercancía. Queda guardado en la compra."
+                      inputProps={{ maxLength: 80 }}
+                    />
+                  ) : (
                     <SelectBuscable
                       etiqueta="Cliente"
                       opciones={clientes}
@@ -675,7 +714,7 @@ export function PosCajaPage({
                       tamano="small"
                       deshabilitado={clientes.length === 0 || procesando}
                     />
-                  ) : null}
+                  )}
 
                   {carrito.length === 0 ? (
                     <Paper variant="outlined" sx={{ p: 3, textAlign: "center" }}>
@@ -829,7 +868,11 @@ export function PosCajaPage({
         </Stack>
       ) : null}
 
-      {activeTab === 1 ? (
+      {activeTab === 1 && esCompra ? (
+        <HistorialCompras compras={comprasHistorial} cargando={cargandoCompras} />
+      ) : null}
+
+      {activeTab === 1 && !esCompra ? (
         <PanelCaja
           cajaAbierta={cajaAbierta}
           montoInicial={montoInicial}

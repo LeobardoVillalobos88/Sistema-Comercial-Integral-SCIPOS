@@ -1,15 +1,12 @@
 /**
  * Asistente de almacén: skill de Alexa que opera el inventario de SCIPOS.
- *
- * Cuatro acciones, cada una con un recorrido distinto por la persistencia:
- *   RegistrarProducto  -> API (consulta) -> API (crea) -> Dynamo (folio y bitácora)
- *   SurtirInventario   -> Dynamo (idempotencia) -> API (compra) -> Dynamo (bitácora)
- *   RevisarInventario  -> solo API
- *   BitacoraVoz        -> solo Dynamo
- *
- * La skill no calcula precios ni existencias: eso lo hace el backend. Aquí solo
- * se traduce voz a llamadas y respuestas a frases.
+ * Traduce voz a llamadas; los precios y las existencias los calcula el backend.
+ * Los recorridos por Dynamo y API de cada acción están en el README del módulo.
  */
+const http = require("http");
+const https = require("https");
+const { URL } = require("url");
+
 const Alexa = require("ask-sdk-core");
 const AWS = require("aws-sdk");
 
@@ -26,22 +23,8 @@ const {
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-// --------------------------------------------------------------------------
-// Conexión con la API de SCIPOS
-//
-// Las skills alojadas por Alexa no tienen editor de variables de entorno: eso
-// solo existe cuando el Lambda vive en una cuenta propia de AWS. Por eso los
-// valores están aquí, y se leen primero del entorno para que mover la skill a
-// un Lambda propio no obligue a tocar el código.
-//
-// El respaldo se resuelve con || y no con ??, igual que en la semilla del
-// backend: una variable declarada y vacía debe caer al valor de abajo en vez
-// de darse por buena.
-//
-// Al pegar el archivo en la consola hay que cambiar la IP por la de la
-// instancia donde corre el sistema. La URL termina en /api y no lleva barra
-// final ni puerto: nginx sirve la API bajo esa ruta en el puerto 80.
-// --------------------------------------------------------------------------
+// Conexión con la API. Van aquí porque Alexa-hosted no tiene editor de
+// variables de entorno; al pegar en la consola solo hay que cambiar la IP.
 const API_URL = process.env.SCIPOS_API_URL || "http://TU_IP_PUBLICA/api";
 const CORREO = process.env.SCIPOS_CORREO || "asistente@scipos.com";
 const CONTRASENA = process.env.SCIPOS_CONTRASENA || "Asistente1234";
@@ -139,36 +122,101 @@ async function registrarEnBitacora(almacen, operacion) {
 // --------------------------------------------------------------------------
 
 /**
+ * Petición HTTP con los módulos nativos: el runtime de Alexa puede ser anterior
+ * a Node 18 y no traer `fetch` ni `AbortSignal.timeout`.
+ */
+function peticion(url, opciones) {
+  const ajustes = opciones || {};
+  return new Promise((resolver, rechazar) => {
+    const destino = new URL(url);
+    const cliente = destino.protocol === "https:" ? https : http;
+    const cuerpo = ajustes.body ? JSON.stringify(ajustes.body) : null;
+
+    const encabezados = { "Content-Type": "application/json" };
+    if (ajustes.token) {
+      encabezados.Authorization = `Bearer ${ajustes.token}`;
+    }
+    if (cuerpo) {
+      encabezados["Content-Length"] = Buffer.byteLength(cuerpo);
+    }
+
+    const solicitud = cliente.request(
+      {
+        hostname: destino.hostname,
+        port: destino.port || (destino.protocol === "https:" ? 443 : 80),
+        path: destino.pathname + destino.search,
+        method: ajustes.method || "GET",
+        headers: encabezados,
+        timeout: TIEMPO_LIMITE_MS,
+      },
+      (respuesta) => {
+        let texto = "";
+        respuesta.setEncoding("utf8");
+        respuesta.on("data", (trozo) => {
+          texto += trozo;
+        });
+        respuesta.on("end", () => {
+          resolver({ estatus: respuesta.statusCode, texto });
+        });
+      },
+    );
+
+    solicitud.on("timeout", () => {
+      solicitud.destroy(new Error(`La API tardó más de ${TIEMPO_LIMITE_MS} milisegundos`));
+    });
+    solicitud.on("error", rechazar);
+
+    if (cuerpo) {
+      solicitud.write(cuerpo);
+    }
+    solicitud.end();
+  });
+}
+
+/** Interpreta el cuerpo como JSON sin reventar si resultó no serlo. */
+function comoJson(texto) {
+  try {
+    return JSON.parse(texto);
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
  * Devuelve un token vigente de la API. Reutiliza el guardado en Dynamo mientras
  * le queden más de dos minutos de vida; si no, inicia sesión de nuevo. Evita un
  * inicio de sesión por cada frase que dice la persona.
  */
 async function obtenerToken() {
   const sesion = await leerItem(CLAVE_SESION);
-  if (sesion?.token && sesion.expiraEn - Date.now() > MARGEN_TOKEN_MS) {
+  if (sesion && sesion.token && sesion.expiraEn - Date.now() > MARGEN_TOKEN_MS) {
     return sesion.token;
   }
 
   let respuesta;
   try {
-    respuesta = await fetch(`${API_URL}/seguridad/auth/login`, {
+    respuesta = await peticion(`${API_URL}/seguridad/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        correo: CORREO,
-        contrasena: CONTRASENA,
-      }),
-      signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
+      body: { correo: CORREO, contrasena: CONTRASENA },
     });
-  } catch {
+  } catch (error) {
+    // Sin registrarlo, un corte de red y una función ausente en el runtime
+    // producen la misma frase y no hay cómo distinguirlas.
+    console.error("No se pudo alcanzar la API al iniciar sesión:", error);
     throw new ErrorApi(0, frasePorEstatus(0));
   }
 
-  if (!respuesta.ok) {
-    throw new ErrorApi(respuesta.status, "No pude iniciar sesión en el sistema");
+  if (respuesta.estatus < 200 || respuesta.estatus >= 300) {
+    console.error(`La API rechazó el inicio de sesión (${respuesta.estatus}): ${respuesta.texto}`);
+    throw new ErrorApi(respuesta.estatus, "No pude iniciar sesión en el sistema");
   }
 
-  const datos = await respuesta.json();
+  const datos = comoJson(respuesta.texto);
+  if (!datos || !datos.token) {
+    console.error("El inicio de sesión no devolvió token:", respuesta.texto);
+    throw new ErrorApi(0, "No pude iniciar sesión en el sistema");
+  }
+
   await dynamodb
     .put({
       TableName: TABLA,
@@ -183,36 +231,32 @@ async function obtenerToken() {
  * forma { estatus, mensaje, error, ruta, fecha }, y el mensaje ya viene en
  * español y escrito para personas, así que se aprovecha tal cual.
  */
-async function llamarApi(ruta, opciones = {}) {
+async function llamarApi(ruta, opciones) {
+  const ajustes = opciones || {};
   const token = await obtenerToken();
 
   let respuesta;
   try {
-    respuesta = await fetch(`${API_URL}${ruta}`, {
-      method: opciones.method || "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: opciones.body ? JSON.stringify(opciones.body) : undefined,
-      signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
+    respuesta = await peticion(`${API_URL}${ruta}`, {
+      method: ajustes.method || "GET",
+      body: ajustes.body,
+      token,
     });
-  } catch {
+  } catch (error) {
+    console.error(`No se pudo alcanzar la API en ${ruta}:`, error);
     throw new ErrorApi(0, frasePorEstatus(0));
   }
 
-  if (!respuesta.ok) {
-    let mensaje = null;
-    try {
-      const cuerpo = await respuesta.json();
-      mensaje = cuerpo.mensaje;
-    } catch {
-      mensaje = null;
-    }
-    throw new ErrorApi(respuesta.status, frasePorEstatus(respuesta.status, mensaje));
+  if (respuesta.estatus < 200 || respuesta.estatus >= 300) {
+    console.error(`La API respondió ${respuesta.estatus} en ${ruta}: ${respuesta.texto}`);
+    const cuerpo = comoJson(respuesta.texto);
+    throw new ErrorApi(
+      respuesta.estatus,
+      frasePorEstatus(respuesta.estatus, cuerpo ? cuerpo.mensaje : null),
+    );
   }
 
-  return respuesta.status === 204 ? null : respuesta.json();
+  return respuesta.texto ? comoJson(respuesta.texto) : null;
 }
 
 // --------------------------------------------------------------------------
@@ -224,8 +268,7 @@ const LaunchRequestHandler = {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === "LaunchRequest";
   },
   async handle(handlerInput) {
-    // El item se crea solo si falta. Sobrescribirlo en cada arranque borraría
-    // la bitácora de operaciones que la skill ya registró.
+    // Se crea solo si falta: sobrescribirlo borraría la bitácora.
     try {
       const almacen = await leerItem(CLAVE_ALMACEN);
       if (!almacen) {
@@ -287,8 +330,7 @@ const RegistrarProductoIntentHandler = {
     }
 
     try {
-      // El duplicado se busca contra el catálogo, que es la fuente de verdad:
-      // el producto pudo haberse capturado desde la interfaz web.
+      // El duplicado se decide contra el catálogo, que es la fuente de verdad.
       const catalogo = await llamarApi("/productos/productos");
       const existente = buscarProducto(catalogo, nombre);
       if (existente) {
@@ -368,9 +410,7 @@ const SurtirInventarioIntentHandler = {
     const proveedor = Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor");
 
     try {
-      // Dynamo va primero a propósito: si la frase se repitió, hay que cortar
-      // antes de llamar a la API. Surtir dos veces deja piezas que no existen
-      // en el anaquel, y eso no se nota hasta el siguiente conteo físico.
+      // Dynamo primero: repetir la frase no debe duplicar la entrada.
       const almacen = await leerAlmacen();
       const huella = `surtir:${normalizarTexto(nombre)}:${cantidad}`;
       const repetida = esOperacionRepetida(
@@ -398,8 +438,7 @@ const SurtirInventarioIntentHandler = {
           .getResponse();
       }
 
-      // El precio no viaja en la petición: el servicio usa el precio de compra
-      // vigente del producto, así el importe no depende de lo que mande la voz.
+      // Sin precio: lo pone el servicio desde el precioCompra vigente.
       await llamarApi("/productos/compras", {
         method: "POST",
         body: {

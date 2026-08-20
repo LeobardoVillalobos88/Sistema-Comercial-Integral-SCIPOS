@@ -1,12 +1,14 @@
 "use client";
 
 import { usePermisos } from "@scipos/frontend-commons";
+import { useToast } from "@scipos/frontend-commons/feedback";
 import { LoginView } from "@scipos/login-front";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function LoginPage() {
   const { iniciarSesion, usuario, cargandoPermisos } = usePermisos();
+  const toast = useToast();
   const router = useRouter();
 
   // Si ya hay sesión (p. ej. se abrió /login con la pestaña autenticada), no
@@ -20,7 +22,10 @@ export default function LoginPage() {
   const handleLogin = async (correo: string, contrasena: string) => {
     // iniciarSesion lanza un ErrorApi si falla; el LoginView lo atrapa y lo muestra.
     await iniciarSesion(correo, contrasena);
-    // Si llegamos aquí la sesión fue exitosa: al tablero.
+    // Si llegamos aquí la sesión fue exitosa: al tablero. El aviso se dispara
+    // antes de navegar porque el proveedor de toast vive por encima de la ruta
+    // y sobrevive al cambio de pantalla.
+    toast.exito("Sesión iniciada correctamente.");
     router.replace("/dashboard");
   };
 

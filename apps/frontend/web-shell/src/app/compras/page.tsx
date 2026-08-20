@@ -18,5 +18,7 @@ export default function ComprasPage() {
     );
   }
 
-  return <PosCajaPage modo="compra" defaultTab={0} hideTabs />;
+  // Sin hideTabs: en modo compra la segunda pestaña es el historial de compras,
+  // que es el único lugar donde se puede consultar el proveedor registrado.
+  return <PosCajaPage modo="compra" defaultTab={0} />;
 }
