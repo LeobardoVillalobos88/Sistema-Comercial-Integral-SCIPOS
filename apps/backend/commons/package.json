@@ -1,6 +1,6 @@
 {
   "name": "@scipos/backend-commons",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Librería compartida del backend de SCIPOS: guard de privilegios, extractor de identidad, cliente HTTP entre servicios, filtro de errores y contratos comunes.",
   "main": "./dist/index.js",
