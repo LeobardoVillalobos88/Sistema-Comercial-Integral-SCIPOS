@@ -1,0 +1,713 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "asistente almacen",
+      "intents": [
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.FallbackIntent", "samples": [] },
+        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
+        {
+          "name": "RegistrarProductoIntent",
+          "slots": [
+            {
+              "name": "nombreProducto",
+              "type": "SciposProducto",
+              "samples": [
+                "{nombreProducto}",
+                "se llama {nombreProducto}",
+                "el producto se llama {nombreProducto}",
+                "se llamara {nombreProducto}",
+                "ponle {nombreProducto}",
+                "es {nombreProducto}",
+                "el nombre es {nombreProducto}",
+                "quiero registrar {nombreProducto}"
+              ]
+            },
+            {
+              "name": "precioCompra",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{precioCompra}",
+                "{precioCompra} pesos",
+                "me cuesta {precioCompra}",
+                "lo compro en {precioCompra}",
+                "sale en {precioCompra}",
+                "el costo es {precioCompra}",
+                "a {precioCompra} pesos el proveedor",
+                "cuesta {precioCompra} pesos"
+              ]
+            },
+            {
+              "name": "precioVenta",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{precioVenta}",
+                "{precioVenta} pesos",
+                "lo vendo en {precioVenta}",
+                "se vende en {precioVenta}",
+                "el precio de venta es {precioVenta}",
+                "a {precioVenta} al publico",
+                "lo doy en {precioVenta}",
+                "en {precioVenta} pesos lo vendo"
+              ]
+            },
+            {
+              "name": "fechaCaducidad",
+              "type": "AMAZON.DATE",
+              "samples": [
+                "{fechaCaducidad}",
+                "caduca el {fechaCaducidad}",
+                "vence el {fechaCaducidad}",
+                "la fecha es {fechaCaducidad}",
+                "el lote vence el {fechaCaducidad}",
+                "hasta el {fechaCaducidad}",
+                "se vence {fechaCaducidad}",
+                "caduca en {fechaCaducidad}"
+              ]
+            }
+          ],
+          "samples": [
+            "registra un producto nuevo",
+            "quiero registrar un producto",
+            "da de alta un producto",
+            "dar de alta un producto nuevo",
+            "agrega un producto al catalogo",
+            "necesito agregar un producto al catalogo",
+            "captura un producto nuevo",
+            "quiero capturar un producto en el catalogo",
+            "nuevo producto",
+            "alta de producto",
+            "registrar producto en el catalogo",
+            "voy a dar de alta mercancia nueva",
+            "quiero registrar un articulo nuevo",
+            "da de alta {nombreProducto}",
+            "registra {nombreProducto} en el catalogo",
+            "quiero dar de alta {nombreProducto}"
+          ]
+        },
+        {
+          "name": "SurtirInventarioIntent",
+          "slots": [
+            {
+              "name": "producto",
+              "type": "SciposProducto",
+              "samples": [
+                "{producto}",
+                "el producto es {producto}",
+                "de {producto}",
+                "quiero surtir {producto}",
+                "es {producto}",
+                "se trata de {producto}",
+                "para {producto}",
+                "el articulo es {producto}"
+              ]
+            },
+            {
+              "name": "cantidad",
+              "type": "AMAZON.NUMBER",
+              "samples": [
+                "{cantidad}",
+                "{cantidad} piezas",
+                "son {cantidad}",
+                "entraron {cantidad}",
+                "llegaron {cantidad} piezas",
+                "quiero meter {cantidad}",
+                "{cantidad} unidades",
+                "serian {cantidad} piezas"
+              ]
+            },
+            {
+              "name": "proveedor",
+              "type": "SciposProveedor",
+              "samples": [
+                "{proveedor}",
+                "el proveedor es {proveedor}",
+                "me lo trajo {proveedor}",
+                "viene de {proveedor}",
+                "es de {proveedor}",
+                "lo surte {proveedor}",
+                "del proveedor {proveedor}",
+                "me lo surtio {proveedor}"
+              ]
+            }
+          ],
+          "samples": [
+            "surte inventario",
+            "quiero surtir inventario",
+            "resurte el inventario",
+            "llego mercancia",
+            "entro mercancia al almacen",
+            "anota una entrada de inventario",
+            "abastece el almacen",
+            "quiero abastecer un producto",
+            "entrada de mercancia",
+            "recibi mercancia del proveedor",
+            "mete piezas al inventario",
+            "surte {cantidad} de {producto}",
+            "surte {producto}",
+            "llegaron {cantidad} piezas de {producto}",
+            "abastece {producto} con {cantidad} piezas",
+            "entraron {cantidad} de {producto}"
+          ]
+        },
+        {
+          "name": "RevisarInventarioIntent",
+          "slots": [
+            {
+              "name": "tipoRevision",
+              "type": "SciposTipoRevision",
+              "samples": [
+                "{tipoRevision}",
+                "quiero ver {tipoRevision}",
+                "lo de {tipoRevision}",
+                "checa {tipoRevision}",
+                "dime {tipoRevision}",
+                "las de {tipoRevision}",
+                "me interesa {tipoRevision}",
+                "sobre {tipoRevision}"
+              ]
+            }
+          ],
+          "samples": [
+            "revisa las alertas del inventario",
+            "revisa el inventario",
+            "que productos estan por caducar",
+            "como anda el inventario",
+            "dame las alertas del almacen",
+            "hay algo por vencer",
+            "que se esta acabando",
+            "revisa las caducidades",
+            "checa el inventario",
+            "alertas de inventario",
+            "que productos se estan agotando",
+            "dime como esta el almacen",
+            "revisa {tipoRevision}",
+            "dame las alertas de {tipoRevision}",
+            "quiero revisar {tipoRevision}",
+            "muestrame lo de {tipoRevision}"
+          ]
+        },
+        {
+          "name": "BitacoraVozIntent",
+          "slots": [],
+          "samples": [
+            "que registre hoy por voz",
+            "dame mi bitacora",
+            "dime mi bitacora de voz",
+            "resumen de lo que he dictado",
+            "que operaciones hice hoy",
+            "que he hecho hoy por voz",
+            "bitacora del dia",
+            "dame el resumen del dia",
+            "que llevo registrado hoy",
+            "cuantas operaciones llevo hoy",
+            "resumen de mis movimientos por voz",
+            "que he dictado hoy",
+            "dime lo que registre por voz",
+            "muestrame la bitacora",
+            "cual fue mi ultima operacion",
+            "que tanto he capturado hoy"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "SciposProducto",
+          "values": [
+            {
+              "id": "p-001",
+              "name": {
+                "value": "abarrote surtido",
+                "synonyms": ["abarrote", "abarrotes", "surtido", "abarrote surtido un kilo"]
+              }
+            },
+            {
+              "id": "p-002",
+              "name": {
+                "value": "refresco",
+                "synonyms": ["refresco de seiscientos", "soda", "gaseosa", "refresco chico"]
+              }
+            },
+            {
+              "id": "p-004",
+              "name": {
+                "value": "pan de caja",
+                "synonyms": ["pan", "pan grande", "pan de caja grande", "pan blanco"]
+              }
+            },
+            {
+              "id": "p-005",
+              "name": {
+                "value": "leche entera",
+                "synonyms": ["leche", "leche de un litro", "leche entera de un litro"]
+              }
+            },
+            {
+              "id": "p-006",
+              "name": {
+                "value": "detergente",
+                "synonyms": ["detergente de un kilo", "jabon en polvo", "detergente en polvo"]
+              }
+            },
+            {
+              "id": "p-008",
+              "name": {
+                "value": "papel higienico",
+                "synonyms": [
+                  "papel",
+                  "papel de bano",
+                  "rollos",
+                  "higienico",
+                  "papel de cuatro rollos"
+                ]
+              }
+            },
+            {
+              "id": "p-013",
+              "name": {
+                "value": "servicio de paqueteria",
+                "synonyms": ["paqueteria", "envio", "servicio de envio"]
+              }
+            },
+            { "name": { "value": "arroz", "synonyms": ["arroz blanco", "bolsa de arroz"] } },
+            { "name": { "value": "frijol", "synonyms": ["frijoles", "frijol negro"] } },
+            { "name": { "value": "aceite", "synonyms": ["aceite de cocina", "aceite vegetal"] } },
+            { "name": { "value": "azucar", "synonyms": ["azucar refinada", "bolsa de azucar"] } },
+            { "name": { "value": "sal", "synonyms": ["sal de mesa"] } },
+            { "name": { "value": "harina", "synonyms": ["harina de trigo"] } },
+            { "name": { "value": "atun", "synonyms": ["lata de atun", "atun en lata"] } },
+            { "name": { "value": "cafe", "synonyms": ["cafe soluble", "frasco de cafe"] } },
+            { "name": { "value": "galletas", "synonyms": ["paquete de galletas"] } },
+            { "name": { "value": "cereal", "synonyms": ["caja de cereal"] } },
+            { "name": { "value": "pasta", "synonyms": ["sopa de pasta", "espagueti"] } },
+            { "name": { "value": "salsa", "synonyms": ["salsa de tomate", "pure de tomate"] } },
+            { "name": { "value": "agua embotellada", "synonyms": ["agua", "botella de agua"] } },
+            { "name": { "value": "jugo", "synonyms": ["jugo de naranja", "carton de jugo"] } },
+            { "name": { "value": "yogurt", "synonyms": ["yogurt natural", "yogurt griego"] } },
+            { "name": { "value": "queso", "synonyms": ["queso fresco", "queso panela"] } },
+            { "name": { "value": "huevo", "synonyms": ["huevos", "carton de huevo"] } },
+            { "name": { "value": "cloro", "synonyms": ["blanqueador"] } },
+            { "name": { "value": "jabon de barra", "synonyms": ["jabon", "jabon de tocador"] } },
+            { "name": { "value": "servilletas", "synonyms": ["paquete de servilletas"] } }
+          ]
+        },
+        {
+          "name": "SciposProveedor",
+          "values": [
+            {
+              "name": {
+                "value": "distribuidora del centro",
+                "synonyms": ["distribuidora", "la del centro"]
+              }
+            },
+            {
+              "name": {
+                "value": "abarrotera del valle",
+                "synonyms": ["abarrotera", "la del valle"]
+              }
+            },
+            { "name": { "value": "proveedor local", "synonyms": ["el local", "local"] } },
+            {
+              "name": {
+                "value": "central de abastos",
+                "synonyms": ["la central", "abastos"]
+              }
+            },
+            {
+              "name": {
+                "value": "lacteos del norte",
+                "synonyms": ["lacteos", "los del norte"]
+              }
+            },
+            {
+              "name": {
+                "value": "comercializadora unida",
+                "synonyms": ["comercializadora", "la unida"]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SciposTipoRevision",
+          "values": [
+            {
+              "id": "caducidad",
+              "name": {
+                "value": "caducidad",
+                "synonyms": [
+                  "caducidades",
+                  "vencimiento",
+                  "vencimientos",
+                  "lo que se vence",
+                  "fechas",
+                  "lo que esta por caducar"
+                ]
+              }
+            },
+            {
+              "id": "existencias",
+              "name": {
+                "value": "existencias",
+                "synonyms": [
+                  "existencia",
+                  "stock",
+                  "lo que se acaba",
+                  "inventario bajo",
+                  "lo que se esta agotando",
+                  "piezas"
+                ]
+              }
+            },
+            {
+              "id": "todo",
+              "name": {
+                "value": "todo",
+                "synonyms": ["todas", "completo", "general", "todas las alertas", "ambas"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "RegistrarProductoIntent",
+          "confirmationRequired": true,
+          "prompts": { "confirmation": "Confirm.Intent.RegistrarProducto" },
+          "slots": [
+            {
+              "name": "nombreProducto",
+              "type": "SciposProducto",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.RegistrarProducto.nombreProducto",
+                "confirmation": "Confirm.Slot.RegistrarProducto.nombreProducto"
+              }
+            },
+            {
+              "name": "precioCompra",
+              "type": "AMAZON.NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": { "elicitation": "Elicit.Slot.RegistrarProducto.precioCompra" },
+              "validations": [
+                {
+                  "type": "isGreaterThan",
+                  "prompt": "Slot.Validation.RegistrarProducto.precioCompra.minimo",
+                  "value": "0"
+                },
+                {
+                  "type": "isLessThanOrEqualTo",
+                  "prompt": "Slot.Validation.RegistrarProducto.precioCompra.maximo",
+                  "value": "100000"
+                }
+              ]
+            },
+            {
+              "name": "precioVenta",
+              "type": "AMAZON.NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.RegistrarProducto.precioVenta",
+                "confirmation": "Confirm.Slot.RegistrarProducto.precioVenta"
+              },
+              "validations": [
+                {
+                  "type": "isGreaterThan",
+                  "prompt": "Slot.Validation.RegistrarProducto.precioVenta.minimo",
+                  "value": "0"
+                },
+                {
+                  "type": "isLessThanOrEqualTo",
+                  "prompt": "Slot.Validation.RegistrarProducto.precioVenta.maximo",
+                  "value": "100000"
+                }
+              ]
+            },
+            {
+              "name": "fechaCaducidad",
+              "type": "AMAZON.DATE",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.RegistrarProducto.fechaCaducidad",
+                "confirmation": "Confirm.Slot.RegistrarProducto.fechaCaducidad"
+              }
+            }
+          ]
+        },
+        {
+          "name": "SurtirInventarioIntent",
+          "confirmationRequired": true,
+          "prompts": { "confirmation": "Confirm.Intent.SurtirInventario" },
+          "slots": [
+            {
+              "name": "producto",
+              "type": "SciposProducto",
+              "elicitationRequired": true,
+              "confirmationRequired": true,
+              "prompts": {
+                "elicitation": "Elicit.Slot.SurtirInventario.producto",
+                "confirmation": "Confirm.Slot.SurtirInventario.producto"
+              }
+            },
+            {
+              "name": "cantidad",
+              "type": "AMAZON.NUMBER",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": { "elicitation": "Elicit.Slot.SurtirInventario.cantidad" },
+              "validations": [
+                {
+                  "type": "isGreaterThanOrEqualTo",
+                  "prompt": "Slot.Validation.SurtirInventario.cantidad.minimo",
+                  "value": "1"
+                },
+                {
+                  "type": "isLessThanOrEqualTo",
+                  "prompt": "Slot.Validation.SurtirInventario.cantidad.maximo",
+                  "value": "5000"
+                }
+              ]
+            },
+            {
+              "name": "proveedor",
+              "type": "SciposProveedor",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": { "elicitation": "Elicit.Slot.SurtirInventario.proveedor" }
+            }
+          ]
+        },
+        {
+          "name": "RevisarInventarioIntent",
+          "confirmationRequired": false,
+          "slots": [
+            {
+              "name": "tipoRevision",
+              "type": "SciposTipoRevision",
+              "elicitationRequired": true,
+              "confirmationRequired": false,
+              "prompts": { "elicitation": "Elicit.Slot.RevisarInventario.tipoRevision" }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "ALWAYS"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Slot.RegistrarProducto.nombreProducto",
+        "variations": [
+          { "type": "PlainText", "value": "¿Cómo se va a llamar el producto?" },
+          { "type": "PlainText", "value": "Dame el nombre del producto." },
+          { "type": "PlainText", "value": "¿Qué producto vas a dar de alta?" },
+          { "type": "PlainText", "value": "¿Con qué nombre lo registro en el catálogo?" }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.RegistrarProducto.nombreProducto",
+        "variations": [
+          { "type": "PlainText", "value": "¿El producto se llama {nombreProducto}?" },
+          { "type": "PlainText", "value": "Entonces lo registro como {nombreProducto}, ¿correcto?" }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.RegistrarProducto.precioCompra",
+        "variations": [
+          { "type": "PlainText", "value": "¿En cuánto lo compras al proveedor?" },
+          { "type": "PlainText", "value": "Dime el precio de compra." },
+          { "type": "PlainText", "value": "¿Cuánto te cuesta cada pieza?" },
+          { "type": "PlainText", "value": "¿Cuál es el costo por unidad?" }
+        ]
+      },
+      {
+        "id": "Slot.Validation.RegistrarProducto.precioCompra.minimo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "El precio de compra debe ser mayor a cero. ¿En cuánto lo compras?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Ese costo no es válido. Dime un monto mayor a cero."
+          }
+        ]
+      },
+      {
+        "id": "Slot.Validation.RegistrarProducto.precioCompra.maximo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Ese costo supera el límite de cien mil pesos. Dime un monto menor."
+          },
+          {
+            "type": "PlainText",
+            "value": "El precio de compra no puede pasar de cien mil pesos. ¿Cuánto cuesta?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.RegistrarProducto.precioVenta",
+        "variations": [
+          { "type": "PlainText", "value": "¿En cuánto lo vas a vender?" },
+          { "type": "PlainText", "value": "Dame el precio de venta al público." },
+          { "type": "PlainText", "value": "¿A cómo lo doy al cliente?" },
+          { "type": "PlainText", "value": "¿Cuál es el precio de venta?" }
+        ]
+      },
+      {
+        "id": "Slot.Validation.RegistrarProducto.precioVenta.minimo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "El precio de venta debe ser mayor a cero. ¿En cuánto lo vendes?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Ese precio no es válido. Dime un monto mayor a cero."
+          }
+        ]
+      },
+      {
+        "id": "Slot.Validation.RegistrarProducto.precioVenta.maximo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Ese precio supera el límite de cien mil pesos. Dime un monto menor."
+          },
+          {
+            "type": "PlainText",
+            "value": "El precio de venta no puede pasar de cien mil pesos. ¿En cuánto lo vendes?"
+          }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.RegistrarProducto.precioVenta",
+        "variations": [
+          { "type": "PlainText", "value": "¿Lo vendo en {precioVenta} pesos?" },
+          {
+            "type": "PlainText",
+            "value": "Confirmo el precio de venta en {precioVenta} pesos, ¿está bien?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.RegistrarProducto.fechaCaducidad",
+        "variations": [
+          { "type": "PlainText", "value": "¿Cuándo caduca este lote?" },
+          { "type": "PlainText", "value": "Dame la fecha de caducidad." },
+          { "type": "PlainText", "value": "¿Hasta qué fecha sirve el producto?" },
+          { "type": "PlainText", "value": "¿En qué fecha vence?" }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.RegistrarProducto.fechaCaducidad",
+        "variations": [
+          { "type": "PlainText", "value": "¿El lote caduca el {fechaCaducidad}?" },
+          { "type": "PlainText", "value": "Anoto que vence el {fechaCaducidad}, ¿correcto?" }
+        ]
+      },
+      {
+        "id": "Confirm.Intent.RegistrarProducto",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿Registro {nombreProducto} con precio de venta de {precioVenta} pesos y caducidad el {fechaCaducidad}?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Voy a dar de alta {nombreProducto} en {precioVenta} pesos. ¿Lo confirmo?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.SurtirInventario.producto",
+        "variations": [
+          { "type": "PlainText", "value": "¿Qué producto vas a surtir?" },
+          { "type": "PlainText", "value": "Dime el producto que entró al almacén." },
+          { "type": "PlainText", "value": "¿De qué artículo es la entrada?" },
+          { "type": "PlainText", "value": "¿A qué producto le agrego piezas?" }
+        ]
+      },
+      {
+        "id": "Confirm.Slot.SurtirInventario.producto",
+        "variations": [
+          { "type": "PlainText", "value": "¿La entrada es de {producto}?" },
+          { "type": "PlainText", "value": "Entendí {producto}, ¿es correcto?" }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.SurtirInventario.cantidad",
+        "variations": [
+          { "type": "PlainText", "value": "¿Cuántas piezas entraron?" },
+          { "type": "PlainText", "value": "Dime la cantidad que vas a surtir." },
+          { "type": "PlainText", "value": "¿Qué cantidad recibiste?" },
+          { "type": "PlainText", "value": "¿Cuántas unidades le agrego?" }
+        ]
+      },
+      {
+        "id": "Slot.Validation.SurtirInventario.cantidad.minimo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "La cantidad debe ser de al menos una pieza. ¿Cuántas entraron?"
+          },
+          {
+            "type": "PlainText",
+            "value": "No puedo surtir cero piezas. Dime una cantidad mayor."
+          }
+        ]
+      },
+      {
+        "id": "Slot.Validation.SurtirInventario.cantidad.maximo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Esa cantidad supera el límite de cinco mil piezas por entrada. Dime una menor."
+          },
+          {
+            "type": "PlainText",
+            "value": "No puedo registrar más de cinco mil piezas de una vez. ¿Cuántas entraron?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.SurtirInventario.proveedor",
+        "variations": [
+          { "type": "PlainText", "value": "¿Quién te surtió la mercancía?" },
+          { "type": "PlainText", "value": "Dime el nombre del proveedor." },
+          { "type": "PlainText", "value": "¿De qué proveedor viene la entrada?" },
+          { "type": "PlainText", "value": "¿Quién trajo el producto?" }
+        ]
+      },
+      {
+        "id": "Confirm.Intent.SurtirInventario",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "¿Registro la entrada de {cantidad} piezas de {producto} de {proveedor}?"
+          },
+          {
+            "type": "PlainText",
+            "value": "Voy a surtir {cantidad} piezas de {producto}. ¿Lo confirmo?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Slot.RevisarInventario.tipoRevision",
+        "variations": [
+          { "type": "PlainText", "value": "¿Qué quieres revisar, caducidades o existencias?" },
+          { "type": "PlainText", "value": "Dime si reviso caducidad, existencias, o todo." },
+          { "type": "PlainText", "value": "¿Te interesan las fechas de vencimiento o las piezas?" },
+          { "type": "PlainText", "value": "¿Reviso lo que se vence, lo que se acaba, o todo?" }
+        ]
+      }
+    ]
+  }
+}

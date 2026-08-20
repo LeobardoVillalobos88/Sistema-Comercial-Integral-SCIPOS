@@ -138,6 +138,41 @@ productos y son los mismos que usan las cifras del dashboard.
 
 ---
 
+## 4 bis. El almacén por voz (skill de Alexa)
+
+Además de la interfaz web, el inventario se puede operar hablándole a un
+dispositivo Alexa. Está pensado para quien recibe mercancía con las manos
+ocupadas y no puede ir al navegador a llenar formularios.
+
+Se invoca diciendo **"Alexa, abre asistente almacén"**.
+
+| Acción | Se le dice algo como | Qué hace | Privilegio que exige |
+|---|---|---|---|
+| Registrar producto | "registra un producto nuevo" | Pregunta nombre, precio de compra, precio de venta y caducidad, y da de alta el producto con un lote `VOZ-XXX`. Queda sin existencias | `productos:crear` |
+| Surtir inventario | "surte inventario" | Pregunta producto, cantidad y proveedor, y registra la entrada subiendo las existencias | `compras:ver` |
+| Revisar inventario | "revisa las alertas del inventario" | Dice qué lotes están vencidos o por vencer y qué productos se están agotando, nombrando el más urgente | `productos:ver` |
+| Bitácora del día | "qué registré hoy por voz" | Cuenta cuántas altas y entradas se dictaron hoy, por cuánto dinero, y cuál fue la última | ninguno |
+
+Cosas que conviene saber al usarla:
+
+- **Repetir una frase no duplica la entrada.** Si Alexa no oyó bien y se vuelve
+  a dictar la misma entrada de inventario en menos de dos minutos, avisa que ya
+  la registró y no vuelve a sumar piezas.
+- **Los precios y las existencias los sigue calculando el sistema**, igual que
+  desde la web. La voz solo dicta; nada se calcula del lado de Alexa.
+- **La skill obedece los mismos privilegios.** Opera con el usuario
+  `asistente@scipos.com`, que solo puede ver el catálogo, registrar productos y
+  registrar entradas. Si desde `/usuarios` se le revoca alguno, Alexa responde
+  que no tiene permiso en la siguiente frase.
+- Lo que se registra por voz **aparece en la web de inmediato**, porque va a la
+  misma base de datos.
+
+El detalle técnico y el procedimiento de alta están en
+[`apps/alexa-skill/README.md`](../../apps/alexa-skill/README.md), y el diseño de
+la conversación en [`diseno-conversacion-alexa.md`](./diseno-conversacion-alexa.md).
+
+---
+
 ## 5. Notas de uso
 
 - Los datos viven en un **backend real** (microservicios NestJS + PostgreSQL) al que

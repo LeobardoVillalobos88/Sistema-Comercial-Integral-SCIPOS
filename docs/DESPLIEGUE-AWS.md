@@ -190,7 +190,12 @@ Lo mínimo que debes cambiar:
 | `JWT_PRIVATE_KEY` | la línea que imprimió `pnpm llaves:entorno` |
 | `JWT_PUBLIC_KEY` | la otra línea |
 | `EJECUTAR_SEMILLA` | `true` **solo para el primer arranque** |
-| `SEED_*_PASSWORD` | contraseñas propias para los cuatro usuarios |
+| `SEED_*_PASSWORD` | contraseñas propias para los cinco usuarios |
+
+El quinto usuario es `asistente@scipos.com`, con el que la skill de Alexa inicia
+sesión; su contraseña se define con `SEED_ASISTENTE_PASSWORD`. Conviene cambiarla
+igual que las demás, y con más razón: viaja también en las variables de entorno
+del Lambda de la skill.
 
 El resto de las variables ya viene con valores correctos para este montaje.
 Opcionalmente puedes ajustar `UMBRAL_STOCK_BAJO` (5) y `DIAS_AVISO_CADUCIDAD`
@@ -227,7 +232,7 @@ en llegar a ese estado casi siempre están esperando a la base de datos.
 ## 7. Cargar los datos iniciales
 
 Si pusiste `EJECUTAR_SEMILLA=true` antes de levantar, ya están cargados: el
-catálogo de privilegios, la matriz de roles, los cuatro usuarios y los datos de
+catálogo de privilegios, la matriz de roles, los cinco usuarios y los datos de
 demostración.
 
 **Vuelve a ponerlo en `false`** y reinicia, para que no se recarguen en cada
@@ -247,6 +252,57 @@ docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env \
 
 Los demás servicios se siembran igual, cambiando `seguridad` por `productos`,
 `clientes`, `cotizaciones` o `ventas-caja`.
+
+### Aplicar cambios de la semilla a una instancia que ya está en marcha
+
+Cuando la semilla cambia —por ejemplo al agregar el usuario del asistente de voz
+que usa la skill de Alexa— hay que llevar ese cambio a una instancia que ya
+tiene datos reales.
+
+> **No vuelvas a poner `EJECUTAR_SEMILLA=true`.** Esa variable vive en el bloque
+> de entorno común a los siete procesos de backend, así que activarla dispara
+> también la semilla de productos, que hace `upsert` por id fijo y **devuelve
+> las existencias de los siete productos sembrados a sus valores originales**.
+> La pérdida es silenciosa: ningún error, solo números equivocados en el
+> inventario.
+
+> **Reconstruye la imagen antes de sembrar.** El comando de abajo ejecuta el
+> `seed.ts` que está *dentro del contenedor*, no el del repositorio. Si todavía
+> corre la imagen anterior, se sembrará la semilla vieja: imprimirá sus conteos
+> como si todo hubiera ido bien y no creará nada nuevo. Primero `git pull`,
+> `pnpm prod:build` y `pnpm prod:up`; después esto.
+
+La semilla de seguridad sí es segura de repetir: solo hace `upsert` de
+privilegios, roles, la matriz rol-privilegio, los usuarios y sus ajustes de
+privilegio, y no borra nada. Se ejecuta sola, sobre su propio contenedor:
+
+```bash
+docker exec scipos-seguridad pnpm exec tsx prisma/seed.ts
+```
+
+Debe imprimir los conteos finales. Después conviene comprobar que el usuario
+nuevo quedó con los privilegios esperados y que **ningún usuario existente
+cambió**:
+
+```bash
+curl -s -X POST http://localhost/api/seguridad/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"correo":"asistente@scipos.com","contrasena":"TU_CONTRASENA"}'
+```
+
+El arreglo `privilegios` de la respuesta debe traer exactamente
+`productos:ver`, `productos:crear` y `compras:ver`. Repite con
+`vendedor@scipos.com`: debe conservar sus diez privilegios de rol y **no** tener
+`productos:crear`.
+
+Los privilegios efectivos se guardan 60 segundos en Redis, así que un cambio
+puede tardar hasta un minuto en verse reflejado.
+
+> **No crees a mano un usuario que la semilla también crea.** El campo `correo`
+> es único, y la semilla busca por `id`. Un usuario creado desde la API o desde
+> `/usuarios` recibe un identificador distinto, así que la semilla intentaría
+> crearlo de nuevo, chocaría contra el correo repetido y fallaría a media
+> ejecución. Si ya existe uno hecho a mano, bórralo antes de sembrar.
 
 ---
 
@@ -291,6 +347,16 @@ pnpm prod:up
 ```
 
 Las migraciones pendientes se aplican solas al arrancar cada servicio.
+
+**Si la versión nueva agrega usuarios o privilegios, falta un paso más.** Las
+migraciones cambian la forma de las tablas, pero no su contenido: un usuario
+nuevo vive en la semilla, y la semilla no se ejecuta sola. Después de
+reconstruir, sigue *Aplicar cambios de la semilla a una instancia que ya está en
+marcha*, más abajo.
+
+Es el caso de la versión que incorpora la skill de Alexa: trae el usuario
+`asistente@scipos.com`, y sin ese paso la skill responde "no pude iniciar sesión
+en el sistema" en todas sus acciones.
 
 ### Respaldar la base de datos
 
