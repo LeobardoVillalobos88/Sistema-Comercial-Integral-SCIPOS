@@ -26,7 +26,7 @@ import {
   SearchableTable,
   SkeletonTabla,
   type TipoProducto,
-  formatearFecha,
+  formatearFechaCalendario,
   formatearMoneda,
   llamarApi,
   usePermisos,
@@ -299,7 +299,7 @@ export function CatalogoProductos() {
       {
         clave: "fechaCaducidad",
         titulo: "Caducidad",
-        render: (p) => (p.fechaCaducidad ? formatearFecha(p.fechaCaducidad) : "—"),
+        render: (p) => (p.fechaCaducidad ? formatearFechaCalendario(p.fechaCaducidad) : "—"),
       },
       { clave: "estado", titulo: "Estado", render: (p) => <EstadoChip activo={p.activo} /> },
     ];
