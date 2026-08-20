@@ -26,6 +26,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { Theme } from "@mui/material/styles";
 import { ESMALTE, SOBRE_ESMALTE, sombraRotulo, usePermisos } from "@scipos/frontend-commons";
+import { confirmar } from "@scipos/frontend-commons/feedback";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -73,6 +74,17 @@ function Contenido({
   const { can, cerrarSesion } = usePermisos();
 
   const itemsVisibles = NAVEGACION.filter((item) => !item.privilegio || can(item.privilegio));
+
+  const confirmarCierre = async () => {
+    const confirmado = await confirmar({
+      titulo: "¿Cerrar sesión?",
+      texto: "Volverás a la pantalla de acceso y tendrás que iniciar sesión de nuevo.",
+      confirmar: "Sí, cerrar sesión",
+    });
+    if (confirmado) {
+      cerrarSesion();
+    }
+  };
 
   const revelado = {
     whiteSpace: "nowrap" as const,
@@ -246,7 +258,7 @@ function Contenido({
           <Tooltip title="Cerrar sesión" placement="right">
             <IconButton
               color="inherit"
-              onClick={cerrarSesion}
+              onClick={confirmarCierre}
               size="small"
               aria-label="Cerrar sesión"
               sx={{ color: SOBRE_ESMALTE.textoTenue, "&:hover": { color: ESMALTE.ocre } }}

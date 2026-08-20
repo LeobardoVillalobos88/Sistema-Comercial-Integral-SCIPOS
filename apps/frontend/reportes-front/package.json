@@ -1,6 +1,6 @@
 {
   "name": "@scipos/reportes-front",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Microfrontend de reportes comerciales: ventas, cotizaciones, inventario, cortes y utilidad.",
   "main": "./src/index.ts",

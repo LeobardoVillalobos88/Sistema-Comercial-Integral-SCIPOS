@@ -17,7 +17,7 @@ x-backend: &backend
   build:
     context: ../../..
     dockerfile: infra/docker/Dockerfile.backend
-  image: scipos-backend:1.1.0
+  image: scipos-backend:2.0.0
   restart: unless-stopped
   depends_on:
     db:
@@ -100,6 +100,7 @@ services:
       SEED_VENDEDOR_PASSWORD: ${SEED_VENDEDOR_PASSWORD:-}
       SEED_CAJERO_PASSWORD: ${SEED_CAJERO_PASSWORD:-}
       SEED_SUPERVISOR_PASSWORD: ${SEED_SUPERVISOR_PASSWORD:-}
+      SEED_ASISTENTE_PASSWORD: ${SEED_ASISTENTE_PASSWORD:-}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
@@ -217,7 +218,7 @@ services:
       args:
         # Ruta relativa: la interfaz y la API comparten origen tras el proxy.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
-    image: scipos-web:1.1.0
+    image: scipos-web:2.0.0
     container_name: scipos-web
     restart: unless-stopped
     environment:
