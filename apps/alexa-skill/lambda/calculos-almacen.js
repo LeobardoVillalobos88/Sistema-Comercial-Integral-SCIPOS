@@ -19,9 +19,14 @@ function redondear(valor) {
  * NFD separa cada letra de su acento y \p{Diacritic} borra los acentos sueltos.
  * Se usa esa propiedad y no un rango literal porque este archivo se copia y se
  * pega en la consola: unos caracteres combinantes invisibles no sobreviven bien.
+ *
+ * La comprobación de nulos se escribe larga en vez de con ??, porque el editor
+ * de la consola de Alexa marca esa sintaxis como error y confunde a quien pega
+ * el archivo.
  */
 function normalizarTexto(texto) {
-  return String(texto ?? "")
+  if (texto === null || texto === undefined) return "";
+  return String(texto)
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()

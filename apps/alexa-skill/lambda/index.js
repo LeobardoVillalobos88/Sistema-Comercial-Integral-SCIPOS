@@ -10,6 +10,10 @@
  * La skill no calcula precios ni existencias: eso lo hace el backend. Aquí solo
  * se traduce voz a llamadas y respuestas a frases.
  */
+const http = require("http");
+const https = require("https");
+const { URL } = require("url");
+
 const Alexa = require("ask-sdk-core");
 const AWS = require("aws-sdk");
 
@@ -139,36 +143,110 @@ async function registrarEnBitacora(almacen, operacion) {
 // --------------------------------------------------------------------------
 
 /**
+ * Petición HTTP con los módulos nativos de Node.
+ *
+ * No se usa `fetch` porque solo existe como global desde Node 18, y el runtime
+ * de las skills alojadas por Alexa puede ser anterior; cuando falta, la llamada
+ * revienta con "fetch is not defined" y desde la conversación se ve idéntico a
+ * que el servidor no hubiera respondido. Lo mismo vale para
+ * `AbortSignal.timeout`, que necesita Node 17.3. Con `http` y `https` no hay
+ * versión que valga: existen desde siempre.
+ *
+ * Devuelve el estatus y el cuerpo sin interpretar; quien llama decide.
+ */
+function peticion(url, opciones) {
+  const ajustes = opciones || {};
+  return new Promise((resolver, rechazar) => {
+    const destino = new URL(url);
+    const cliente = destino.protocol === "https:" ? https : http;
+    const cuerpo = ajustes.body ? JSON.stringify(ajustes.body) : null;
+
+    const encabezados = { "Content-Type": "application/json" };
+    if (ajustes.token) {
+      encabezados.Authorization = `Bearer ${ajustes.token}`;
+    }
+    if (cuerpo) {
+      encabezados["Content-Length"] = Buffer.byteLength(cuerpo);
+    }
+
+    const solicitud = cliente.request(
+      {
+        hostname: destino.hostname,
+        port: destino.port || (destino.protocol === "https:" ? 443 : 80),
+        path: destino.pathname + destino.search,
+        method: ajustes.method || "GET",
+        headers: encabezados,
+        timeout: TIEMPO_LIMITE_MS,
+      },
+      (respuesta) => {
+        let texto = "";
+        respuesta.setEncoding("utf8");
+        respuesta.on("data", (trozo) => {
+          texto += trozo;
+        });
+        respuesta.on("end", () => {
+          resolver({ estatus: respuesta.statusCode, texto });
+        });
+      },
+    );
+
+    solicitud.on("timeout", () => {
+      solicitud.destroy(new Error(`La API tardó más de ${TIEMPO_LIMITE_MS} milisegundos`));
+    });
+    solicitud.on("error", rechazar);
+
+    if (cuerpo) {
+      solicitud.write(cuerpo);
+    }
+    solicitud.end();
+  });
+}
+
+/** Interpreta el cuerpo como JSON sin reventar si resultó no serlo. */
+function comoJson(texto) {
+  try {
+    return JSON.parse(texto);
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
  * Devuelve un token vigente de la API. Reutiliza el guardado en Dynamo mientras
  * le queden más de dos minutos de vida; si no, inicia sesión de nuevo. Evita un
  * inicio de sesión por cada frase que dice la persona.
  */
 async function obtenerToken() {
   const sesion = await leerItem(CLAVE_SESION);
-  if (sesion?.token && sesion.expiraEn - Date.now() > MARGEN_TOKEN_MS) {
+  if (sesion && sesion.token && sesion.expiraEn - Date.now() > MARGEN_TOKEN_MS) {
     return sesion.token;
   }
 
   let respuesta;
   try {
-    respuesta = await fetch(`${API_URL}/seguridad/auth/login`, {
+    respuesta = await peticion(`${API_URL}/seguridad/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        correo: CORREO,
-        contrasena: CONTRASENA,
-      }),
-      signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
+      body: { correo: CORREO, contrasena: CONTRASENA },
     });
-  } catch {
+  } catch (error) {
+    // Registrar aquí no es opcional: sin esto, un corte de red, una URL mal
+    // escrita y una función ausente en el runtime producen la misma frase y no
+    // hay forma de distinguirlas desde fuera.
+    console.error("No se pudo alcanzar la API al iniciar sesión:", error);
     throw new ErrorApi(0, frasePorEstatus(0));
   }
 
-  if (!respuesta.ok) {
-    throw new ErrorApi(respuesta.status, "No pude iniciar sesión en el sistema");
+  if (respuesta.estatus < 200 || respuesta.estatus >= 300) {
+    console.error(`La API rechazó el inicio de sesión (${respuesta.estatus}): ${respuesta.texto}`);
+    throw new ErrorApi(respuesta.estatus, "No pude iniciar sesión en el sistema");
   }
 
-  const datos = await respuesta.json();
+  const datos = comoJson(respuesta.texto);
+  if (!datos || !datos.token) {
+    console.error("El inicio de sesión no devolvió token:", respuesta.texto);
+    throw new ErrorApi(0, "No pude iniciar sesión en el sistema");
+  }
+
   await dynamodb
     .put({
       TableName: TABLA,
@@ -183,36 +261,32 @@ async function obtenerToken() {
  * forma { estatus, mensaje, error, ruta, fecha }, y el mensaje ya viene en
  * español y escrito para personas, así que se aprovecha tal cual.
  */
-async function llamarApi(ruta, opciones = {}) {
+async function llamarApi(ruta, opciones) {
+  const ajustes = opciones || {};
   const token = await obtenerToken();
 
   let respuesta;
   try {
-    respuesta = await fetch(`${API_URL}${ruta}`, {
-      method: opciones.method || "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: opciones.body ? JSON.stringify(opciones.body) : undefined,
-      signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
+    respuesta = await peticion(`${API_URL}${ruta}`, {
+      method: ajustes.method || "GET",
+      body: ajustes.body,
+      token,
     });
-  } catch {
+  } catch (error) {
+    console.error(`No se pudo alcanzar la API en ${ruta}:`, error);
     throw new ErrorApi(0, frasePorEstatus(0));
   }
 
-  if (!respuesta.ok) {
-    let mensaje = null;
-    try {
-      const cuerpo = await respuesta.json();
-      mensaje = cuerpo.mensaje;
-    } catch {
-      mensaje = null;
-    }
-    throw new ErrorApi(respuesta.status, frasePorEstatus(respuesta.status, mensaje));
+  if (respuesta.estatus < 200 || respuesta.estatus >= 300) {
+    console.error(`La API respondió ${respuesta.estatus} en ${ruta}: ${respuesta.texto}`);
+    const cuerpo = comoJson(respuesta.texto);
+    throw new ErrorApi(
+      respuesta.estatus,
+      frasePorEstatus(respuesta.estatus, cuerpo ? cuerpo.mensaje : null),
+    );
   }
 
-  return respuesta.status === 204 ? null : respuesta.json();
+  return respuesta.texto ? comoJson(respuesta.texto) : null;
 }
 
 // --------------------------------------------------------------------------
