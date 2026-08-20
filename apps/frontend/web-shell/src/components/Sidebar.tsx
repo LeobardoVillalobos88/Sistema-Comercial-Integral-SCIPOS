@@ -26,7 +26,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { Theme } from "@mui/material/styles";
 import { ESMALTE, SOBRE_ESMALTE, sombraRotulo, usePermisos } from "@scipos/frontend-commons";
-import { confirmar } from "@scipos/frontend-commons/feedback";
+import { confirmar, useToast } from "@scipos/frontend-commons/feedback";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -80,6 +80,7 @@ function Contenido({
 }) {
   const pathname = usePathname();
   const { can, cerrarSesion } = usePermisos();
+  const toast = useToast();
 
   // Solo se muestran los módulos cuyo privilegio tiene el rol actual.
   const itemsVisibles = NAVEGACION.filter((item) => !item.privilegio || can(item.privilegio));
@@ -97,6 +98,7 @@ function Contenido({
     });
     if (confirmado) {
       cerrarSesion();
+      toast.exito("Sesión cerrada correctamente.");
     }
   };
 

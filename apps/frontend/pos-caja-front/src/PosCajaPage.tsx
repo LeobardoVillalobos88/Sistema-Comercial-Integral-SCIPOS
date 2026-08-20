@@ -43,6 +43,7 @@ import {
 import { useToast } from "@scipos/frontend-commons/feedback";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  type CompraApi,
   abrirCaja as abrirCajaApi,
   abrirComprobanteVenta,
   cargarHistorialVentas,
@@ -51,6 +52,7 @@ import {
   crearCompra,
   crearVenta,
   listarClientesActivos,
+  listarCompras,
   listarProductosPos,
   mensajeErrorApi,
   registrarMovimientoCaja,
@@ -58,7 +60,7 @@ import {
   ventaApiAUi,
 } from "./api/posApi";
 import { precioSegunModo } from "./calculos/calculos-pos";
-import { PanelCaja, PanelSeccion, ResumenMonto } from "./components";
+import { HistorialCompras, PanelCaja, PanelSeccion, ResumenMonto } from "./components";
 import { CajaProvider, type TipoMovimientoCaja, useCaja } from "./context/CajaContext";
 import { useCarrito } from "./hooks/useCarrito";
 import type { CorteCaja, ModoPos, ProductoPos, VentaPOS } from "./types/pos";
@@ -104,7 +106,9 @@ export function PosCajaPage({
   const [proveedor, setProveedor] = useState("");
   const [ventasHistorial, setVentasHistorial] = useState<VentaPOS[]>([]);
   const [cortesCaja, setCortesCaja] = useState<CorteCaja[]>([]);
+  const [comprasHistorial, setComprasHistorial] = useState<CompraApi[]>([]);
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [cargandoCompras, setCargandoCompras] = useState(false);
   const [tipoFlujo, setTipoFlujo] = useState<TipoMovimientoCaja>("Ingreso");
   const [conceptoMovimiento, setConceptoMovimiento] = useState("");
   const [montoMovimiento, setMontoMovimiento] = useState("0");
@@ -178,6 +182,17 @@ export function PosCajaPage({
     }
   }, [inventario, toast]);
 
+  const cargarCompras = useCallback(async () => {
+    setCargandoCompras(true);
+    try {
+      setComprasHistorial(await listarCompras());
+    } catch (error) {
+      toast.error(mensajeErrorApi(error, "No se pudo cargar el historial de compras."));
+    } finally {
+      setCargandoCompras(false);
+    }
+  }, [toast]);
+
   const verComprobante = useCallback(
     async (ventaId: string) => {
       try {
@@ -218,6 +233,13 @@ export function PosCajaPage({
     }
     cargarHistorial();
   }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarHistorial]);
+
+  useEffect(() => {
+    if (permisos.cargandoPermisos || !permisos.usuario || activeTab !== 1 || !esCompra) {
+      return;
+    }
+    cargarCompras();
+  }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarCompras]);
 
   const {
     subtotal: subtotalCarrito,
@@ -379,7 +401,7 @@ export function PosCajaPage({
       limpiarCarrito();
       await cargarProductos();
       if (activeTab === 1) {
-        await cargarHistorial();
+        await (esCompra ? cargarCompras() : cargarHistorial());
       }
     } catch (error) {
       toast.error(
@@ -544,13 +566,13 @@ export function PosCajaPage({
               icon={<PointOfSaleIcon />}
               iconPosition="start"
               value={0}
-              label="Punto de Venta (POS)"
+              label={esCompra ? "Punto de compra" : "Punto de Venta (POS)"}
             />
             <Tab
               icon={<CreditScoreIcon />}
               iconPosition="start"
               value={1}
-              label="Gestión de Caja & Cortes"
+              label={esCompra ? "Historial de compras" : "Gestión de Caja & Cortes"}
             />
           </Tabs>
         </Paper>
@@ -846,7 +868,11 @@ export function PosCajaPage({
         </Stack>
       ) : null}
 
-      {activeTab === 1 ? (
+      {activeTab === 1 && esCompra ? (
+        <HistorialCompras compras={comprasHistorial} cargando={cargandoCompras} />
+      ) : null}
+
+      {activeTab === 1 && !esCompra ? (
         <PanelCaja
           cajaAbierta={cajaAbierta}
           montoInicial={montoInicial}
