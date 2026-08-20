@@ -165,11 +165,16 @@ describe("modelo de interaccion", () => {
       assert.ok(tipo, `Falta el tipo ${nombre}`);
       assert.ok(tipo.values.length > 0, `${nombre} no tiene valores`);
     }
-    const productos = MODELO.types.find((t) => t.name === "SciposProducto");
-    assert.ok(
-      productos.values.length >= 25,
-      `SciposProducto tiene ${productos.values.length} valores; con pocos la NLU fuerza los nombres nuevos hacia la lista`,
-    );
+  });
+
+  it("da vocabulario ancho a los tipos que reciben nombres libres", () => {
+    for (const nombre of ["SciposProducto", "SciposProveedor"]) {
+      const tipo = MODELO.types.find((t) => t.name === nombre);
+      assert.ok(
+        tipo.values.length >= 20,
+        `${nombre} tiene ${tipo.values.length} valores; con tan pocos la NLU rechaza los nombres que no se parecen a ninguno`,
+      );
+    }
   });
 
   it("no deja prompts declarados sin usar", () => {

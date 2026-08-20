@@ -4,7 +4,7 @@ import {
   ESMALTE,
   PLANO,
   estaMarcadoEnSesion,
-  formatearFecha,
+  formatearFechaCalendario,
   llamarApi,
   marcarEnSesion,
   usePermisos,
@@ -110,7 +110,7 @@ export function AlertasInventario({ onVerProductos }: AlertasInventarioProps) {
         renglon(
           `${escaparHtml(alerta.nombre)} <span style="color:${PLANO.tintaSuave}">· lote ${escaparHtml(
             alerta.lote,
-          )} · ${escaparHtml(formatearFecha(alerta.fechaCaducidad))}</span>`,
+          )} · ${escaparHtml(formatearFechaCalendario(alerta.fechaCaducidad))}</span>`,
           plazoEnPalabras(alerta.diasRestantes),
           alerta.severidad === "VENCIDO",
         ),

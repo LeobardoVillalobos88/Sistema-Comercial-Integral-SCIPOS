@@ -87,6 +87,19 @@ las variables ahí. En Alexa-hosted siempre se usa el respaldo.
 `DYNAMODB_PERSISTENCE_TABLE_NAME` sí llega como variable de entorno: la inyecta
 Alexa-hosted por su cuenta y no hay que declararla en ningún sitio.
 
+### El runtime de Node es más viejo de lo que parece
+
+El Lambda de una skill alojada por Alexa puede correr sobre **Node 16 o
+anterior**, donde no existen ni `fetch` como global (llegó en Node 18) ni
+`AbortSignal.timeout` (Node 17.3). Por eso la skill hace sus llamadas con los
+módulos `http` y `https` nativos, que existen en cualquier versión.
+
+Se reconoce de un vistazo: si el editor de la consola marca en rojo `?.` o `??`,
+su analizador está configurado para una versión vieja de JavaScript, y conviene
+no dar por hecho nada más reciente. Esas marcas rojas por sí solas son
+cosméticas —si el código de verdad no compilara, la skill no respondería nada—
+pero son la señal de que el entorno no es moderno.
+
 Sobre la contraseña en el código: `Asistente1234` es una credencial de
 demostración que ya está publicada en la semilla del backend y en el README raíz,
 así que tenerla aquí no expone nada nuevo. Si en algún despliegue se cambia con
@@ -172,6 +185,7 @@ antes de dar por fallida la demostración.
 | Síntoma | Causa | Solución |
 |---|---|---|
 | No aparece **Code → Environment Variables** | Alexa-hosted no tiene esa pantalla; solo existe con un Lambda propio | Los datos van en el bloque de conexión de `index.js`, no en variables |
+| Todas las acciones dicen "el sistema no responde" aunque la API sí responda desde el navegador | Alguna función usada no existe en el runtime de la skill: `fetch` y `AbortSignal.timeout` son los sospechosos habituales | Usar `http`/`https` nativos, como ya hace el código. El error real queda en CloudWatch Logs |
 | "El sistema no responde" en todas las acciones | La instancia está apagada, no es alcanzable, o quedó `TU_IP_PUBLICA` sin sustituir | Verifica que `http://<ip>/api/seguridad/health` responda desde fuera, y que `API_URL` tenga la IP real |
 | "No tengo permiso para hacer eso" al registrar | El usuario asistente no tiene sus privilegios | Ejecuta la semilla de seguridad en la instancia (ver `docs/DESPLIEGUE-AWS.md`) |
 | `Cannot find module 'aws-sdk'` en los registros | No se reemplazó el `package.json` de la consola | Pega `lambda/package.json` y vuelve a desplegar |

@@ -276,6 +276,45 @@ paths:
           $ref: "#/components/responses/NoEncontrado"
 
   /compras:
+    get:
+      tags: [compras]
+      summary: Historial de compras a proveedores
+      description: >
+        Privilegio requerido: compras:ver. Devuelve las compras de la más
+        reciente a la más antigua, con el proveedor y con las partidas ya
+        resueltas a nombre y lote de producto. Es la única lectura del módulo
+        de compras y el único sitio donde se consulta el proveedor.
+      security:
+        - identidadUsuario: []
+      parameters:
+        - name: desde
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2026-08-01"
+        - name: hasta
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          example: "2026-08-31"
+      responses:
+        "200":
+          description: Historial de compras
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompraHistorial"
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
     post:
       tags: [compras]
       summary: Registrar una compra a proveedor e incrementar existencias
@@ -583,6 +622,49 @@ components:
               cantidad:
                 type: integer
               precioCompra:
+                type: number
+
+    CompraHistorial:
+      type: object
+      description: >
+        Compra tal como la devuelve el historial. A diferencia de Compra, cada
+        partida trae ya el nombre y el lote del producto y su subtotal, para que
+        quien consuma no tenga que cruzar la lista con el catálogo.
+      properties:
+        id:
+          type: string
+        proveedor:
+          type: string
+          nullable: true
+          example: jumex
+        fecha:
+          type: string
+          format: date-time
+        total:
+          type: number
+          example: 1475.0
+        piezas:
+          type: integer
+          description: Suma de las cantidades de todas las partidas.
+          example: 50
+        partidas:
+          type: array
+          items:
+            type: object
+            properties:
+              productoId:
+                type: string
+              nombre:
+                type: string
+                example: Leche entera 1L
+              lote:
+                type: string
+                example: LAC-030
+              cantidad:
+                type: integer
+              precioCompra:
+                type: number
+              subtotal:
                 type: number
 
     ErrorEstandar:

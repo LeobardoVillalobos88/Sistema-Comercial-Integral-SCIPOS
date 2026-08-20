@@ -326,7 +326,31 @@
                 "value": "comercializadora unida",
                 "synonyms": ["comercializadora", "la unida"]
               }
-            }
+            },
+            { "name": { "value": "jumex" } },
+            { "name": { "value": "bimbo" } },
+            { "name": { "value": "lala" } },
+            { "name": { "value": "sabritas" } },
+            { "name": { "value": "coca cola", "synonyms": ["coca"] } },
+            { "name": { "value": "pepsi" } },
+            { "name": { "value": "barcel" } },
+            { "name": { "value": "marinela" } },
+            { "name": { "value": "gamesa" } },
+            { "name": { "value": "herdez" } },
+            { "name": { "value": "la costeña", "synonyms": ["costeña"] } },
+            { "name": { "value": "sigma" } },
+            { "name": { "value": "alpura" } },
+            { "name": { "value": "nestle" } },
+            { "name": { "value": "danone" } },
+            { "name": { "value": "maseca" } },
+            { "name": { "value": "la moderna" } },
+            { "name": { "value": "bachoco" } },
+            { "name": { "value": "del valle" } },
+            { "name": { "value": "tia rosa" } },
+            { "name": { "value": "sello rojo" } },
+            { "name": { "value": "tres coronas" } },
+            { "name": { "value": "san juan" } },
+            { "name": { "value": "zucarmex" } }
           ]
         },
         {

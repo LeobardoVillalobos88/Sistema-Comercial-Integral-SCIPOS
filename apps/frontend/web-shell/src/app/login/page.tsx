@@ -1,12 +1,14 @@
 "use client";
 
 import { usePermisos } from "@scipos/frontend-commons";
+import { useToast } from "@scipos/frontend-commons/feedback";
 import { LoginView } from "@scipos/login-front";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function LoginPage() {
   const { iniciarSesion, usuario, cargandoPermisos } = usePermisos();
+  const toast = useToast();
   const router = useRouter();
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export default function LoginPage() {
 
   const handleLogin = async (correo: string, contrasena: string) => {
     await iniciarSesion(correo, contrasena);
+    toast.exito("Sesión iniciada correctamente.");
     router.replace("/dashboard");
   };
 

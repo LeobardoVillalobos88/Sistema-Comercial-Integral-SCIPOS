@@ -1,6 +1,6 @@
 {
   "name": "@scipos/frontend-commons",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Design System y utilidades compartidas del frontend de SCIPOS (tema MUI, permisos, componentes base, datos de catálogo).",
   "type": "module",

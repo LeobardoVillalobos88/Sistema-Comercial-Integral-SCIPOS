@@ -1,3 +1,5 @@
+export { HistorialCompras } from "./HistorialCompras";
+export type { HistorialComprasProps } from "./HistorialCompras";
 export { PanelCaja } from "./PanelCaja";
 export type { PanelCajaProps } from "./PanelCaja";
 export { PanelSeccion } from "./PanelSeccion";

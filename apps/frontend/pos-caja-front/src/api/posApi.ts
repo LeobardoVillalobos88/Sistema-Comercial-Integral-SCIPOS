@@ -178,6 +178,28 @@ export async function crearCompra(payload: CrearCompraPayload): Promise<unknown>
   });
 }
 
+export interface PartidaCompraApi {
+  productoId: string;
+  nombre: string;
+  lote: string;
+  cantidad: number;
+  precioCompra: number;
+  subtotal: number;
+}
+
+export interface CompraApi {
+  id: string;
+  proveedor: string | null;
+  fecha: string;
+  total: number;
+  piezas: number;
+  partidas: PartidaCompraApi[];
+}
+
+export async function listarCompras(): Promise<CompraApi[]> {
+  return llamarApi<CompraApi[]>("/productos/compras");
+}
+
 export async function consultarEstadoCaja(): Promise<EstadoCajaApi> {
   return llamarApi<EstadoCajaApi>("/ventas-caja/caja/estado");
 }

@@ -1,11 +1,14 @@
+const ACENTOS_SUELTOS = new RegExp("[\\u0300-\\u036f]", "g");
+
 function redondear(valor) {
   return Math.round(valor * 100) / 100;
 }
 
 function normalizarTexto(texto) {
-  return String(texto ?? "")
+  if (texto === null || texto === undefined) return "";
+  return String(texto)
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replace(ACENTOS_SUELTOS, "")
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ");

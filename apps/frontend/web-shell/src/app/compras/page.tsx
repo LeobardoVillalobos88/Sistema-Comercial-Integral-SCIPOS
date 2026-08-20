@@ -18,5 +18,5 @@ export default function ComprasPage() {
     );
   }
 
-  return <PosCajaPage modo="compra" defaultTab={0} hideTabs />;
+  return <PosCajaPage modo="compra" defaultTab={0} />;
 }
