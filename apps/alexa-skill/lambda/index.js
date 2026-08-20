@@ -26,6 +26,27 @@ const {
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
+// --------------------------------------------------------------------------
+// Conexión con la API de SCIPOS
+//
+// Las skills alojadas por Alexa no tienen editor de variables de entorno: eso
+// solo existe cuando el Lambda vive en una cuenta propia de AWS. Por eso los
+// valores están aquí, y se leen primero del entorno para que mover la skill a
+// un Lambda propio no obligue a tocar el código.
+//
+// El respaldo se resuelve con || y no con ??, igual que en la semilla del
+// backend: una variable declarada y vacía debe caer al valor de abajo en vez
+// de darse por buena.
+//
+// Al pegar el archivo en la consola hay que cambiar la IP por la de la
+// instancia donde corre el sistema. La URL termina en /api y no lleva barra
+// final ni puerto: nginx sirve la API bajo esa ruta en el puerto 80.
+// --------------------------------------------------------------------------
+const API_URL = process.env.SCIPOS_API_URL || "http://TU_IP_PUBLICA/api";
+const CORREO = process.env.SCIPOS_CORREO || "asistente@scipos.com";
+const CONTRASENA = process.env.SCIPOS_CONTRASENA || "Asistente1234";
+
+// Esta sí la inyecta Alexa-hosted por su cuenta; no hay que declararla.
 const TABLA = process.env.DYNAMODB_PERSISTENCE_TABLE_NAME;
 const CLAVE_ALMACEN = "sciposAlmacen";
 const CLAVE_SESION = "sciposSesion";
@@ -130,12 +151,12 @@ async function obtenerToken() {
 
   let respuesta;
   try {
-    respuesta = await fetch(`${process.env.SCIPOS_API_URL}/seguridad/auth/login`, {
+    respuesta = await fetch(`${API_URL}/seguridad/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        correo: process.env.SCIPOS_CORREO,
-        contrasena: process.env.SCIPOS_CONTRASENA,
+        correo: CORREO,
+        contrasena: CONTRASENA,
       }),
       signal: AbortSignal.timeout(TIEMPO_LIMITE_MS),
     });
@@ -167,7 +188,7 @@ async function llamarApi(ruta, opciones = {}) {
 
   let respuesta;
   try {
-    respuesta = await fetch(`${process.env.SCIPOS_API_URL}${ruta}`, {
+    respuesta = await fetch(`${API_URL}${ruta}`, {
       method: opciones.method || "GET",
       headers: {
         "Content-Type": "application/json",

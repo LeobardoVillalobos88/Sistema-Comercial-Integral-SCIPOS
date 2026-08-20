@@ -51,7 +51,7 @@ vale la pena probar viven en un módulo sin dependencias, igual que
 7. Crea un archivo nuevo llamado `calculos-almacen.js` **en la misma carpeta que
    `index.js`** y pega `lambda/calculos-almacen.js`.
 8. Abre `package.json` y reemplázalo por `lambda/package.json`.
-9. Declara las variables de entorno (siguiente sección).
+9. En `index.js`, cambia la IP del bloque de conexión (siguiente sección).
 10. **Deploy**.
 
 El nombre de invocación es **`asistente almacen`**, en minúsculas, sin tilde y
@@ -63,20 +63,34 @@ la validación de la consola. El nombre queda algo forzado leído en español, p
 es el que la plataforma admite. Al hablar, en cambio, la skill sí se presenta
 como «el asistente de almacén», que es donde la frase sí suena natural.
 
-## Variables de entorno
+## Datos de conexión
 
-En **Code → Environment Variables**:
+**Las skills alojadas por Alexa no tienen editor de variables de entorno.** Esa
+pantalla solo existe cuando el Lambda vive en una cuenta propia de AWS. Por eso
+los tres datos de conexión están en un bloque al principio de `lambda/index.js`:
 
-| Variable | Ejemplo | Nota |
-|---|---|---|
-| `SCIPOS_API_URL` | `http://54.12.3.4/api` | Sin barra final, **con** el sufijo `/api` |
-| `SCIPOS_CORREO` | `asistente@scipos.com` | Usuario dedicado de la semilla |
-| `SCIPOS_CONTRASENA` | `Asistente1234` | Sobreescribible con `SEED_ASISTENTE_PASSWORD` |
-| `DYNAMODB_PERSISTENCE_TABLE_NAME` | la inyecta Alexa-hosted | No hay que declararla |
+```js
+const API_URL = process.env.SCIPOS_API_URL || "http://TU_IP_PUBLICA/api";
+const CORREO = process.env.SCIPOS_CORREO || "asistente@scipos.com";
+const CONTRASENA = process.env.SCIPOS_CONTRASENA || "Asistente1234";
+```
 
-`SCIPOS_API_URL` apunta a la IP pública de la instancia donde corre el sistema.
-nginx expone la interfaz en `/` y la API en `/api`, así que la URL termina en
-`/api` y no lleva puerto: el 80 es el predeterminado.
+Se leen primero del entorno y caen al valor de la derecha si no existe, así que
+mover la skill a un Lambda propio no obliga a tocar el código: bastaría declarar
+las variables ahí. En Alexa-hosted siempre se usa el respaldo.
+
+**Lo único que hay que cambiar al pegar el archivo es la IP.** Sustituye
+`TU_IP_PUBLICA` por la de la instancia donde corre el sistema. La URL termina en
+`/api`, sin barra final y sin puerto: nginx sirve la interfaz en `/` y la API en
+`/api` sobre el puerto 80, que es el predeterminado.
+
+`DYNAMODB_PERSISTENCE_TABLE_NAME` sí llega como variable de entorno: la inyecta
+Alexa-hosted por su cuenta y no hay que declararla en ningún sitio.
+
+Sobre la contraseña en el código: `Asistente1234` es una credencial de
+demostración que ya está publicada en la semilla del backend y en el README raíz,
+así que tenerla aquí no expone nada nuevo. Si en algún despliegue se cambia con
+`SEED_ASISTENTE_PASSWORD`, hay que cambiarla también en esta línea.
 
 **Cuidado con la ruta de productos.** El gateway recorta `/api/productos` y el
 controlador del servicio monta sus rutas bajo el prefijo `productos`, así que el
@@ -157,7 +171,8 @@ antes de dar por fallida la demostración.
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| "El sistema no responde" en todas las acciones | La instancia está apagada o no es alcanzable | Verifica que `http://<ip>/api/seguridad/health` responda desde fuera de la instancia |
+| No aparece **Code → Environment Variables** | Alexa-hosted no tiene esa pantalla; solo existe con un Lambda propio | Los datos van en el bloque de conexión de `index.js`, no en variables |
+| "El sistema no responde" en todas las acciones | La instancia está apagada, no es alcanzable, o quedó `TU_IP_PUBLICA` sin sustituir | Verifica que `http://<ip>/api/seguridad/health` responda desde fuera, y que `API_URL` tenga la IP real |
 | "No tengo permiso para hacer eso" al registrar | El usuario asistente no tiene sus privilegios | Ejecuta la semilla de seguridad en la instancia (ver `docs/DESPLIEGUE-AWS.md`) |
 | `Cannot find module 'aws-sdk'` en los registros | No se reemplazó el `package.json` de la consola | Pega `lambda/package.json` y vuelve a desplegar |
 | `Cannot find module './calculos-almacen'` | Falta el segundo archivo en la consola | Crea `calculos-almacen.js` junto a `index.js` |
