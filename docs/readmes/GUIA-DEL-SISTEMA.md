@@ -128,6 +128,12 @@ productos y son los mismos que usan las cifras del dashboard.
 | Acción | Quién puede |
 |--------|-------------|
 | Registrar compras a proveedor (precio de compra, suma inventario) | **Administrador, Supervisor** |
+| Anotar de quién se compró (campo opcional al registrar) | **Administrador, Supervisor** |
+| Consultar el historial de compras con su proveedor | **Administrador, Supervisor** |
+
+El historial vive en la segunda pestaña de la misma pantalla, y es el único
+lugar donde se puede leer el proveedor de una compra. Lo alimentan las dos vías
+de captura: la pantalla y la skill de Alexa.
 
 ### 💰 Caja
 | Acción | Quién puede |
