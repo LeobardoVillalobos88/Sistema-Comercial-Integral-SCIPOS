@@ -75,7 +75,11 @@
             "useNodejsImportProtocol": "off"
           },
           "complexity": {
-            "useOptionalChain": "off"
+            "useOptionalChain": "off",
+            "useRegexLiterals": "off"
+          },
+          "suspicious": {
+            "noMisleadingCharacterClass": "off"
           }
         }
       }

@@ -6,6 +6,16 @@
  * que las reglas que importan se puedan probar sin levantar nada.
  */
 
+/**
+ * Marcas de acento que NFD deja sueltas al separarlas de su letra.
+ *
+ * Se construye con `new RegExp` y escapes en texto, no como literal, por dos
+ * razones: el editor de la consola de Alexa no entiende `\p{Diacritic}` y lo
+ * marca como error, y un rango escrito con los caracteres combinantes de
+ * verdad son símbolos invisibles que no sobreviven a copiar y pegar.
+ */
+const ACENTOS_SUELTOS = new RegExp("[\\u0300-\\u036f]", "g");
+
 /** Redondea a dos decimales, que es la precisión con la que se habla de dinero. */
 function redondear(valor) {
   return Math.round(valor * 100) / 100;
@@ -16,9 +26,7 @@ function redondear(valor) {
  * entre palabras. El reconocimiento de voz entrega "Papel  Higiénico" y el
  * catálogo guarda "Papel higiénico 4 rollos"; sin normalizar no se parecen.
  *
- * NFD separa cada letra de su acento y \p{Diacritic} borra los acentos sueltos.
- * Se usa esa propiedad y no un rango literal porque este archivo se copia y se
- * pega en la consola: unos caracteres combinantes invisibles no sobreviven bien.
+ * NFD separa cada letra de su acento y ACENTOS_SUELTOS borra lo que queda.
  *
  * La comprobación de nulos se escribe larga en vez de con ??, porque el editor
  * de la consola de Alexa marca esa sintaxis como error y confunde a quien pega
@@ -28,7 +36,7 @@ function normalizarTexto(texto) {
   if (texto === null || texto === undefined) return "";
   return String(texto)
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replace(ACENTOS_SUELTOS, "")
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ");
