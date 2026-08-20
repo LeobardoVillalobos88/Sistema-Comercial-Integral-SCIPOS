@@ -54,8 +54,14 @@ vale la pena probar viven en un módulo sin dependencias, igual que
 9. Declara las variables de entorno (siguiente sección).
 10. **Deploy**.
 
-El nombre de invocación es **`asistente de almacen`**, en minúsculas y sin
-tilde. Se dice: *"Alexa, abre asistente de almacén"*.
+El nombre de invocación es **`asistente almacen`**, en minúsculas, sin tilde y
+sin la preposición «de». Se dice: *"Alexa, abre asistente almacén"*.
+
+Amazon rechaza los nombres de invocación que contengan artículos o
+preposiciones, y «de» está en esa lista, así que `asistente de almacen` no pasa
+la validación de la consola. El nombre queda algo forzado leído en español, pero
+es el que la plataforma admite. Al hablar, en cambio, la skill sí se presenta
+como «el asistente de almacén», que es donde la frase sí suena natural.
 
 ## Variables de entorno
 
@@ -112,7 +118,7 @@ en *Español (MX)*:
 
 | Qué se comprueba | Cómo | Qué debe pasar |
 |---|---|---|
-| Invocación | "abre asistente de almacén" | Da la bienvenida y enumera las cuatro acciones |
+| Invocación | "abre asistente almacén" | Da la bienvenida y enumera las cuatro acciones |
 | Alta de producto | "registra un producto nuevo" | Pide nombre, precio de compra, precio de venta y caducidad; confirma; responde con el lote `VOZ-XXX` |
 | Entrada de inventario | "surte inventario" | Pide producto, cantidad y proveedor; responde con la existencia resultante |
 | Alertas | "revisa las alertas del inventario" | Pregunta qué grupo y resume el caso más urgente |
@@ -156,7 +162,7 @@ antes de dar por fallida la demostración.
 | `Cannot find module 'aws-sdk'` en los registros | No se reemplazó el `package.json` de la consola | Pega `lambda/package.json` y vuelve a desplegar |
 | `Cannot find module './calculos-almacen'` | Falta el segundo archivo en la consola | Crea `calculos-almacen.js` junto a `index.js` |
 | "No encontré ese registro en el sistema" al revisar alertas | Ruta de la API mal escrita | Debe ser `/productos/productos/alertas`, con "productos" repetido |
-| El modelo no construye por el nombre de invocación | Carácter no permitido | Debe ser `asistente de almacen`: minúsculas, sin tilde |
+| La consola rechaza el nombre de invocación | Lleva tilde, o un artículo o preposición como «de» | Debe ser `asistente almacen`: minúsculas, sin tilde y sin «de» |
 | Alexa confunde registrar con surtir | El modelo no se reconstruyó tras editar | **Build Model** otra vez y espera a que termine |
 | La bitácora sale vacía tras reiniciar | Se está sobrescribiendo el item de Dynamo | El arranque debe leer antes de crear, nunca hacer `put` incondicional |
 

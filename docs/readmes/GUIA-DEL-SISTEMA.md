@@ -144,7 +144,7 @@ Además de la interfaz web, el inventario se puede operar hablándole a un
 dispositivo Alexa. Está pensado para quien recibe mercancía con las manos
 ocupadas y no puede ir al navegador a llenar formularios.
 
-Se invoca diciendo **"Alexa, abre asistente de almacén"**.
+Se invoca diciendo **"Alexa, abre asistente almacén"**.
 
 | Acción | Se le dice algo como | Qué hace | Privilegio que exige |
 |---|---|---|---|

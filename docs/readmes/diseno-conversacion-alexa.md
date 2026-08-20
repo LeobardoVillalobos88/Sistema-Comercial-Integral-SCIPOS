@@ -5,8 +5,9 @@ intención, control y resultado. El diagrama para presentar está en
 [`diseno-conversacion-alexa.html`](./diseno-conversacion-alexa.html); este
 documento es la versión consultable.
 
-Nombre de invocación: **`asistente de almacen`**. Se dice *"Alexa, abre
-asistente de almacén"*.
+Nombre de invocación: **`asistente almacen`**. Se dice *"Alexa, abre asistente
+almacén"*. No lleva la preposición «de» porque Amazon no la admite en los
+nombres de invocación.
 
 Notación de la capa de intención, en el orden en que se configuran:
 

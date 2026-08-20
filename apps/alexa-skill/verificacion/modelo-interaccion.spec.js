@@ -46,8 +46,10 @@ function prompt(id) {
 }
 
 describe("modelo de interaccion", () => {
-  it("declara el nombre de invocacion en minusculas y sin tilde", () => {
-    assert.equal(MODELO.invocationName, "asistente de almacen");
+  it("declara el nombre de invocacion sin tilde y sin preposiciones", () => {
+    // Amazon rechaza los nombres de invocacion con articulos o preposiciones,
+    // asi que no puede llevar el "de" que pediria el espanol.
+    assert.equal(MODELO.invocationName, "asistente almacen");
   });
 
   it("declara los cuatro intents propios y los estandar de AMAZON", () => {
