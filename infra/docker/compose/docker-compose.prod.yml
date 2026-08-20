@@ -100,6 +100,7 @@ services:
       SEED_VENDEDOR_PASSWORD: ${SEED_VENDEDOR_PASSWORD:-}
       SEED_CAJERO_PASSWORD: ${SEED_CAJERO_PASSWORD:-}
       SEED_SUPERVISOR_PASSWORD: ${SEED_SUPERVISOR_PASSWORD:-}
+      SEED_ASISTENTE_PASSWORD: ${SEED_ASISTENTE_PASSWORD:-}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
