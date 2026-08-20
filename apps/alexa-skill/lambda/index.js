@@ -1,14 +1,7 @@
 /**
  * Asistente de almacén: skill de Alexa que opera el inventario de SCIPOS.
- *
- * Cuatro acciones, cada una con un recorrido distinto por la persistencia:
- *   RegistrarProducto  -> API (consulta) -> API (crea) -> Dynamo (folio y bitácora)
- *   SurtirInventario   -> Dynamo (idempotencia) -> API (compra) -> Dynamo (bitácora)
- *   RevisarInventario  -> solo API
- *   BitacoraVoz        -> solo Dynamo
- *
- * La skill no calcula precios ni existencias: eso lo hace el backend. Aquí solo
- * se traduce voz a llamadas y respuestas a frases.
+ * Traduce voz a llamadas; los precios y las existencias los calcula el backend.
+ * Los recorridos por Dynamo y API de cada acción están en el README del módulo.
  */
 const http = require("http");
 const https = require("https");
@@ -30,22 +23,8 @@ const {
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-// --------------------------------------------------------------------------
-// Conexión con la API de SCIPOS
-//
-// Las skills alojadas por Alexa no tienen editor de variables de entorno: eso
-// solo existe cuando el Lambda vive en una cuenta propia de AWS. Por eso los
-// valores están aquí, y se leen primero del entorno para que mover la skill a
-// un Lambda propio no obligue a tocar el código.
-//
-// El respaldo se resuelve con || y no con ??, igual que en la semilla del
-// backend: una variable declarada y vacía debe caer al valor de abajo en vez
-// de darse por buena.
-//
-// Al pegar el archivo en la consola hay que cambiar la IP por la de la
-// instancia donde corre el sistema. La URL termina en /api y no lleva barra
-// final ni puerto: nginx sirve la API bajo esa ruta en el puerto 80.
-// --------------------------------------------------------------------------
+// Conexión con la API. Van aquí porque Alexa-hosted no tiene editor de
+// variables de entorno; al pegar en la consola solo hay que cambiar la IP.
 const API_URL = process.env.SCIPOS_API_URL || "http://TU_IP_PUBLICA/api";
 const CORREO = process.env.SCIPOS_CORREO || "asistente@scipos.com";
 const CONTRASENA = process.env.SCIPOS_CONTRASENA || "Asistente1234";
@@ -143,16 +122,8 @@ async function registrarEnBitacora(almacen, operacion) {
 // --------------------------------------------------------------------------
 
 /**
- * Petición HTTP con los módulos nativos de Node.
- *
- * No se usa `fetch` porque solo existe como global desde Node 18, y el runtime
- * de las skills alojadas por Alexa puede ser anterior; cuando falta, la llamada
- * revienta con "fetch is not defined" y desde la conversación se ve idéntico a
- * que el servidor no hubiera respondido. Lo mismo vale para
- * `AbortSignal.timeout`, que necesita Node 17.3. Con `http` y `https` no hay
- * versión que valga: existen desde siempre.
- *
- * Devuelve el estatus y el cuerpo sin interpretar; quien llama decide.
+ * Petición HTTP con los módulos nativos: el runtime de Alexa puede ser anterior
+ * a Node 18 y no traer `fetch` ni `AbortSignal.timeout`.
  */
 function peticion(url, opciones) {
   const ajustes = opciones || {};
@@ -229,9 +200,8 @@ async function obtenerToken() {
       body: { correo: CORREO, contrasena: CONTRASENA },
     });
   } catch (error) {
-    // Registrar aquí no es opcional: sin esto, un corte de red, una URL mal
-    // escrita y una función ausente en el runtime producen la misma frase y no
-    // hay forma de distinguirlas desde fuera.
+    // Sin registrarlo, un corte de red y una función ausente en el runtime
+    // producen la misma frase y no hay cómo distinguirlas.
     console.error("No se pudo alcanzar la API al iniciar sesión:", error);
     throw new ErrorApi(0, frasePorEstatus(0));
   }
@@ -298,8 +268,7 @@ const LaunchRequestHandler = {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === "LaunchRequest";
   },
   async handle(handlerInput) {
-    // El item se crea solo si falta. Sobrescribirlo en cada arranque borraría
-    // la bitácora de operaciones que la skill ya registró.
+    // Se crea solo si falta: sobrescribirlo borraría la bitácora.
     try {
       const almacen = await leerItem(CLAVE_ALMACEN);
       if (!almacen) {
@@ -361,8 +330,7 @@ const RegistrarProductoIntentHandler = {
     }
 
     try {
-      // El duplicado se busca contra el catálogo, que es la fuente de verdad:
-      // el producto pudo haberse capturado desde la interfaz web.
+      // El duplicado se decide contra el catálogo, que es la fuente de verdad.
       const catalogo = await llamarApi("/productos/productos");
       const existente = buscarProducto(catalogo, nombre);
       if (existente) {
@@ -442,9 +410,7 @@ const SurtirInventarioIntentHandler = {
     const proveedor = Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor");
 
     try {
-      // Dynamo va primero a propósito: si la frase se repitió, hay que cortar
-      // antes de llamar a la API. Surtir dos veces deja piezas que no existen
-      // en el anaquel, y eso no se nota hasta el siguiente conteo físico.
+      // Dynamo primero: repetir la frase no debe duplicar la entrada.
       const almacen = await leerAlmacen();
       const huella = `surtir:${normalizarTexto(nombre)}:${cantidad}`;
       const repetida = esOperacionRepetida(
@@ -472,8 +438,7 @@ const SurtirInventarioIntentHandler = {
           .getResponse();
       }
 
-      // El precio no viaja en la petición: el servicio usa el precio de compra
-      // vigente del producto, así el importe no depende de lo que mande la voz.
+      // Sin precio: lo pone el servicio desde el precioCompra vigente.
       await llamarApi("/productos/compras", {
         method: "POST",
         body: {

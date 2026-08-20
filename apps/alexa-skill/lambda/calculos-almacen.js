@@ -1,18 +1,11 @@
 /**
- * Reglas puras del asistente de almacén: búsqueda de productos por voz, folio
- * de lote, idempotencia, resumen de la bitácora y redacción de las alertas.
- *
- * No conoce Alexa, ni DynamoDB, ni la API. Recibe datos y devuelve datos, para
- * que las reglas que importan se puedan probar sin levantar nada.
+ * Reglas puras del asistente de almacén. No conoce Alexa, ni Dynamo, ni la API:
+ * recibe datos y devuelve datos, para poder probarlas sin levantar nada.
  */
 
 /**
- * Marcas de acento que NFD deja sueltas al separarlas de su letra.
- *
- * Se construye con `new RegExp` y escapes en texto, no como literal, por dos
- * razones: el editor de la consola de Alexa no entiende `\p{Diacritic}` y lo
- * marca como error, y un rango escrito con los caracteres combinantes de
- * verdad son símbolos invisibles que no sobreviven a copiar y pegar.
+ * Acentos que NFD deja sueltos. Se arma con escapes en texto y no como literal:
+ * el editor de la consola no lee `\p{...}` y los combinantes no sobreviven al pegar.
  */
 const ACENTOS_SUELTOS = new RegExp("[\\u0300-\\u036f]", "g");
 
@@ -22,15 +15,8 @@ function redondear(valor) {
 }
 
 /**
- * Deja un texto comparable: sin acentos, en minúsculas y con un solo espacio
- * entre palabras. El reconocimiento de voz entrega "Papel  Higiénico" y el
- * catálogo guarda "Papel higiénico 4 rollos"; sin normalizar no se parecen.
- *
- * NFD separa cada letra de su acento y ACENTOS_SUELTOS borra lo que queda.
- *
- * La comprobación de nulos se escribe larga en vez de con ??, porque el editor
- * de la consola de Alexa marca esa sintaxis como error y confunde a quien pega
- * el archivo.
+ * Deja un texto comparable: sin acentos, en minúsculas y con un espacio entre
+ * palabras. "Papel  Higiénico" y "Papel higiénico 4 rollos" no se parecen sin esto.
  */
 function normalizarTexto(texto) {
   if (texto === null || texto === undefined) return "";
@@ -43,12 +29,8 @@ function normalizarTexto(texto) {
 }
 
 /**
- * Busca un producto del catálogo por el nombre que dictó la persona.
- *
- * Va en dos pasadas: primero exige que el nombre coincida completo y solo si
- * ninguno coincide acepta una coincidencia parcial. Al revés, dictar "leche"
- * podría devolver "leche entera deslactosada" aunque exista un producto que se
- * llame exactamente "leche".
+ * Busca un producto por el nombre dictado. Primero exige coincidencia exacta y
+ * solo después acepta parcial: si no, "leche" ganaría sobre el producto "Leche".
  */
 function buscarProducto(productos, nombre) {
   const buscado = normalizarTexto(nombre);
@@ -65,21 +47,15 @@ function buscarProducto(productos, nombre) {
   return parcial || null;
 }
 
-/**
- * Siguiente clave de lote para un alta por voz. Dictar una clave como
- * "abarrote guion cero cero uno" es una tortura, así que la skill la genera.
- */
+/** Siguiente clave de lote: dictarla en voz alta sería una tortura. */
 function siguienteLote(folio) {
   const numero = Number(folio || 0) + 1;
   return `VOZ-${String(numero).padStart(3, "0")}`;
 }
 
 /**
- * Busca en la bitácora una operación idéntica hecha hace muy poco.
- *
- * Sirve para que repetir una frase no duplique el efecto: si el reconocimiento
- * falla y la persona vuelve a dictar la misma entrada de inventario, surtir dos
- * veces dejaría piezas que no existen en el anaquel.
+ * Busca una operación idéntica hecha hace muy poco, para que repetir una frase
+ * no duplique el efecto: surtir dos veces deja piezas que no están en el anaquel.
  */
 function esOperacionRepetida(operaciones, huella, ahoraMs, ventanaMs) {
   const bitacora = operaciones || [];
@@ -89,11 +65,7 @@ function esOperacionRepetida(operaciones, huella, ahoraMs, ventanaMs) {
   return repetida || null;
 }
 
-/**
- * Resume lo que se dictó hoy: cuántas altas, cuántas entradas, cuánto dinero
- * representan y cuál fue la última. Solo cuenta el día en curso, porque la
- * pregunta que responde es "qué llevo hecho hoy".
- */
+/** Resume lo dictado hoy. Solo el día en curso: responde "qué llevo hecho hoy". */
 function resumirBitacora(operaciones, ahoraMs) {
   const hoy = new Date(ahoraMs).toDateString();
   const delDia = (operaciones || []).filter(
@@ -117,8 +89,7 @@ function resumirBitacora(operaciones, ahoraMs) {
 
 /**
  * Revisa que el producto deje margen. El catálogo acepta cualquier par de
- * precios, así que esta regla vive aquí: dar de alta algo que se vende más
- * barato de lo que cuesta casi siempre es un error de dictado.
+ * precios, así que la regla vive aquí: vender bajo costo suele ser un mal dictado.
  */
 function validarPrecios(precioCompra, precioVenta) {
   if (precioVenta > precioCompra) return null;
@@ -126,11 +97,8 @@ function validarPrecios(precioCompra, precioVenta) {
 }
 
 /**
- * Traduce lo que dijo la persona al grupo de alertas que quiere revisar.
- *
- * Hace falta porque el slot entrega la frase tal como se escuchó y no el valor
- * canónico del tipo: quien dice "vencimientos" recibe "vencimientos", no
- * "caducidad". Compararlo contra el valor exacto dejaría fuera a los sinónimos.
+ * Traduce lo dicho al grupo de alertas. El slot entrega la frase escuchada y no
+ * el valor canónico: quien dice "vencimientos" no recibe "caducidad".
  */
 function interpretarTipoRevision(valor) {
   const dicho = normalizarTexto(valor);
@@ -183,9 +151,8 @@ function fraseStock(stock) {
 }
 
 /**
- * Convierte las alertas del inventario en algo que se pueda escuchar de
- * corrido. Se leen resúmenes con el caso más urgente y no la lista completa:
- * veinte productos dictados uno por uno son inservibles por voz.
+ * Resume las alertas para escucharlas de corrido: el caso más urgente y no la
+ * lista completa, que dictada entera sería inservible.
  */
 function describirAlertas(alertas, tipoRevision) {
   if (!alertas || alertas.total === 0) {
