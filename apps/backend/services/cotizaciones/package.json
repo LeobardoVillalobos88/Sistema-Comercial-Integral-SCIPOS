@@ -15,8 +15,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "preparar": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
-    "test": "tsx --test src/cotizaciones/*.spec.ts",
-    "test:watch": "tsx --test --watch src/cotizaciones/*.spec.ts",
+    "test": "prisma generate && tsx --test src/cotizaciones/*.spec.ts",
+    "test:watch": "prisma generate && tsx --test --watch src/cotizaciones/*.spec.ts",
     "typecheck": "prisma generate && tsc --noEmit"
   },
   "dependencies": {
