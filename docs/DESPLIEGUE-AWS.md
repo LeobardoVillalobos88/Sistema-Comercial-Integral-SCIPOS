@@ -386,9 +386,22 @@ pnpm prod:up
 Cuando termine de sembrar, **vuelve a poner `EJECUTAR_SEMILLA=false`** y
 reinicia, o cada arranque recargará los datos.
 
-> Esto **borra la base entera**, incluidos los usuarios y sus contraseñas. Solo
-> es buena idea mientras el sistema tenga datos de demostración. Si hubiera algo
-> que conservar, respáldalo antes (ver la sección siguiente).
+Al arrancar, cada servicio aplica sus migraciones y vuelve a sembrar, así que el
+sistema queda con **todo lo que trae de fábrica**: los cinco usuarios con sus
+privilegios, los siete productos, los cinco clientes, las tres cotizaciones y el
+turno de caja con sus ventas históricas. Ya sin IVA en ninguna parte.
+
+Lo único que se pierde es **lo que se haya creado después de desplegar**:
+usuarios dados de alta desde `/usuarios`, contraseñas cambiadas respecto a las de
+la semilla, y los productos, clientes, cotizaciones, ventas y compras capturados
+en la instancia. Si algo de eso importa, respáldalo antes (ver la sección
+siguiente).
+
+> Este es el **único** caso en que conviene poner `EJECUTAR_SEMILLA=true`: se
+> quiere justamente que todas las semillas se reescriban sobre una base vacía.
+> Para actualizar una instancia con datos que sí importan, sigue valiendo la
+> advertencia de más arriba, porque la semilla de productos devolvería las
+> existencias a sus valores originales.
 
 Si prefieres conservar los datos, se corrigen al menos los registros de la
 semilla volviendo a sembrar esos dos servicios, que hacen `upsert` por id fijo:
