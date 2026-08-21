@@ -1,0 +1,64 @@
+# Superposición que enciende HTTPS. No sustituye al archivo de producción: se
+# aplica encima, así que el despliegue sin TLS sigue funcionando igual mientras
+# no se use.
+#
+#   docker compose -f infra/docker/compose/docker-compose.prod.yml \
+#                  -f infra/docker/compose/docker-compose.tls.yml \
+#                  --env-file .env up -d
+#
+# Volver atrás es quitar el segundo -f y volver a levantar. Nada de lo que hay
+# aquí modifica datos.
+#
+# Requiere en el .env:
+#   DOMINIO=scipos.tech
+#
+# Y que el certificado ya esté emitido. El procedimiento está en
+# docs/DESPLIEGUE-AWS.md, apartado "Servir por HTTPS".
+
+name: scipos
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # El dominio se escribe una vez aquí y nginx lo sustituye en su
+      # configuración al arrancar. El filtro es obligatorio: sin él, envsubst
+      # también reemplazaría $host, $scheme y $remote_addr —que son variables
+      # de nginx, no del entorno— y las dejaría vacías. El resultado sería un
+      # proxy que no reenvía el nombre del host y un sitio que no carga.
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+      NGINX_ENVSUBST_FILTER: DOMINIO
+      DOMINIO: ${DOMINIO}
+    volumes:
+      # Se monta como plantilla, no como configuración final: el entrypoint de
+      # la imagen sustituye el dominio y escribe el resultado en
+      # /etc/nginx/nginx.conf antes de arrancar.
+      - ../../nginx/nginx.tls.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+
+  # Renovador del certificado. No atiende peticiones: despierta cada doce
+  # horas, pregunta si al certificado le quedan menos de 30 días y lo renueva
+  # si hace falta. Let's Encrypt emite por 90 días, así que con este intervalo
+  # sobran oportunidades aunque la instancia pase apagada un fin de semana.
+  certbot:
+    image: certbot/certbot:latest
+    container_name: scipos-certbot
+    restart: unless-stopped
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM;
+      while :; do
+        certbot renew --webroot -w /var/www/certbot --quiet;
+        sleep 12h & wait $${!};
+      done"
+    networks:
+      - interna
+
+volumes:
+  certbot-conf:
+  certbot-www:

@@ -110,7 +110,6 @@ export class ComprobantesService {
       const totales: Array<[string, string]> = [
         ["Subtotal", moneda(subtotal)],
         ["Descuento", moneda(venta.descuento)],
-        ["IVA (16%)", moneda(venta.iva)],
         ["Total", moneda(venta.total)],
       ];
       for (const [etiqueta, valor] of totales) {

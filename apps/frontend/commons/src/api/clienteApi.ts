@@ -123,9 +123,30 @@ export async function descargarArchivo(ruta: string): Promise<Blob> {
   if (!respuesta.ok) {
     throw new ErrorApi(
       respuesta.status,
-      `No se pudo descargar el archivo (${respuesta.status}).`,
+      await mensajeDeErrorDescarga(respuesta),
       ESTATUS_SIN_SERVICIO.has(respuesta.status),
     );
   }
   return respuesta.blob();
+}
+
+async function mensajeDeErrorDescarga(respuesta: Response): Promise<string> {
+  try {
+    const cuerpo = (await respuesta.json()) as CuerpoErrorBackend;
+    const crudo = cuerpo.mensaje ?? cuerpo.message;
+    if (crudo) {
+      return Array.isArray(crudo) ? crudo.join(" ") : crudo;
+    }
+  } catch {}
+  return `No se pudo descargar el archivo (${respuesta.status}).`;
+}
+
+export async function guardarArchivo(ruta: string, nombreSugerido: string): Promise<void> {
+  const blob = await descargarArchivo(ruta);
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombreSugerido;
+  enlace.click();
+  URL.revokeObjectURL(url);
 }

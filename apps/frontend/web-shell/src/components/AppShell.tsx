@@ -80,6 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${anchoActual}px)` },
+          minWidth: 0,
           bgcolor: "background.default",
           transition: (theme) =>
             theme.transitions.create("width", {

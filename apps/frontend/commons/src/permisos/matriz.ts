@@ -14,6 +14,7 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "cotizaciones:convertir",
     "pos:ver",
     "pos:vender",
+    "ventas:comprobante",
   ],
 
   CAJERO: [
@@ -21,6 +22,7 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "clientes:ver",
     "pos:ver",
     "pos:vender",
+    "ventas:comprobante",
     "caja:ver",
     "caja:abrir",
     "caja:movimiento",
@@ -37,10 +39,13 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "pos:ver",
     "pos:descuento",
     "pos:cancelar",
+    "ventas:comprobante",
     "compras:ver",
     "caja:ver",
     "caja:cerrar",
     "reportes:ver",
+    "reportes:utilidad",
+    "reportes:exportar",
   ],
 };
 

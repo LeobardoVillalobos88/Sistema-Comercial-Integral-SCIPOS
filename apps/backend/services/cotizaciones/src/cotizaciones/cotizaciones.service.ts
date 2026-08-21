@@ -22,17 +22,13 @@ const INCLUIR_PARTIDAS = { partidas: { orderBy: { id: "asc" as const } } };
 
 @Injectable()
 export class CotizacionesService {
-  private readonly ivaPorcentaje: string;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly clientes: ClientesClient,
     private readonly productos: ProductosClient,
     private readonly ventas: VentasClient,
     config: ConfigService,
-  ) {
-    this.ivaPorcentaje = config.get("IVA_PORCENTAJE", "16");
-  }
+  ) {}
 
   async crear(dto: CrearCotizacionDto, usuarioId: string): Promise<CotizacionRespuestaDto> {
     this.validarProductosUnicos(dto);
@@ -58,7 +54,6 @@ export class CotizacionesService {
           cantidad: partida.cantidad,
           precioUnitario: productos[indice]?.precioVenta ?? Number.NaN,
         })),
-        this.ivaPorcentaje,
       );
     } catch {
       throw new UnprocessableEntityException("Uno de los productos tiene un precio inválido");
@@ -77,7 +72,6 @@ export class CotizacionesService {
           clienteId: cliente.id,
           clienteNombre: cliente.nombre.trim(),
           subtotal: calculo.subtotal,
-          iva: calculo.iva,
           total: calculo.total,
           partidas: {
             create: calculo.partidas.map((partida) => ({
@@ -183,7 +177,6 @@ export class CotizacionesService {
             folioCotizacion: cotizacion.folio,
             clienteId: cotizacion.clienteId,
             subtotal: cotizacion.subtotal.toNumber(),
-            iva: cotizacion.iva.toNumber(),
             total: cotizacion.total.toNumber(),
             partidas: cotizacion.partidas.map((partida) => ({
               productoId: partida.productoId,

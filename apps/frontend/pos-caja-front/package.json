@@ -1,6 +1,6 @@
 {
   "name": "@scipos/pos-caja-front",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Microfrontend de punto de venta POS + caja para SCIPOS.",
   "main": "./src/index.ts",

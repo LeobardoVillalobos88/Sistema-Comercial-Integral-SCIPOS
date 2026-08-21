@@ -283,7 +283,7 @@ function ModalNuevaCotizacion({
             <Typography variant="h6">Subtotal estimado: {formatearMoneda(total)}</Typography>
           </Stack>
           <Typography variant="caption" color="text.secondary" textAlign="right">
-            El backend confirmará precios, IVA y total al guardar.
+            El backend confirmará precios y total al guardar.
           </Typography>
         </Stack>
       </DialogContent>
@@ -414,7 +414,6 @@ function ModalDetalleCotizacion({ open, id, onClose, clientes }: ModalDetalleCot
         </TableContainer>
         <Stack spacing={0.5} alignItems="flex-end" sx={{ mt: 2 }}>
           <Typography variant="body2">Subtotal: {formatearMoneda(cotizacion.subtotal)}</Typography>
-          <Typography variant="body2">IVA: {formatearMoneda(cotizacion.iva)}</Typography>
           <Typography variant="h6">Total: {formatearMoneda(cotizacion.total)}</Typography>
         </Stack>
       </DialogContent>

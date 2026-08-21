@@ -18,9 +18,11 @@ export function SkeletonTabla({ columnas = 5, filas = 6, conBusqueda = true }: S
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={1.5}>
           {Array.from({ length: filas }).map((_, fila) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: cuadrícula fija sin datos ni estado
             <Stack key={`fila-${fila}`} direction="row" spacing={2}>
               {Array.from({ length: columnas }).map((_, col) => (
                 <Skeleton
+                  // biome-ignore lint/suspicious/noArrayIndexKey: cuadrícula fija sin datos ni estado
                   key={`celda-${fila}-${col}`}
                   variant="text"
                   height={28}

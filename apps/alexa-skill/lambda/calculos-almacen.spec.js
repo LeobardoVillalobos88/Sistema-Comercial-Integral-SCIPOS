@@ -6,6 +6,7 @@ const {
   describirAlertas,
   esOperacionRepetida,
   interpretarTipoRevision,
+  limpiarNombreDictado,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
@@ -37,6 +38,11 @@ describe("buscarProducto", () => {
     assert.equal(buscarProducto(CATALOGO, "leche").id, "p-005");
   });
 
+  it("encuentra aunque el dictado traiga una muletilla al principio", () => {
+    assert.equal(buscarProducto(CATALOGO, "el papel higienico").id, "p-008");
+    assert.equal(buscarProducto(CATALOGO, "es leche").id, "p-005");
+  });
+
   it("devuelve null cuando no hay coincidencia", () => {
     assert.equal(buscarProducto(CATALOGO, "cemento"), null);
   });
@@ -55,6 +61,45 @@ describe("buscarProducto", () => {
       { id: "p-005", nombre: "Leche" },
     ];
     assert.equal(buscarProducto(catalogo, "leche").id, "p-005");
+  });
+});
+
+describe("limpiarNombreDictado", () => {
+  it("quita los articulos y muletillas del principio", () => {
+    assert.equal(limpiarNombreDictado("el chicharron"), "chicharron");
+    assert.equal(limpiarNombreDictado("es divella"), "divella");
+    assert.equal(limpiarNombreDictado("los papeles"), "papeles");
+    assert.equal(limpiarNombreDictado("una leche"), "leche");
+  });
+
+  it("quita varias muletillas encadenadas", () => {
+    assert.equal(limpiarNombreDictado("es el pan"), "pan");
+    assert.equal(limpiarNombreDictado("son las galletas"), "galletas");
+  });
+
+  it("no toca lo que ya viene limpio", () => {
+    assert.equal(limpiarNombreDictado("pasta dental"), "pasta dental");
+    assert.equal(limpiarNombreDictado("papel higienico"), "papel higienico");
+  });
+
+  it("no se come palabras interiores, solo las del principio", () => {
+    assert.equal(limpiarNombreDictado("pasta de dientes"), "pasta de dientes");
+    assert.equal(limpiarNombreDictado("crema de la leche"), "crema de la leche");
+  });
+
+  it("no deja el texto vacio si todo eran muletillas", () => {
+    assert.equal(limpiarNombreDictado("el la los"), "el la los");
+    assert.equal(limpiarNombreDictado(""), "");
+  });
+
+  it("conserva mayusculas y acentos, porque el resultado se guarda como nombre", () => {
+    assert.equal(limpiarNombreDictado("el Papel Higiénico"), "Papel Higiénico");
+    assert.equal(limpiarNombreDictado("Yogurt Griego"), "Yogurt Griego");
+  });
+
+  it("tolera valores ausentes", () => {
+    assert.equal(limpiarNombreDictado(undefined), "");
+    assert.equal(limpiarNombreDictado(null), "");
   });
 });
 

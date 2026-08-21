@@ -1,12 +1,8 @@
 import type { ItemCarrito, ModoPos, ProductoPos } from "../types/pos";
 
-export const IVA = 0.16;
-
 export interface TotalesCarrito {
   subtotal: number;
   descuento: number;
-  baseGravable: number;
-  iva: number;
   total: number;
 }
 
@@ -26,12 +22,19 @@ export function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarr
   };
 }
 
-export function calcularTotales(carrito: ItemCarrito[], descuentoAplicado: number): TotalesCarrito {
+export function calcularTotales(
+  carrito: ItemCarrito[],
+  descuentoAplicado: number,
+  modo: ModoPos,
+): TotalesCarrito {
   const subtotal = carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0);
+
+  if (modo === "compra") {
+    return { subtotal, descuento: 0, total: subtotal };
+  }
+
   const descuento = Math.min(descuentoAplicado, subtotal);
-  const baseGravable = Math.max(subtotal - descuento, 0);
-  const iva = baseGravable * IVA;
-  return { subtotal, descuento, baseGravable, iva, total: baseGravable + iva };
+  return { subtotal, descuento, total: Math.max(subtotal - descuento, 0) };
 }
 
 export function agregarAlCarrito(

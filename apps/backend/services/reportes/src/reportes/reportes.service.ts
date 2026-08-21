@@ -2,6 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ClienteHttp } from "@scipos/backend-commons";
 import { RedisService } from "../redis/redis.service";
+import {
+  type ArchivoCsv,
+  type TipoExportable,
+  csvCortes,
+  csvCotizaciones,
+  csvInventario,
+  csvVentas,
+} from "./csv";
 
 interface VentaRemota {
   id: string;
@@ -9,7 +17,6 @@ interface VentaRemota {
   cotizacionId: string | null;
   subtotal: number;
   descuento: number;
-  iva: number;
   total: number;
   estado: "COMPLETA" | "CANCELADA";
   fecha: string;
@@ -165,6 +172,23 @@ export class ReportesService {
     };
     await this.redis.set(claveCache, resultado, TTL_CACHE_SEGUNDOS);
     return resultado;
+  }
+
+  async exportar(tipo: TipoExportable, rango: RangoFechas, usuarioId: string): Promise<ArchivoCsv> {
+    if (tipo === "ventas") {
+      const reporte = await this.ventas(rango, usuarioId);
+      return csvVentas(reporte.ventas);
+    }
+    if (tipo === "cotizaciones") {
+      const reporte = await this.cotizaciones(rango, usuarioId);
+      return csvCotizaciones(reporte.cotizaciones);
+    }
+    if (tipo === "inventario") {
+      const reporte = await this.productos(usuarioId);
+      return csvInventario(reporte.productos);
+    }
+    const reporte = await this.cortes(usuarioId);
+    return csvCortes(reporte.cortes);
   }
 
   private obtenerVentas(rango: RangoFechas, usuarioId: string): Promise<VentaRemota[]> {

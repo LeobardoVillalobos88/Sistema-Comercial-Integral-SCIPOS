@@ -29,7 +29,6 @@ export interface VentaDetalleApi {
   cotizacionId?: string | null;
   subtotal: number;
   descuento: number;
-  iva: number;
   total: number;
   estado: "COMPLETA" | "CANCELADA";
   fecha: string;
@@ -134,7 +133,6 @@ export function ventaApiAUi(venta: VentaDetalleApi, inventario: ProductoPos[]): 
     items,
     subtotal: venta.subtotal,
     descuento: venta.descuento,
-    iva: venta.iva,
     total: venta.total,
   };
 }

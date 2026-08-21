@@ -358,6 +358,62 @@ Es el caso de la versión que incorpora la skill de Alexa: trae el usuario
 `asistente@scipos.com`, y sin ese paso la skill responde "no pude iniciar sesión
 en el sistema" en todas sus acciones.
 
+### La versión que quita el IVA
+
+Esa versión trae **dos migraciones que eliminan la columna `iva`**, una en
+cotizaciones y otra en ventas-caja. Se aplican solas al arrancar, sin más
+trámite: quitar una columna no falla ni requiere convertir nada.
+
+Lo que sí conviene saber es que **las cotizaciones y ventas que ya existían
+conservan el total con el que se guardaron**, calculado con el IVA sumado
+encima. Una migración cambia la forma de la tabla, no recalcula su contenido. En
+la práctica queda una venta antigua cuyo total no cuadra con la suma de sus
+partidas.
+
+**Lo más simple es arrancar con datos limpios.** Si la instancia solo tiene
+información de demostración, se borra el volumen y se vuelve a sembrar todo, y
+así no queda ningún registro con la regla vieja:
+
+```bash
+pnpm prod:down
+docker volume rm compose_scipos-db-data
+```
+```bash
+sed -i 's/^EJECUTAR_SEMILLA=false/EJECUTAR_SEMILLA=true/' .env
+pnpm prod:up
+```
+
+Cuando termine de sembrar, **vuelve a poner `EJECUTAR_SEMILLA=false`** y
+reinicia, o cada arranque recargará los datos.
+
+Al arrancar, cada servicio aplica sus migraciones y vuelve a sembrar, así que el
+sistema queda con **todo lo que trae de fábrica**: los cinco usuarios con sus
+privilegios, los siete productos, los cinco clientes, las tres cotizaciones y el
+turno de caja con sus ventas históricas. Ya sin IVA en ninguna parte.
+
+Lo único que se pierde es **lo que se haya creado después de desplegar**:
+usuarios dados de alta desde `/usuarios`, contraseñas cambiadas respecto a las de
+la semilla, y los productos, clientes, cotizaciones, ventas y compras capturados
+en la instancia. Si algo de eso importa, respáldalo antes (ver la sección
+siguiente).
+
+> Este es el **único** caso en que conviene poner `EJECUTAR_SEMILLA=true`: se
+> quiere justamente que todas las semillas se reescriban sobre una base vacía.
+> Para actualizar una instancia con datos que sí importan, sigue valiendo la
+> advertencia de más arriba, porque la semilla de productos devolvería las
+> existencias a sus valores originales.
+
+Si prefieres conservar los datos, se corrigen al menos los registros de la
+semilla volviendo a sembrar esos dos servicios, que hacen `upsert` por id fijo:
+
+```bash
+docker exec scipos-cotizaciones pnpm exec tsx prisma/seed.ts
+docker exec scipos-ventas-caja pnpm exec tsx prisma/seed.ts
+```
+
+Las ventas y cotizaciones creadas a mano no se tocan por esa vía: llevan un id
+distinto y quedarán con su total viejo.
+
 ### Respaldar la base de datos
 
 ```bash
@@ -410,14 +466,118 @@ docker system prune -a --volumes=false
 
 ## Servir por HTTPS
 
-El montaje actual sirve por HTTP. Para publicar con certificado hace falta un
-dominio apuntando a la IP elástica; con eso, la ruta más corta es añadir un
-contenedor de Certbot junto a nginx y montar el certificado emitido en el
-bloque `server`, cambiando `listen 80` por `listen 443 ssl` y dejando un
-`server` en el 80 que redirija.
+Con el dominio apuntando a la instancia, se puede emitir un certificado de
+Let's Encrypt y servir cifrado. Todo lo necesario está en el repositorio:
+`infra/nginx/nginx.tls.conf` y `infra/docker/compose/docker-compose.tls.yml`.
 
-Mientras no exista el dominio no se puede emitir el certificado: Let's Encrypt
-valida contra un nombre, no contra una IP.
+**El montaje sin TLS no se toca.** El archivo de TLS es una *superposición* que
+se aplica encima del de producción; mientras no se use, el despliegue sigue
+exactamente igual. Volver atrás es quitar un `-f`.
+
+### Antes de empezar
+
+Tres cosas tienen que estar listas, en este orden:
+
+1. **El dominio resuelve a la IP elástica.** Compruébalo desde tu máquina:
+   ```bash
+   curl -I http://TU_DOMINIO
+   ```
+   Debe responder 200. Si responde de otra cosa, el DNS todavía no propagó y
+   emitir el certificado fallará: Let's Encrypt visita el dominio para
+   comprobar que es tuyo.
+
+2. **El puerto 443 abierto en el grupo de seguridad.** Es un renglón nuevo:
+   HTTPS, 443, origen `0.0.0.0/0`. **El 80 se queda abierto**: es por donde
+   Let's Encrypt valida cada renovación, y también por donde se redirige a
+   quien escriba la dirección sin `https`.
+
+3. **`DOMINIO` en el `.env`:**
+   ```
+   DOMINIO=scipos.tech
+   ```
+
+### 1. Emitir el certificado
+
+Se pide una sola vez. Certbot deja el desafío en un volumen que nginx ya está
+sirviendo, así que **no hace falta apagar nada**:
+
+```bash
+# nginx tiene que estar sirviendo el desafío: se levanta con la superposición,
+# que monta el volumen compartido
+docker compose -f infra/docker/compose/docker-compose.prod.yml \
+               -f infra/docker/compose/docker-compose.tls.yml \
+               --env-file .env up -d nginx
+
+docker run --rm \
+  -v scipos_certbot-conf:/etc/letsencrypt \
+  -v scipos_certbot-www:/var/www/certbot \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
+  -d scipos.tech -d www.scipos.tech \
+  --email TU_CORREO --agree-tos --no-eff-email
+```
+
+> **La primera vez conviene añadir `--dry-run`.** Let's Encrypt limita a cinco
+> intentos fallidos por hora y por dominio; con la prueba en seco se descubre
+> un DNS a medio propagar sin gastar intentos. Si la prueba pasa, se repite el
+> comando sin `--dry-run`.
+
+Debe terminar con `Successfully received certificate`. Si dice
+`Timeout during connect`, es el puerto 80 cerrado o el DNS sin propagar.
+
+### 2. Levantar con TLS
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.prod.yml \
+               -f infra/docker/compose/docker-compose.tls.yml \
+               --env-file .env up -d
+```
+
+Comprueba:
+
+```bash
+curl -I https://scipos.tech            # 200
+curl -I http://scipos.tech             # 301 hacia https
+curl -i https://scipos.tech/api/seguridad/usuarios   # 401, como debe ser
+```
+
+La renovación queda sola: el contenedor `certbot` despierta cada doce horas y
+renueva cuando al certificado le quedan menos de 30 días.
+
+### 3. Actualizar la skill de Alexa
+
+**Este paso se olvida y rompe la skill.** El Lambda llama a la API con la
+dirección que tiene escrita en el bloque de conexión de `index.js`. Si el
+sitio pasa a HTTPS y redirige el 80, el cliente HTTP nativo de la skill
+**no sigue redirecciones**: recibiría un 301 sin cuerpo y respondería que no
+pudo iniciar sesión, sin pista de por qué.
+
+En la consola de Alexa Developer, en `lambda/index.js`, cambia la línea:
+
+```js
+const API_URL = process.env.SCIPOS_API_URL || "https://scipos.tech/api";
+```
+
+No hace falta tocar nada más: la función `peticion()` ya elige entre los
+módulos `http` y `https` y entre los puertos 80 y 443 según el protocolo de la
+dirección. Guarda, despliega la skill y prueba una frase.
+
+### Lo que **no** hay que cambiar
+
+- **`NEXT_PUBLIC_API_URL` se queda en `/api`.** Es una ruta relativa: la
+  interfaz llama al mismo origen desde el que se sirvió, así que funciona igual
+  en HTTP que en HTTPS y no hay que reconstruir la imagen.
+- **`ORIGENES_PERMITIDOS`** tampoco: interfaz y API siguen compartiendo origen
+  detrás del mismo nginx.
+
+### Volver a HTTP si algo sale mal
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.prod.yml \
+               --env-file .env up -d
+```
+
+Sin el segundo `-f`, nginx vuelve a su configuración de siempre. Los
+certificados quedan guardados en su volumen para cuando se retome.
 
 ---
 

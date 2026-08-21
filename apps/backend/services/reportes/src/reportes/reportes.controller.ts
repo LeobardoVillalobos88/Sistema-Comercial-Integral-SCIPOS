@@ -1,7 +1,13 @@
-import { Controller, Get, Query } from "@nestjs/common";
-import { ApiHeader, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { BadRequestException, Controller, Get, Param, Query, Res } from "@nestjs/common";
+import { ApiHeader, ApiOperation, ApiParam, ApiProduces, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { HEADER_USUARIO_ID, RequierePrivilegio, UsuarioActual } from "@scipos/backend-commons";
+import { TIPOS_EXPORTABLES, esTipoExportable } from "./csv";
 import { ReportesService } from "./reportes.service";
+
+interface RespuestaDescarga {
+  setHeader: (nombre: string, valor: string) => void;
+  send: (cuerpo: string) => void;
+}
 
 @ApiTags("reportes")
 @ApiHeader({ name: HEADER_USUARIO_ID, required: false })
@@ -50,11 +56,11 @@ export class ReportesController {
   }
 
   @Get("utilidad")
-  @RequierePrivilegio("reportes:ver")
+  @RequierePrivilegio("reportes:utilidad")
   @ApiOperation({
     summary: "Utilidad bruta del periodo",
     description:
-      "Ingresos menos costo de ventas y descuentos (solo supervisores y administradores).",
+      "Ingresos menos costo de ventas y descuentos (RF-33). Exige su propio privilegio: ver los reportes comerciales no alcanza para conocer el margen del negocio.",
   })
   @ApiQuery({ name: "desde", required: false, example: "2026-07-01" })
   @ApiQuery({ name: "hasta", required: false, example: "2026-07-31" })
@@ -64,5 +70,34 @@ export class ReportesController {
     @Query("hasta") hasta?: string,
   ) {
     return this.reportes.utilidad({ desde, hasta }, usuarioId);
+  }
+
+  @Get("exportar/:tipo")
+  @RequierePrivilegio("reportes:exportar")
+  @ApiOperation({
+    summary: "Descargar un reporte en archivo CSV",
+    description:
+      "El archivo se arma en el servidor, no en el navegador, para que la descarga pase por el guard de privilegios (RF-30).",
+  })
+  @ApiParam({ name: "tipo", enum: TIPOS_EXPORTABLES })
+  @ApiQuery({ name: "desde", required: false, example: "2026-07-01" })
+  @ApiQuery({ name: "hasta", required: false, example: "2026-07-31" })
+  @ApiProduces("text/csv")
+  async exportar(
+    @Param("tipo") tipo: string,
+    @UsuarioActual() usuarioId: string,
+    @Res() res: RespuestaDescarga,
+    @Query("desde") desde?: string,
+    @Query("hasta") hasta?: string,
+  ) {
+    if (!esTipoExportable(tipo)) {
+      throw new BadRequestException(
+        `Reporte "${tipo}" no exportable. Disponibles: ${TIPOS_EXPORTABLES.join(", ")}.`,
+      );
+    }
+    const archivo = await this.reportes.exportar(tipo, { desde, hasta }, usuarioId);
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${archivo.nombre}"`);
+    res.send(archivo.contenido);
   }
 }

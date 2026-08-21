@@ -140,6 +140,7 @@ export function PosCajaPage({
   const puedeAbrirCaja = permisos.can("caja:abrir");
   const puedeRegistrarMovimiento = permisos.can("caja:movimiento");
   const puedeCerrarCaja = permisos.can("caja:cerrar");
+  const puedeVerComprobante = permisos.can("ventas:comprobante");
 
   const cargarProductos = useCallback(async () => {
     setCargandoProductos(true);
@@ -236,12 +237,7 @@ export function PosCajaPage({
     cargarCompras();
   }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarCompras]);
 
-  const {
-    subtotal: subtotalCarrito,
-    descuento: descuentoEfectivo,
-    iva,
-    total: totalVenta,
-  } = totales;
+  const { subtotal: subtotalCarrito, descuento: descuentoEfectivo, total: totalVenta } = totales;
 
   const ingresosManual = useMemo(
     () =>
@@ -818,7 +814,6 @@ export function PosCajaPage({
                           etiqueta="Descuento aplicado"
                           valor={formatearMoneda(descuentoEfectivo)}
                         />
-                        <ResumenMonto etiqueta="IVA (16%)" valor={formatearMoneda(iva)} />
                       </>
                     ) : null}
                     <ResumenMonto
@@ -893,6 +888,7 @@ export function PosCajaPage({
           cargandoHistorial={cargandoHistorial}
           ventasHistorial={ventasHistorial}
           cortesCaja={cortesCaja}
+          puedeVerComprobante={puedeVerComprobante}
           onVerComprobante={verComprobante}
         />
       ) : null}

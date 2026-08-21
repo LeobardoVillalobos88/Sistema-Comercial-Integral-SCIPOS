@@ -15,17 +15,12 @@ export interface PartidaCalculada extends Omit<PartidaParaCalculo, "precioUnitar
 export interface TotalesCotizacion {
   partidas: PartidaCalculada[];
   subtotal: Decimal;
-  iva: Decimal;
   total: Decimal;
 }
 
 const MONEDA_DECIMALES = 2;
 
-export function calcularTotales(
-  partidas: PartidaParaCalculo[],
-  ivaPorcentaje: number | string,
-): TotalesCotizacion {
-  const tasaIva = new Decimal(ivaPorcentaje).dividedBy(100);
+export function calcularTotales(partidas: PartidaParaCalculo[]): TotalesCotizacion {
   const partidasCalculadas = partidas.map((partida) => {
     const precioUnitario = new Decimal(partida.precioUnitario).toDecimalPlaces(
       MONEDA_DECIMALES,
@@ -42,11 +37,5 @@ export function calcularTotales(
   const subtotal = partidasCalculadas
     .reduce((acumulado, partida) => acumulado.plus(partida.importe), new Decimal(0))
     .toDecimalPlaces(MONEDA_DECIMALES, Decimal.ROUND_HALF_UP);
-  const iva = subtotal.times(tasaIva).toDecimalPlaces(MONEDA_DECIMALES, Decimal.ROUND_HALF_UP);
-  return {
-    partidas: partidasCalculadas,
-    subtotal,
-    iva,
-    total: subtotal.plus(iva).toDecimalPlaces(MONEDA_DECIMALES, Decimal.ROUND_HALF_UP),
-  };
+  return { partidas: partidasCalculadas, subtotal, total: subtotal };
 }

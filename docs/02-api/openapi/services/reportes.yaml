@@ -5,7 +5,11 @@ info:
     Reportes comerciales de ventas, cotizaciones, inventario, cortes de caja y
     utilidad (RF-30, RF-31, RF-33). No tiene base de datos propia: agrega
     información de los demás servicios por REST propagando la identidad del
-    solicitante. Todos los reportes exigen el privilegio reportes:ver.
+    solicitante. Consultar exige reportes:ver; conocer la utilidad exige
+    además reportes:utilidad, y descargar cualquier reporte como archivo exige
+    reportes:exportar. Son tres permisos distintos porque son tres capacidades
+    distintas: mirar la operación, conocer el margen y sacar la información del
+    sistema.
   version: "1.0"
 servers:
   - url: http://localhost:4000/api/reportes
@@ -118,9 +122,10 @@ paths:
       tags: [reportes]
       summary: Utilidad bruta del periodo
       description: >
-        "Privilegio requerido: reportes:ver. Ingresos menos costo de ventas
-        (precio de compra actual de cada producto vendido) y descuentos
-        otorgados (RF-33, restringido a supervisores y administradores)."
+        "Privilegio requerido: reportes:utilidad. Ingresos menos costo de
+        ventas (precio de compra actual de cada producto vendido) y descuentos
+        otorgados (RF-33). Tiene privilegio propio y no viaja con reportes:ver:
+        el margen del negocio es un dato de dirección, no de operación."
       security:
         - tokenJwt: []
       parameters:
@@ -152,6 +157,43 @@ paths:
                   ventasConsideradas:
                     type: integer
                     example: 12
+        "401":
+          $ref: "#/components/responses/SinIdentidad"
+        "403":
+          $ref: "#/components/responses/SinPrivilegio"
+
+  /reportes/exportar/{tipo}:
+    get:
+      tags: [reportes]
+      summary: Descargar un reporte en archivo CSV
+      description: >
+        "Privilegio requerido: reportes:exportar. El archivo se arma en el
+        servidor y no en el navegador, precisamente para que la descarga pase
+        por el guard: si se armara con los datos que la pantalla ya tiene,
+        esconder el botón sería toda la protección (RF-30)."
+      security:
+        - tokenJwt: []
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [ventas, cotizaciones, inventario, cortes]
+          description: >
+            La utilidad no se exporta: es un resumen de cinco cifras, no una
+            tabla.
+        - $ref: "#/components/parameters/Desde"
+        - $ref: "#/components/parameters/Hasta"
+      responses:
+        "200":
+          description: Archivo CSV con marca de orden de bytes y saltos CRLF
+          content:
+            text/csv:
+              schema:
+                type: string
+        "400":
+          description: El tipo de reporte pedido no es exportable
         "401":
           $ref: "#/components/responses/SinIdentidad"
         "403":

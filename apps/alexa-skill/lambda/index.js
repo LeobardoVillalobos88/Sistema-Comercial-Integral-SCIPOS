@@ -10,6 +10,7 @@ const {
   describirAlertas,
   esOperacionRepetida,
   interpretarTipoRevision,
+  limpiarNombreDictado,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
@@ -252,7 +253,9 @@ const RegistrarProductoIntentHandler = {
         .getResponse();
     }
 
-    const nombre = Alexa.getSlotValue(handlerInput.requestEnvelope, "nombreProducto");
+    const nombre = limpiarNombreDictado(
+      Alexa.getSlotValue(handlerInput.requestEnvelope, "nombreProducto"),
+    );
     const precioCompra = Number.parseFloat(
       Alexa.getSlotValue(handlerInput.requestEnvelope, "precioCompra"),
     );
@@ -352,7 +355,9 @@ const SurtirInventarioIntentHandler = {
       Alexa.getSlotValue(handlerInput.requestEnvelope, "cantidad"),
       10,
     );
-    const proveedor = Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor");
+    const proveedor = limpiarNombreDictado(
+      Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor"),
+    );
 
     try {
       const almacen = await leerAlmacen();
@@ -496,6 +501,21 @@ const HelpIntentHandler = {
   },
 };
 
+const NavigateHomeIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "AMAZON.NavigateHomeIntent"
+    );
+  },
+  handle(handlerInput) {
+    return handlerInput.responseBuilder
+      .speak(`Volvamos al principio. ${MENU}`)
+      .reprompt(MENU)
+      .getResponse();
+  },
+};
+
 const CancelAndStopIntentHandler = {
   canHandle(handlerInput) {
     const nombre = Alexa.getIntentName(handlerInput.requestEnvelope);
@@ -567,6 +587,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     RevisarInventarioIntentHandler,
     BitacoraVozIntentHandler,
     HelpIntentHandler,
+    NavigateHomeIntentHandler,
     CancelAndStopIntentHandler,
     FallbackIntentHandler,
     SessionEndedRequestHandler,

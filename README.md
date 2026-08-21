@@ -11,7 +11,9 @@ OpenAPI/Scalar.
 | Documento | Para qué |
 |---|---|
 | [Guía del sistema](docs/readmes/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo (funcional) |
+| [Arquitectura](docs/01-architecture/README.md) | Por qué está hecho así: decisiones, patrones, SOLID, estructura y ramas |
 | [Despliegue en AWS](docs/DESPLIEGUE-AWS.md) | Publicar el sistema en una instancia, paso a paso |
+| [Guion de demostración](docs/03-runbooks/guion-de-demostracion.md) | Recorrido de la presentación, con los datos exactos |
 | [Plan del Avance 3](docs/readmes/avance-3-plan-backend.md) | Reparto de trabajo del backend |
 | [Contratos de API](docs/02-api/README.md) | Flujo contrato-primero y OpenAPI por servicio |
 ---
@@ -188,8 +190,9 @@ pnpm --filter @scipos/pos-caja-front test          # importes del punto de venta
 Las de seguridad cubren la regla que sostiene el proyecto: los privilegios
 efectivos son los del rol más los concedidos, menos los revocados, y una
 revocación individual gana incluso sobre un rol con acceso total. Las del punto
-de venta cubren el cálculo de subtotal, descuento, IVA y total, incluido que un
-descuento mayor al subtotal se recorta en lugar de producir un total negativo.
+de venta cubren el cálculo de subtotal, descuento y total, incluido que un
+descuento mayor al subtotal se recorta en lugar de producir un total negativo, y
+que una compra a proveedor no admite descuento.
 
 ### Credenciales semilla (una cuenta por rol, más el asistente de voz)
 

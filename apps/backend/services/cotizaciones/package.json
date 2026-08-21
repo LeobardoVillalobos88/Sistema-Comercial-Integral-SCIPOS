@@ -1,6 +1,6 @@
 {
   "name": "@scipos/cotizaciones-service",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Microservicio de cotizaciones de SCIPOS",
   "license": "UNLICENSED",
@@ -15,8 +15,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "preparar": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
-    "test": "tsx --test src/cotizaciones/*.spec.ts",
-    "test:watch": "tsx --test --watch src/cotizaciones/*.spec.ts",
+    "test": "prisma generate && tsx --test src/cotizaciones/*.spec.ts",
+    "test:watch": "prisma generate && tsx --test --watch src/cotizaciones/*.spec.ts",
     "typecheck": "prisma generate && tsc --noEmit"
   },
   "dependencies": {

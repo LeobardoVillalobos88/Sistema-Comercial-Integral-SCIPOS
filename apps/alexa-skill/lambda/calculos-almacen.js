@@ -14,19 +14,55 @@ function normalizarTexto(texto) {
     .replace(/\s+/g, " ");
 }
 
+const MULETILLAS = [
+  "el",
+  "la",
+  "los",
+  "las",
+  "un",
+  "una",
+  "unos",
+  "unas",
+  "es",
+  "son",
+  "mi",
+  "mis",
+];
+
+function limpiarNombreDictado(texto) {
+  const palabras = String(texto === null || texto === undefined ? "" : texto)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  let inicio = 0;
+  while (inicio < palabras.length && MULETILLAS.includes(normalizarTexto(palabras[inicio]))) {
+    inicio += 1;
+  }
+  if (inicio === palabras.length) return palabras.join(" ");
+  return palabras.slice(inicio).join(" ");
+}
+
 function buscarProducto(productos, nombre) {
   const buscado = normalizarTexto(nombre);
   if (!buscado) return null;
 
   const catalogo = productos || [];
-  const exacto = catalogo.find((producto) => normalizarTexto(producto.nombre) === buscado);
-  if (exacto) return exacto;
+  const coincidir = (texto) => {
+    const exacto = catalogo.find((producto) => normalizarTexto(producto.nombre) === texto);
+    if (exacto) return exacto;
+    return (
+      catalogo.find((producto) => {
+        const candidato = normalizarTexto(producto.nombre);
+        return candidato.includes(texto) || texto.includes(candidato);
+      }) || null
+    );
+  };
 
-  const parcial = catalogo.find((producto) => {
-    const candidato = normalizarTexto(producto.nombre);
-    return candidato.includes(buscado) || buscado.includes(candidato);
-  });
-  return parcial || null;
+  const directo = coincidir(buscado);
+  if (directo) return directo;
+
+  const limpio = limpiarNombreDictado(buscado);
+  return limpio === buscado ? null : coincidir(limpio);
 }
 
 function siguienteLote(folio) {
@@ -133,6 +169,7 @@ module.exports = {
   describirAlertas,
   esOperacionRepetida,
   interpretarTipoRevision,
+  limpiarNombreDictado,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,

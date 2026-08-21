@@ -17,8 +17,8 @@ export function useCarrito(modo: ModoPos) {
   const [descuentoAplicado, setDescuentoAplicado] = useState(0);
 
   const totales = useMemo(
-    () => calcularTotales(carrito, descuentoAplicado),
-    [carrito, descuentoAplicado],
+    () => calcularTotales(carrito, descuentoAplicado, modo),
+    [carrito, descuentoAplicado, modo],
   );
 
   const agregar = (producto: ProductoPos) =>

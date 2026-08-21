@@ -1,6 +1,6 @@
 {
   "name": "@scipos/reportes-service",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Servicio de reportes de SCIPOS: ventas, cotizaciones, productos, cortes y utilidad, agregados por REST desde los servicios de dominio.",
   "scripts": {
@@ -9,7 +9,9 @@
     "start": "nest start",
     "start:prod": "node dist/main",
     "lint": "biome check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/reportes/*.spec.ts",
+    "test:watch": "tsx --test --watch src/reportes/*.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -27,6 +29,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }
 }

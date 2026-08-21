@@ -29,9 +29,11 @@ import { ResumenMonto } from "./ResumenMonto";
 
 function TablaVentasHistoricas({
   ventas,
+  puedeComprobante,
   onComprobante,
 }: {
   ventas: VentaPOS[];
+  puedeComprobante: boolean;
   onComprobante: (ventaId: string) => void;
 }) {
   if (ventas.length === 0) {
@@ -53,9 +55,8 @@ function TablaVentasHistoricas({
             <TableCell>Fecha</TableCell>
             <TableCell align="right">Subtotal</TableCell>
             <TableCell align="right">Descuento</TableCell>
-            <TableCell align="right">IVA</TableCell>
             <TableCell align="right">Total</TableCell>
-            <TableCell align="center">Comprobante</TableCell>
+            {puedeComprobante && <TableCell align="center">Comprobante</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -65,20 +66,21 @@ function TablaVentasHistoricas({
               <TableCell>{formatearFechaConHora(venta.fecha)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.subtotal)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.descuento)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.iva)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.total)}</TableCell>
-              <TableCell align="center">
-                <Tooltip title="Ver comprobante PDF">
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => onComprobante(venta.id)}
-                    aria-label={`Comprobante de la venta ${venta.folio}`}
-                  >
-                    <PictureAsPdfIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </TableCell>
+              {puedeComprobante && (
+                <TableCell align="center">
+                  <Tooltip title="Ver comprobante PDF">
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      onClick={() => onComprobante(venta.id)}
+                      aria-label={`Comprobante de la venta ${venta.folio}`}
+                    >
+                      <PictureAsPdfIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -153,6 +155,7 @@ export interface PanelCajaProps {
   cargandoHistorial: boolean;
   ventasHistorial: VentaPOS[];
   cortesCaja: CorteCaja[];
+  puedeVerComprobante: boolean;
   onVerComprobante: (ventaId: string) => void;
 }
 
@@ -181,6 +184,7 @@ export function PanelCaja({
   cargandoHistorial,
   ventasHistorial,
   cortesCaja,
+  puedeVerComprobante,
   onVerComprobante,
 }: PanelCajaProps) {
   return (
@@ -386,7 +390,11 @@ export function PanelCaja({
             {cargandoHistorial ? (
               <SkeletonTabla filas={4} columnas={7} />
             ) : (
-              <TablaVentasHistoricas ventas={ventasHistorial} onComprobante={onVerComprobante} />
+              <TablaVentasHistoricas
+                ventas={ventasHistorial}
+                puedeComprobante={puedeVerComprobante}
+                onComprobante={onVerComprobante}
+              />
             )}
           </PanelSeccion>
         </Grid>

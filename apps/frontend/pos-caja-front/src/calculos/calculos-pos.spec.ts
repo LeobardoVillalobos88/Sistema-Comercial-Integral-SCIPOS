@@ -69,41 +69,67 @@ describe("crearItemCarrito", () => {
   });
 });
 
-describe("calcularTotales", () => {
+describe("calcularTotales en modo compra", () => {
+  it("el total es el subtotal, sin nada encima", () => {
+    const totales = calcularTotales([partida({ cantidad: 5, subtotal: 50 })], 0, "compra");
+
+    assert.equal(totales.subtotal, 50);
+    assert.equal(totales.total, 50);
+  });
+
+  it("ignora el descuento, que la compra no admite", () => {
+    const totales = calcularTotales([partida({ subtotal: 200 })], 100, "compra");
+
+    assert.equal(totales.descuento, 0);
+    assert.equal(totales.total, 200);
+  });
+
   it("con el carrito vacío devuelve todo en cero", () => {
-    assert.deepEqual(calcularTotales([], 0), {
+    assert.deepEqual(calcularTotales([], 0, "compra"), {
       subtotal: 0,
       descuento: 0,
-      baseGravable: 0,
-      iva: 0,
       total: 0,
     });
   });
 
-  it("suma los importes de las partidas y aplica el IVA", () => {
-    const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 0);
+  it("coincide con lo que el servicio guarda como total de la compra", () => {
+    const carrito = [
+      partida({ cantidad: 5, subtotal: 50 }),
+      partida({ productoId: "p-002", cantidad: 3, subtotal: 36 }),
+    ];
+    const comoElBackend = carrito.reduce((suma, item) => suma + item.subtotal, 0);
 
-    assert.equal(totales.subtotal, 200);
-    assert.equal(totales.baseGravable, 200);
-    assert.equal(totales.iva, 32);
-    assert.equal(totales.total, 232);
+    assert.equal(calcularTotales(carrito, 0, "compra").total, comoElBackend);
+  });
+});
+
+describe("calcularTotales", () => {
+  it("con el carrito vacío devuelve todo en cero", () => {
+    assert.deepEqual(calcularTotales([], 0, "venta"), {
+      subtotal: 0,
+      descuento: 0,
+      total: 0,
+    });
   });
 
-  it("descuenta antes de calcular el IVA", () => {
-    const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 100);
+  it("el total es lo que se cobra: los precios del catálogo ya son los finales", () => {
+    const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 0, "venta");
+
+    assert.equal(totales.subtotal, 200);
+    assert.equal(totales.total, 200);
+  });
+
+  it("resta el descuento del total", () => {
+    const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 100, "venta");
 
     assert.equal(totales.descuento, 100);
-    assert.equal(totales.baseGravable, 100);
-    assert.equal(totales.iva, 16);
-    assert.equal(totales.total, 116);
+    assert.equal(totales.total, 100);
   });
 
   it("recorta un descuento mayor que el subtotal en lugar de generar un negativo", () => {
-    const totales = calcularTotales([partida({ subtotal: 100 })], 500);
+    const totales = calcularTotales([partida({ subtotal: 100 })], 500, "venta");
 
     assert.equal(totales.descuento, 100);
-    assert.equal(totales.baseGravable, 0);
-    assert.equal(totales.iva, 0);
     assert.equal(totales.total, 0);
   });
 
@@ -113,7 +139,7 @@ describe("calcularTotales", () => {
       partida({ productoId: "p-002", subtotal: 250 }),
     ];
 
-    assert.equal(calcularTotales(carrito, 0).subtotal, 350);
+    assert.equal(calcularTotales(carrito, 0, "venta").subtotal, 350);
   });
 });
 
@@ -132,7 +158,7 @@ describe("agregarAlCarrito", () => {
 
     assert.deepEqual(claves(carrito), ["p-001"]);
     assert.equal(cantidadEnCarrito(carrito, "p-001"), 2);
-    assert.equal(calcularTotales(carrito, 0).subtotal, 200);
+    assert.equal(calcularTotales(carrito, 0, "venta").subtotal, 200);
   });
 
   it("no modifica el carrito que recibe", () => {
@@ -149,7 +175,7 @@ describe("cambiarCantidad", () => {
     const carrito = cambiarCantidad([partida()], "p-001", 2);
 
     assert.equal(cantidadEnCarrito(carrito, "p-001"), 3);
-    assert.equal(calcularTotales(carrito, 0).subtotal, 300);
+    assert.equal(calcularTotales(carrito, 0, "venta").subtotal, 300);
   });
 
   it("saca la partida del carrito cuando la cantidad llega a cero", () => {

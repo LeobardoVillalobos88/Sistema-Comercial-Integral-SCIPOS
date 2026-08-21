@@ -41,7 +41,6 @@ export class CotizacionRespuestaDto {
   subtotal: number;
 
   @ApiProperty({ example: 23.2 })
-  iva: number;
 
   @ApiProperty({ example: 168.2 })
   total: number;
