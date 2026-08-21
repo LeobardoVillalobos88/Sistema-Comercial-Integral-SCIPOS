@@ -16,11 +16,8 @@ import Typography from "@mui/material/Typography";
 import { useMemo, useState } from "react";
 
 export interface Columna<T> {
-  /** Clave única de la columna. */
   clave: string;
-  /** Encabezado mostrado. */
   titulo: string;
-  /** Cómo renderizar la celda para una fila. */
   render: (fila: T) => React.ReactNode;
   align?: "left" | "right" | "center";
 }
@@ -28,25 +25,13 @@ export interface Columna<T> {
 export interface SearchableTableProps<T> {
   filas: T[];
   columnas: Columna<T>[];
-  /**
-   * Clave estable de cada fila, normalmente su id. Es obligatoria porque la
-   * lista se reordena al filtrar: con la posición como clave, React conserva
-   * el estado de la fila anterior y lo muestra en el registro equivocado.
-   */
   claveFila: (fila: T) => string | number;
-  /** Texto a buscar dentro de cada fila (se concatena para el filtro). */
   textoBusqueda: (fila: T) => string;
   placeholderBusqueda?: string;
-  /** Mensaje cuando no hay resultados. */
   mensajeVacio?: string;
-  /** Controles adicionales (selects de filtro, etc.) junto a la barra de búsqueda. */
   filtros?: React.ReactNode;
 }
 
-/**
- * Tabla con búsqueda integrada. Componente base del Design System para listar
- * datos (productos, clientes, etc.) de forma consistente.
- */
 export function SearchableTable<T>({
   filas,
   columnas,

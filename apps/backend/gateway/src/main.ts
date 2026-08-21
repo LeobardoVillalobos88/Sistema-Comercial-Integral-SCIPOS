@@ -16,7 +16,6 @@ async function bootstrap() {
     allowedHeaders: ["Content-Type", "Authorization"],
   });
 
-  // Verifica el token (firma RS256 + iss/aud + denylist) antes de proxyear.
   app.use("/api", crearMiddlewareJwt());
 
   for (const servicio of serviciosEnrutados()) {
@@ -26,9 +25,6 @@ async function bootstrap() {
         target: servicio.url,
         changeOrigin: true,
         on: {
-          // La identidad externa solo entra firmada (Authorization: Bearer).
-          // El header x-usuario-id es el canal interno entre servicios: si
-          // llega desde fuera se elimina para que nadie suplante identidades.
           proxyReq: (peticionProxy) => {
             peticionProxy.removeHeader(HEADER_USUARIO_ID);
           },

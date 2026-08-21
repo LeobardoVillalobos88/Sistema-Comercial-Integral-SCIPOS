@@ -109,7 +109,6 @@ export class ProductosService {
     return { eliminado: true };
   }
 
-  /** Ajuste genérico de stock (RNF-14): lo usan otros servicios para descontar o reponer existencias. */
   async ajustarStock(id: string, dto: AjustarStockDto) {
     const producto = await this.obtener(id);
     const nuevaExistencia = producto.existencia + dto.delta;
@@ -126,11 +125,6 @@ export class ProductosService {
     return actualizado;
   }
 
-  /**
-   * Alertas de inventario (caducidad y existencias) para avisar al operador al
-   * entrar al sistema. Trae el catálogo activo y delega la clasificación al
-   * módulo puro, que es donde vive —y se prueba— la regla de qué es urgente.
-   */
   async alertas() {
     const configuracion = configuracionInventario();
     const productos = await this.prisma.producto.findMany({
@@ -148,7 +142,6 @@ export class ProductosService {
     return calcularAlertas(productos, configuracion);
   }
 
-  /** Resumen para el dashboard: productos activos, stock bajo y próximos a caducar. */
   async resumen() {
     const configuracion = configuracionInventario();
     const limiteCaducidad = new Date();
@@ -163,9 +156,6 @@ export class ProductosService {
           existencia: { lte: configuracion.umbralStockBajo },
         },
       }),
-      // El dashboard rotula esta cifra como "por caducar", así que cuenta solo
-      // lo que aún no vence. Las alertas sí incluyen lo ya vencido: son avisos
-      // para actuar, no un conteo de lo que viene. La diferencia es a propósito.
       this.prisma.producto.count({
         where: {
           activo: true,

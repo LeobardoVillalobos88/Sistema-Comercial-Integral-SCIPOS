@@ -23,7 +23,6 @@ describe("calcularTotales", () => {
     assert.equal(resultado.partidas[0]?.precioUnitario.toFixed(2), "10.13");
     assert.equal(resultado.partidas[0]?.importe.toFixed(2), "30.39");
     assert.equal(resultado.subtotal.toFixed(2), "40.79");
-    // Sin impuesto encima: el total es el subtotal.
     assert.equal(resultado.total.toFixed(2), "40.79");
   });
 

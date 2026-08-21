@@ -37,6 +37,5 @@ export function calcularTotales(partidas: PartidaParaCalculo[]): TotalesCotizaci
   const subtotal = partidasCalculadas
     .reduce((acumulado, partida) => acumulado.plus(partida.importe), new Decimal(0))
     .toDecimalPlaces(MONEDA_DECIMALES, Decimal.ROUND_HALF_UP);
-  // El total es el subtotal: los precios del catálogo ya son los finales.
   return { partidas: partidasCalculadas, subtotal, total: subtotal };
 }

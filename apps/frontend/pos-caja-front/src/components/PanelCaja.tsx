@@ -33,7 +33,6 @@ function TablaVentasHistoricas({
   onComprobante,
 }: {
   ventas: VentaPOS[];
-  /** Emitir el comprobante es su propio privilegio: sin él la columna sobra. */
   puedeComprobante: boolean;
   onComprobante: (ventaId: string) => void;
 }) {
@@ -132,17 +131,14 @@ function TablaCortesHistoricos({ cortes }: { cortes: CorteCaja[] }) {
 }
 
 export interface PanelCajaProps {
-  /** Estado del turno. */
   cajaAbierta: boolean;
   montoInicial: number;
   fechaApertura: string | null;
   movimientos: MovimientoCaja[];
   procesando: boolean;
-  /** Captura del fondo inicial. */
   montoInicialCaptura: string;
   onMontoInicialCapturaChange: (valor: string) => void;
   onAbrirCaja: () => void;
-  /** Captura de un movimiento manual. */
   tipoFlujo: TipoMovimientoCaja;
   onTipoFlujoChange: (tipo: TipoMovimientoCaja) => void;
   conceptoMovimiento: string;
@@ -150,28 +146,19 @@ export interface PanelCajaProps {
   montoMovimiento: string;
   onMontoMovimientoChange: (monto: string) => void;
   onRegistrarMovimiento: () => void;
-  /** Totales del turno. */
   ingresosManual: number;
   egresosManual: number;
   ventasTurnoTotal: number;
   balanceCaja: number;
-  /** El corte se bloquea mientras haya una venta a medias. */
   hayVentaEnCurso: boolean;
   onAbrirDialogoCorte: () => void;
-  /** Historial. */
   cargandoHistorial: boolean;
   ventasHistorial: VentaPOS[];
   cortesCaja: CorteCaja[];
-  /** Privilegio ventas:comprobante del usuario activo. */
   puedeVerComprobante: boolean;
   onVerComprobante: (ventaId: string) => void;
 }
 
-/**
- * Pestaña de caja: apertura del turno, movimientos manuales, corte y los
- * historiales de ventas y cortes. Recibe el estado ya resuelto; no consulta la
- * API por su cuenta.
- */
 export function PanelCaja({
   cajaAbierta,
   montoInicial,

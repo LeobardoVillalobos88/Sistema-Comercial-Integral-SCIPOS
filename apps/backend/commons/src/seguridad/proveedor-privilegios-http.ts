@@ -1,11 +1,6 @@
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import type { ProveedorPrivilegios, ResultadoVerificacion } from "../contratos/privilegios";
 
-/**
- * Implementación por defecto del proveedor de privilegios: consulta al
- * servicio de seguridad por REST. La URL base se toma de la variable de
- * entorno SEGURIDAD_URL (por defecto http://localhost:4001).
- */
 @Injectable()
 export class ProveedorPrivilegiosHttp implements ProveedorPrivilegios {
   private get urlBase(): string {

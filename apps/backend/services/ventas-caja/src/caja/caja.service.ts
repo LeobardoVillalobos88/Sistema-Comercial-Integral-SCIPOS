@@ -8,7 +8,6 @@ import type { RegistrarMovimientoCajaDto } from "./dto/registrar-movimiento.dto"
 export class CajaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Cortes realizados: turnos de caja ya cerrados, del más reciente al más antiguo. */
   async listarCortes() {
     return this.prisma.caja.findMany({
       where: { estado: "CERRADA" },
@@ -16,7 +15,6 @@ export class CajaService {
     });
   }
 
-  /** Obtiene el turno de caja actualmente abierto, si existe. */
   async obtenerCajaAbierta() {
     return this.prisma.caja.findFirst({
       where: { estado: "ABIERTA" },
@@ -24,10 +22,6 @@ export class CajaService {
     });
   }
 
-  /**
-   * Estado del turno actual: si hay caja abierta, incluye sus movimientos y
-   * el acumulado de ventas. Lo usa el frontend para hidratarse al cargar.
-   */
   async estado() {
     const caja = await this.obtenerCajaAbierta();
     if (!caja) {
@@ -51,7 +45,6 @@ export class CajaService {
     };
   }
 
-  /** Exige que exista una caja abierta; lanza 400 si no hay turno activo. */
   async exigirCajaAbierta() {
     const caja = await this.obtenerCajaAbierta();
     if (!caja) {
@@ -91,10 +84,6 @@ export class CajaService {
     });
   }
 
-  /**
-   * Realiza el corte de caja: suma ventas completas del turno, ingresos y
-   * egresos manuales, y persiste el monto final calculado.
-   */
   async cerrar() {
     const caja = await this.exigirCajaAbierta();
 

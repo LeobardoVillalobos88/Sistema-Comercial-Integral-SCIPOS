@@ -1,11 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsInt, IsString, Min, MinLength } from "class-validator";
 
-/**
- * Partida de una venta. El precio no viaja en la petición: el servicio lo
- * lee del catálogo de productos para que el importe cobrado no dependa de
- * lo que mande el cliente.
- */
 export class PartidaVentaDto {
   @ApiProperty({ example: "p-002", description: "ID del producto vendido" })
   @IsString()

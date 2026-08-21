@@ -100,11 +100,6 @@ interface ReporteUtilidad {
   ventasConsideradas: number;
 }
 
-/**
- * Pestañas del panel. El índice de cada una es su identidad —el contenido se
- * decide con él—, así que se declara aquí y no se recalcula al filtrar: si la
- * utilidad se oculta por privilegio, las demás no deben correrse de lugar.
- */
 const PESTANAS = [
   { titulo: "Ventas" },
   { titulo: "Cotizaciones" },
@@ -113,18 +108,12 @@ const PESTANAS = [
   { titulo: "Utilidad", privilegio: "reportes:utilidad" },
 ] as const;
 
-/** Reportes que el backend sabe entregar como archivo. */
 type TipoExportable = "ventas" | "cotizaciones" | "inventario" | "cortes";
 
 function mensajeError(error: unknown, mensajePorDefecto: string): string {
   return error instanceof ErrorApi ? error.message : mensajePorDefecto;
 }
 
-/**
- * Botón de descarga de un reporte. Se pinta solo con el privilegio de
- * exportar; sin él no aparece, y aunque apareciera el backend rechazaría la
- * descarga, que es donde de verdad se decide.
- */
 function BotonExportar({ puede, onExportar }: { puede: boolean; onExportar: () => void }) {
   if (!puede) {
     return null;
@@ -136,15 +125,6 @@ function BotonExportar({ puede, onExportar }: { puede: boolean; onExportar: () =
   );
 }
 
-/**
- * Panel de reportes comerciales (RF-30, RF-31, RF-33): ventas, cotizaciones,
- * inventario, cortes y utilidad, con filtro por periodo y exportación CSV.
- *
- * Tres privilegios distintos, porque son tres permisos distintos: consultar
- * (reportes:ver), conocer el margen del negocio (reportes:utilidad) y sacar la
- * información en un archivo (reportes:exportar). El backend exige cada uno por
- * su cuenta.
- */
 export function PanelReportes() {
   const { can, usuario, cargandoPermisos } = usePermisos();
   const toast = useToast();
@@ -200,11 +180,6 @@ export function PanelReportes() {
     [rangoQuery, toast],
   );
 
-  /**
-   * Pide el archivo al backend en vez de armarlo con los datos que la pantalla
-   * ya tiene. Así la descarga pasa por el guard: esconder el botón sería toda
-   * la protección, y eso no protege nada.
-   */
   const descargarReporte = useCallback(
     async (tipo: TipoExportable) => {
       try {
@@ -228,8 +203,6 @@ export function PanelReportes() {
     if (cargandoPermisos || !usuario || !can("reportes:ver")) {
       return;
     }
-    // La utilidad tiene su propio privilegio: sin él ni se pide, para no
-    // provocar un 403 que el usuario no puede resolver.
     if (pestana === 4 && !can("reportes:utilidad")) {
       return;
     }

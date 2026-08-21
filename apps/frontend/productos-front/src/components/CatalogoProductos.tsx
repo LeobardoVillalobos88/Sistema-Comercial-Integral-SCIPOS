@@ -82,17 +82,10 @@ function productoAFormulario(producto: Producto): FormularioProducto {
   };
 }
 
-/** Mensaje del backend si la API lo dio, o un mensaje genérico si fue un error de red u otro. */
 function mensajeError(error: unknown, mensajePorDefecto: string): string {
   return error instanceof ErrorApi ? error.message : mensajePorDefecto;
 }
 
-/**
- * Catálogo de productos y servicios: listar, buscar, filtrar, crear, editar,
- * desactivar y eliminar (RF-07, RF-08, RF-09) contra la API real del
- * servicio de productos. Las acciones se ocultan según los privilegios del
- * usuario activo (`usePermisos`) — RF-05/RF-06.
- */
 export function CatalogoProductos() {
   const tituloDialogoId = useId();
   const { can, usuario, cargandoPermisos } = usePermisos();
@@ -118,9 +111,6 @@ export function CatalogoProductos() {
     }
   }, [toast]);
 
-  // Espera a que PermisosProvider resuelva el usuario activo (y por lo tanto
-  // el header x-usuario-id) antes de pedir el catálogo; si se dispara antes,
-  // el backend responde 401 y el catálogo queda vacío.
   useEffect(() => {
     if (cargandoPermisos || !usuario) {
       return;

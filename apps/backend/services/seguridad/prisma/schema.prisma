@@ -12,8 +12,6 @@ enum EstadoUsuario {
   INACTIVO
 }
 
-/// Rol funcional del sistema. `accesoTotal` equivale a contar con todos los
-/// privilegios del catálogo (se usa para ADMINISTRADOR).
 model Rol {
   clave       String          @id
   nombre      String
@@ -22,7 +20,6 @@ model Rol {
   privilegios RolPrivilegio[]
 }
 
-/// Privilegio del catálogo, con formato `modulo:accion`.
 model Privilegio {
   clave       String              @id
   descripcion String
@@ -30,7 +27,6 @@ model Privilegio {
   usuarios    UsuarioPrivilegio[]
 }
 
-/// Privilegios que un rol otorga por defecto a sus usuarios.
 model RolPrivilegio {
   rolClave        String
   privilegioClave String
@@ -44,7 +40,6 @@ model Usuario {
   id            String              @id @default(uuid())
   nombre        String
   correo        String              @unique
-  /// Hash bcrypt de la contraseña; vacío mientras el usuario no tenga acceso con credenciales.
   contrasenaHash String             @default("")
   estado        EstadoUsuario       @default(ACTIVO)
   rolClave    String
@@ -55,8 +50,6 @@ model Usuario {
   updatedAt   DateTime            @updatedAt
 }
 
-/// Ajuste de privilegios por usuario sobre lo que otorga su rol:
-/// `concedido = true` agrega el privilegio, `concedido = false` lo revoca.
 model UsuarioPrivilegio {
   usuarioId       String
   privilegioClave String
@@ -67,10 +60,6 @@ model UsuarioPrivilegio {
   @@id([usuarioId, privilegioClave])
 }
 
-/// Refresh token de larga vida (rotativo). Se guarda solo el hash: si se filtra
-/// la base, el token en claro no es recuperable. `familyId` agrupa la cadena de
-/// rotaciones de una sesión: reusar un token ya consumido revoca toda la familia
-/// (defensa ante robo de refresh tokens).
 model RefreshToken {
   id        String    @id @default(uuid())
   usuarioId String

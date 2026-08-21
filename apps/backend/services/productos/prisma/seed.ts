@@ -2,11 +2,6 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from ".prisma/client";
 
-/**
- * Semilla del servicio de productos. Usa los mismos IDs que
- * `PRODUCTOS_MOCK` en `apps/frontend/commons/src/mocks/productos.ts`, que
- * los servicios de cotizaciones y ventas referencian en sus semillas.
- */
 const PRODUCTOS = [
   {
     id: "p-001",
@@ -88,7 +83,6 @@ const PRODUCTOS = [
 
 async function main() {
   const url = process.env.DATABASE_URL ?? "";
-  // El adapter de pg no lee el parámetro ?schema= de la URL; hay que pasarlo aparte.
   const schema = new URL(url).searchParams.get("schema") ?? undefined;
   const adapter = new PrismaPg({ connectionString: url }, schema ? { schema } : undefined);
   const prisma = new PrismaClient({ adapter });

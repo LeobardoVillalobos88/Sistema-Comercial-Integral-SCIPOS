@@ -3,11 +3,6 @@ import { IsIn, IsInt, NotEquals } from "class-validator";
 
 const MOTIVOS_AJUSTE = ["VENTA", "COMPRA", "AJUSTE"] as const;
 
-/**
- * Ajuste genérico de stock: lo consumen otros servicios (ventas-caja) para
- * descontar existencias al vender o reponerlas al cancelar. `delta` es
- * positivo para incrementar y negativo para decrementar.
- */
 export class AjustarStockDto {
   @ApiProperty({ example: -1, description: "Cantidad a sumar (negativa para restar)." })
   @IsInt({ message: "El delta debe ser un entero." })

@@ -1,6 +1,5 @@
 import type { Producto } from "./tipos";
 
-/** Catálogo de productos y servicios del sistema. */
 export const PRODUCTOS_MOCK: Producto[] = [
   {
     id: "p-001",

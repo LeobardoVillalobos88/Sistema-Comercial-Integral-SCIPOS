@@ -10,8 +10,6 @@ import { ReportesModule } from "./reportes/reportes.module";
     ConfigModule.forRoot({ isGlobal: true }),
     RedisModule,
     ReportesModule,
-    // El guard valida privilegios consultando al servicio de seguridad
-    // (SEGURIDAD_URL) en cada endpoint decorado con @RequierePrivilegio.
     ModuloSeguridad.registrar(),
   ],
   controllers: [HealthController],

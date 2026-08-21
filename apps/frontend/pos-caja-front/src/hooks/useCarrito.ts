@@ -11,11 +11,6 @@ import {
 } from "../calculos/calculos-pos";
 import type { ItemCarrito, ModoPos, ProductoPos } from "../types/pos";
 
-/**
- * Estado del carrito y sus importes. Solo administra datos: las validaciones de
- * privilegio, existencia y los avisos al usuario se quedan en la vista, que es
- * la que conoce el contexto de la operación.
- */
 export function useCarrito(modo: ModoPos) {
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [descuentoCaptura, setDescuentoCaptura] = useState("0");
@@ -38,7 +33,6 @@ export function useCarrito(modo: ModoPos) {
   const eliminar = (productoId: string) =>
     setCarrito((actual) => quitarDelCarrito(actual, productoId));
 
-  /** Aplica el descuento recortado al subtotal. Devuelve false si no es un número válido. */
   const aplicarDescuento = (): boolean => {
     const descuento = Number.parseFloat(descuentoCaptura);
     if (Number.isNaN(descuento) || descuento < 0) {
@@ -48,7 +42,6 @@ export function useCarrito(modo: ModoPos) {
     return true;
   };
 
-  /** Vacía el carrito y deja el descuento en cero. */
   const limpiar = () => {
     setCarrito([]);
     setDescuentoAplicado(0);

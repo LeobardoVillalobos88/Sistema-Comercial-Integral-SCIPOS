@@ -101,8 +101,6 @@ export function PosCajaPage({
   const [montoInicialCaptura, setMontoInicialCaptura] = useState("0");
   const [clientes, setClientes] = useState<Array<{ id: string; nombre: string }>>([]);
   const [clienteId, setClienteId] = useState("");
-  // A quién se le compró. El servicio lo guarda como opcional, así que se envía
-  // solo si se capturó, en vez de mandar una cadena vacía.
   const [proveedor, setProveedor] = useState("");
   const [ventasHistorial, setVentasHistorial] = useState<VentaPOS[]>([]);
   const [cortesCaja, setCortesCaja] = useState<CorteCaja[]>([]);
@@ -212,12 +210,9 @@ export function PosCajaPage({
     cargarProductos();
     if (!esCompra) {
       cargarClientes();
-      // Restaura el turno de caja que ya estuviera abierto en el backend.
       consultarEstadoCaja()
         .then(hidratarDesdeEstado)
-        .catch(() => {
-          // Sin estado disponible: la UI arranca con la caja cerrada.
-        });
+        .catch(() => {});
     }
   }, [
     permisos.cargandoPermisos,
