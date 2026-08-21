@@ -63,6 +63,7 @@ const transicionMenu = (theme: Theme, propiedades: string | string[]) =>
 
 interface SidebarProps {
   ancho: number;
+  anchoMovil: number;
   menuMovilAbierto: boolean;
   onCerrarMenu: () => void;
   sidebarAbierto?: boolean;
@@ -303,6 +304,7 @@ function Contenido({
 /** Menú lateral. Permanente en escritorio, temporal (cajón) en móvil. */
 export function Sidebar({
   ancho,
+  anchoMovil,
   menuMovilAbierto,
   onCerrarMenu,
   sidebarAbierto = true,
@@ -327,7 +329,8 @@ export function Sidebar({
           display: { xs: "block", md: "none" },
           "& .MuiDrawer-paper": {
             boxSizing: "border-box",
-            width: ancho,
+            width: anchoMovil,
+            maxWidth: "85vw",
             bgcolor: ESMALTE.azul,
           },
         }}
