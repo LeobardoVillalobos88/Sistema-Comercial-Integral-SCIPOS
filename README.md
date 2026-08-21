@@ -11,7 +11,9 @@ OpenAPI/Scalar.
 | Documento | Para qué |
 |---|---|
 | [Guía del sistema](docs/readmes/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo (funcional) |
+| [Arquitectura](docs/01-architecture/README.md) | Por qué está hecho así: decisiones, patrones, SOLID, estructura y ramas |
 | [Despliegue en AWS](docs/DESPLIEGUE-AWS.md) | Publicar el sistema en una instancia, paso a paso |
+| [Guion de demostración](docs/03-runbooks/guion-de-demostracion.md) | Recorrido de la presentación, con los datos exactos |
 | [Plan del Avance 3](docs/readmes/avance-3-plan-backend.md) | Reparto de trabajo del backend |
 | [Contratos de API](docs/02-api/README.md) | Flujo contrato-primero y OpenAPI por servicio |
 ---
