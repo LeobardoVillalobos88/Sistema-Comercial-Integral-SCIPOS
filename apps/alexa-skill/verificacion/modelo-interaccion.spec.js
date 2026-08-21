@@ -1,7 +1,13 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
+const fs = require("node:fs");
+const path = require("node:path");
+
 const modelo = require("../modelo-interaccion.json");
+
+/** Código del Lambda, leído como texto para comprobar que atiende lo declarado. */
+const CODIGO_LAMBDA = fs.readFileSync(path.join(__dirname, "../lambda/index.js"), "utf8");
 
 const MODELO = modelo.interactionModel.languageModel;
 const DIALOGO = modelo.interactionModel.dialog;
@@ -220,6 +226,33 @@ describe("modelo de interaccion", () => {
       }
     }
     assert.ok(validacionesVistas >= 4, "Se esperan al menos 4 validaciones configuradas");
+  });
+
+  it("atiende con un handler propio cada intent declarado", () => {
+    // Un intent declarado sin handler cae en el reflector y Alexa contesta con
+    // su nombre técnico: "todavía no sé atender AMAZON.NavigateHomeIntent".
+    // Queda feo y es de las primeras cosas que alguien prueba.
+    for (const declarado of MODELO.intents) {
+      assert.ok(
+        CODIGO_LAMBDA.includes(`=== "${declarado.name}"`),
+        `${declarado.name} está declarado en el modelo pero ningún handler lo atiende`,
+      );
+    }
+  });
+
+  it("cierra cada respuesta con reprompt salvo las que terminan la sesión", () => {
+    // Perder la sesión por no reofrecer el siguiente paso es de lo que más
+    // penaliza la evaluación. Solo cancelar/detener y las re-preguntas de slot
+    // pueden salir sin reprompt.
+    const contar = (aguja) => CODIGO_LAMBDA.split(aguja).length - 1;
+    const speaks = contar(".speak(");
+    const reprompts = contar(".reprompt(");
+    const elicitaciones = contar("addElicitSlotDirective(");
+    const sinReprompt = speaks - reprompts;
+    assert.ok(
+      sinReprompt <= elicitaciones + 1,
+      `Hay ${sinReprompt} respuestas sin reprompt; solo se admiten las ${elicitaciones} re-preguntas de slot y la despedida`,
+    );
   });
 
   it("delega el dialogo a Alexa", () => {

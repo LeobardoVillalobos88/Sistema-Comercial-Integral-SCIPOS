@@ -112,6 +112,36 @@ catálogo vive en `/api/productos/productos` —repetido— y las alertas en
 `/api/productos/compras`, porque su controlador monta en `compras`. Si alguna
 acción responde "no encontré ese registro", ese es el primer lugar donde mirar.
 
+## Por qué los nombres van en texto libre
+
+Los slots que reciben nombres —`nombreProducto`, `producto` y `proveedor`— son
+de tipo **`AMAZON.SearchQuery`**, no un tipo con lista de valores.
+
+La razón es que no hay lista que alcance. Con un tipo de lista, en cuanto
+alguien dice algo que no se parece a ningún valor —"chicharrones", "pasta
+dental", "Divella"— el slot no se llena, Alexa vuelve a preguntar, y a la
+tercera cierra la sesión. Los productos y las marcas de proveedor son
+infinitos: la lista solo orientaba a la NLU y nunca fue lo que hacía el trabajo.
+Quien resuelve el nombre contra el catálogo real es el Lambda, con
+`buscarProducto()`.
+
+`AMAZON.SearchQuery` tiene dos reglas que el modelo debe respetar o falla el
+*Build Model*, y que la prueba del repositorio ya verifica:
+
+1. No puede compartir utterance con otro slot. Por eso `SurtirInventarioIntent`
+   no tiene muestras del tipo "surte {cantidad} de {producto}".
+2. Toda utterance que lo use necesita palabras además del slot. No vale una
+   muestra que sea solo `{producto}`.
+
+Como el slot de texto libre arrastra lo que se dijo completo, el Lambda pasa el
+valor por `limpiarNombreDictado()` antes de usarlo: quita las muletillas del
+principio —"es divella" queda en "divella"— pero solo al inicio, porque en medio
+sí significan algo, como en "pasta de dientes".
+
+`SciposTipoRevision` es el único tipo con lista que queda, porque sus tres
+opciones sí son cerradas. Lo que no es cerrado es cómo se dicen, así que cada
+valor lleva doce sinónimos.
+
 ## El usuario de la skill y sus privilegios
 
 La skill inicia sesión como `asistente@scipos.com`, que tiene **rol Vendedor** y
@@ -151,6 +181,10 @@ en *Español (MX)*:
 | Alertas | "revisa las alertas del inventario" | Pregunta qué grupo y resume el caso más urgente |
 | Bitácora | "qué registré hoy por voz" | Cuenta altas, entradas e importe del día |
 | Sinónimos de slot | En alertas, responde "vencimientos" | Debe leer solo caducidad, no el resumen general |
+| Producto que no está en ninguna lista | Registra "chicharrones" o "pasta dental" | Lo acepta sin repreguntar: el slot es de texto libre |
+| Proveedor con nombre de marca | Al surtir, di "Divella" o cualquier marca | Lo acepta y lo guarda tal cual |
+| Muletilla pegada al nombre | Responde "es divella" o "el papel higiénico" | Guarda "divella" y encuentra el papel higiénico |
+| Volver al inicio | Di "vuelve al inicio" o "página principal" | Repite el menú sin cerrar la sesión |
 | Validación mínima | Como precio de compra, di "cero" | Rechaza y vuelve a preguntar sin cerrar la sesión |
 | Validación máxima | Como precio de compra, di "doscientos mil" | Rechaza indicando el límite |
 | Cantidad inválida | Como cantidad al surtir, di "cero" | Rechaza y vuelve a preguntar |
@@ -194,6 +228,14 @@ antes de dar por fallida la demostración.
 | La consola rechaza el nombre de invocación | Lleva tilde, o un artículo o preposición como «de» | Debe ser `asistente almacen`: minúsculas, sin tilde y sin «de» |
 | Alexa confunde registrar con surtir | El modelo no se reconstruyó tras editar | **Build Model** otra vez y espera a que termine |
 | La bitácora sale vacía tras reiniciar | Se está sobrescribiendo el item de Dynamo | El arranque debe leer antes de crear, nunca hacer `put` incondicional |
+
+## Cumplimiento de la rúbrica
+
+El repaso punto por punto de los requerimientos y de la rúbrica de evaluación,
+con la evidencia de cada uno, está en
+[](../../docs/readmes/cumplimiento-rubrica-alexa.md).
+Las cifras que cita las mide la prueba de , no están escritas a
+mano.
 
 ## Cómo agregar un intent
 
