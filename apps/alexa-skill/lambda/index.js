@@ -15,6 +15,7 @@ const {
   describirAlertas,
   esOperacionRepetida,
   interpretarTipoRevision,
+  limpiarNombreDictado,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
@@ -305,7 +306,11 @@ const RegistrarProductoIntentHandler = {
         .getResponse();
     }
 
-    const nombre = Alexa.getSlotValue(handlerInput.requestEnvelope, "nombreProducto");
+    // El slot de texto libre arrastra lo que se dijo entero; sin limpiarlo el
+    // catálogo acabaría con un producto llamado "es chicharrones".
+    const nombre = limpiarNombreDictado(
+      Alexa.getSlotValue(handlerInput.requestEnvelope, "nombreProducto"),
+    );
     const precioCompra = Number.parseFloat(
       Alexa.getSlotValue(handlerInput.requestEnvelope, "precioCompra"),
     );
@@ -407,7 +412,9 @@ const SurtirInventarioIntentHandler = {
       Alexa.getSlotValue(handlerInput.requestEnvelope, "cantidad"),
       10,
     );
-    const proveedor = Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor");
+    const proveedor = limpiarNombreDictado(
+      Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor"),
+    );
 
     try {
       // Dynamo primero: repetir la frase no debe duplicar la entrada.

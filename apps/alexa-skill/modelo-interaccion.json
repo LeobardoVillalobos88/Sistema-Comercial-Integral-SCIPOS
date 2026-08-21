@@ -13,16 +13,16 @@
           "slots": [
             {
               "name": "nombreProducto",
-              "type": "SciposProducto",
+              "type": "AMAZON.SearchQuery",
               "samples": [
-                "{nombreProducto}",
                 "se llama {nombreProducto}",
                 "el producto se llama {nombreProducto}",
                 "se llamara {nombreProducto}",
                 "ponle {nombreProducto}",
                 "es {nombreProducto}",
                 "el nombre es {nombreProducto}",
-                "quiero registrar {nombreProducto}"
+                "quiero registrar {nombreProducto}",
+                "el articulo es {nombreProducto}"
               ]
             },
             {
@@ -82,9 +82,29 @@
             "registrar producto en el catalogo",
             "voy a dar de alta mercancia nueva",
             "quiero registrar un articulo nuevo",
+            "agrega un articulo al catalogo",
+            "da de alta mercancia",
+            "quiero crear un producto",
+            "crear producto nuevo",
+            "necesito registrar algo nuevo",
+            "voy a capturar un producto",
+            "registra mercancia nueva",
+            "dar de alta un articulo",
+            "quiero meter un producto al catalogo",
+            "abre el alta de productos",
+            "vamos a registrar un producto",
+            "tengo un producto nuevo",
+            "llego un producto que no tengo",
+            "quiero anadir un producto",
+            "anade un producto al catalogo",
+            "registrar un articulo en el sistema",
+            "alta de mercancia",
+            "quiero dar de alta algo nuevo",
+            "captura mercancia nueva",
             "da de alta {nombreProducto}",
             "registra {nombreProducto} en el catalogo",
-            "quiero dar de alta {nombreProducto}"
+            "quiero dar de alta {nombreProducto}",
+            "agrega {nombreProducto} al catalogo"
           ]
         },
         {
@@ -92,16 +112,16 @@
           "slots": [
             {
               "name": "producto",
-              "type": "SciposProducto",
+              "type": "AMAZON.SearchQuery",
               "samples": [
-                "{producto}",
                 "el producto es {producto}",
                 "de {producto}",
                 "quiero surtir {producto}",
                 "es {producto}",
                 "se trata de {producto}",
                 "para {producto}",
-                "el articulo es {producto}"
+                "el articulo es {producto}",
+                "llego {producto}"
               ]
             },
             {
@@ -120,16 +140,16 @@
             },
             {
               "name": "proveedor",
-              "type": "SciposProveedor",
+              "type": "AMAZON.SearchQuery",
               "samples": [
-                "{proveedor}",
                 "el proveedor es {proveedor}",
                 "me lo trajo {proveedor}",
                 "viene de {proveedor}",
-                "es de {proveedor}",
+                "es {proveedor}",
                 "lo surte {proveedor}",
                 "del proveedor {proveedor}",
-                "me lo surtio {proveedor}"
+                "me lo surtio {proveedor}",
+                "se lo compre a {proveedor}"
               ]
             }
           ],
@@ -145,11 +165,31 @@
             "entrada de mercancia",
             "recibi mercancia del proveedor",
             "mete piezas al inventario",
-            "surte {cantidad} de {producto}",
+            "llegaron cajas al almacen",
+            "quiero surtir un producto",
+            "surtir producto",
+            "me llego mercancia",
+            "entraron piezas al almacen",
+            "vamos a surtir",
+            "hay que surtir el almacen",
+            "resurtir inventario",
+            "llego el pedido del proveedor",
+            "quiero meter mercancia",
+            "abastecer inventario",
+            "surte el almacen",
+            "anota que llego mercancia",
+            "entrada al almacen",
+            "recibi un pedido",
+            "llego surtido",
+            "quiero cargar inventario",
+            "carga inventario",
+            "sumale piezas a un producto",
+            "llegaron productos del proveedor",
+            "hay mercancia nueva en el almacen",
             "surte {producto}",
-            "llegaron {cantidad} piezas de {producto}",
-            "abastece {producto} con {cantidad} piezas",
-            "entraron {cantidad} de {producto}"
+            "quiero surtir {producto}",
+            "abastece {producto}",
+            "llegaron piezas de {producto}"
           ]
         },
         {
@@ -183,6 +223,26 @@
             "alertas de inventario",
             "que productos se estan agotando",
             "dime como esta el almacen",
+            "revisa el almacen",
+            "hay algo vencido",
+            "que esta por acabarse",
+            "dame el estado del inventario",
+            "quiero ver las alertas",
+            "muestrame las alertas del inventario",
+            "checa las caducidades",
+            "que productos tienen poco stock",
+            "revisa que falta",
+            "hay productos agotados",
+            "dime que se vence pronto",
+            "como esta el stock",
+            "revisa existencias",
+            "que necesito surtir",
+            "dame un reporte del inventario",
+            "alertas del almacen",
+            "revisa si hay vencidos",
+            "checa que se esta agotando",
+            "que tengo por vencer",
+            "dime si falta algo en el almacen",
             "revisa {tipoRevision}",
             "dame las alertas de {tipoRevision}",
             "quiero revisar {tipoRevision}",
@@ -208,151 +268,27 @@
             "dime lo que registre por voz",
             "muestrame la bitacora",
             "cual fue mi ultima operacion",
-            "que tanto he capturado hoy"
+            "que tanto he capturado hoy",
+            "dame el resumen de hoy",
+            "que hice hoy",
+            "cuantos productos registre hoy",
+            "cuantas entradas hice hoy",
+            "dime mi resumen",
+            "bitacora de voz",
+            "muestrame lo de hoy",
+            "que llevo hecho",
+            "resumen de la jornada",
+            "dame mi actividad de hoy",
+            "que operaciones llevo",
+            "cuanto he registrado hoy",
+            "dime que he capturado",
+            "mi bitacora del dia",
+            "lo que hice por voz",
+            "dame el corte de lo dictado"
           ]
         }
       ],
       "types": [
-        {
-          "name": "SciposProducto",
-          "values": [
-            {
-              "id": "p-001",
-              "name": {
-                "value": "abarrote surtido",
-                "synonyms": ["abarrote", "abarrotes", "surtido", "abarrote surtido un kilo"]
-              }
-            },
-            {
-              "id": "p-002",
-              "name": {
-                "value": "refresco",
-                "synonyms": ["refresco de seiscientos", "soda", "gaseosa", "refresco chico"]
-              }
-            },
-            {
-              "id": "p-004",
-              "name": {
-                "value": "pan de caja",
-                "synonyms": ["pan", "pan grande", "pan de caja grande", "pan blanco"]
-              }
-            },
-            {
-              "id": "p-005",
-              "name": {
-                "value": "leche entera",
-                "synonyms": ["leche", "leche de un litro", "leche entera de un litro"]
-              }
-            },
-            {
-              "id": "p-006",
-              "name": {
-                "value": "detergente",
-                "synonyms": ["detergente de un kilo", "jabon en polvo", "detergente en polvo"]
-              }
-            },
-            {
-              "id": "p-008",
-              "name": {
-                "value": "papel higienico",
-                "synonyms": [
-                  "papel",
-                  "papel de bano",
-                  "rollos",
-                  "higienico",
-                  "papel de cuatro rollos"
-                ]
-              }
-            },
-            {
-              "id": "p-013",
-              "name": {
-                "value": "servicio de paqueteria",
-                "synonyms": ["paqueteria", "envio", "servicio de envio"]
-              }
-            },
-            { "name": { "value": "arroz", "synonyms": ["arroz blanco", "bolsa de arroz"] } },
-            { "name": { "value": "frijol", "synonyms": ["frijoles", "frijol negro"] } },
-            { "name": { "value": "aceite", "synonyms": ["aceite de cocina", "aceite vegetal"] } },
-            { "name": { "value": "azucar", "synonyms": ["azucar refinada", "bolsa de azucar"] } },
-            { "name": { "value": "sal", "synonyms": ["sal de mesa"] } },
-            { "name": { "value": "harina", "synonyms": ["harina de trigo"] } },
-            { "name": { "value": "atun", "synonyms": ["lata de atun", "atun en lata"] } },
-            { "name": { "value": "cafe", "synonyms": ["cafe soluble", "frasco de cafe"] } },
-            { "name": { "value": "galletas", "synonyms": ["paquete de galletas"] } },
-            { "name": { "value": "cereal", "synonyms": ["caja de cereal"] } },
-            { "name": { "value": "pasta", "synonyms": ["sopa de pasta", "espagueti"] } },
-            { "name": { "value": "salsa", "synonyms": ["salsa de tomate", "pure de tomate"] } },
-            { "name": { "value": "agua embotellada", "synonyms": ["agua", "botella de agua"] } },
-            { "name": { "value": "jugo", "synonyms": ["jugo de naranja", "carton de jugo"] } },
-            { "name": { "value": "yogurt", "synonyms": ["yogurt natural", "yogurt griego"] } },
-            { "name": { "value": "queso", "synonyms": ["queso fresco", "queso panela"] } },
-            { "name": { "value": "huevo", "synonyms": ["huevos", "carton de huevo"] } },
-            { "name": { "value": "cloro", "synonyms": ["blanqueador"] } },
-            { "name": { "value": "jabon de barra", "synonyms": ["jabon", "jabon de tocador"] } },
-            { "name": { "value": "servilletas", "synonyms": ["paquete de servilletas"] } }
-          ]
-        },
-        {
-          "name": "SciposProveedor",
-          "values": [
-            {
-              "name": {
-                "value": "distribuidora del centro",
-                "synonyms": ["distribuidora", "la del centro"]
-              }
-            },
-            {
-              "name": {
-                "value": "abarrotera del valle",
-                "synonyms": ["abarrotera", "la del valle"]
-              }
-            },
-            { "name": { "value": "proveedor local", "synonyms": ["el local", "local"] } },
-            {
-              "name": {
-                "value": "central de abastos",
-                "synonyms": ["la central", "abastos"]
-              }
-            },
-            {
-              "name": {
-                "value": "lacteos del norte",
-                "synonyms": ["lacteos", "los del norte"]
-              }
-            },
-            {
-              "name": {
-                "value": "comercializadora unida",
-                "synonyms": ["comercializadora", "la unida"]
-              }
-            },
-            { "name": { "value": "jumex" } },
-            { "name": { "value": "bimbo" } },
-            { "name": { "value": "lala" } },
-            { "name": { "value": "sabritas" } },
-            { "name": { "value": "coca cola", "synonyms": ["coca"] } },
-            { "name": { "value": "pepsi" } },
-            { "name": { "value": "barcel" } },
-            { "name": { "value": "marinela" } },
-            { "name": { "value": "gamesa" } },
-            { "name": { "value": "herdez" } },
-            { "name": { "value": "la costeña", "synonyms": ["costeña"] } },
-            { "name": { "value": "sigma" } },
-            { "name": { "value": "alpura" } },
-            { "name": { "value": "nestle" } },
-            { "name": { "value": "danone" } },
-            { "name": { "value": "maseca" } },
-            { "name": { "value": "la moderna" } },
-            { "name": { "value": "bachoco" } },
-            { "name": { "value": "del valle" } },
-            { "name": { "value": "tia rosa" } },
-            { "name": { "value": "sello rojo" } },
-            { "name": { "value": "tres coronas" } },
-            { "name": { "value": "san juan" } },
-            { "name": { "value": "zucarmex" } }
-          ]
-        },
         {
           "name": "SciposTipoRevision",
           "values": [
@@ -366,7 +302,13 @@
                   "vencimientos",
                   "lo que se vence",
                   "fechas",
-                  "lo que esta por caducar"
+                  "lo que esta por caducar",
+                  "fechas de vencimiento",
+                  "lo vencido",
+                  "lo caducado",
+                  "los que caducan",
+                  "la caducidad",
+                  "vencidos"
                 ]
               }
             },
@@ -380,7 +322,13 @@
                   "lo que se acaba",
                   "inventario bajo",
                   "lo que se esta agotando",
-                  "piezas"
+                  "piezas",
+                  "agotados",
+                  "lo agotado",
+                  "las existencias",
+                  "lo que falta",
+                  "poco stock",
+                  "los que se acaban"
                 ]
               }
             },
@@ -388,7 +336,20 @@
               "id": "todo",
               "name": {
                 "value": "todo",
-                "synonyms": ["todas", "completo", "general", "todas las alertas", "ambas"]
+                "synonyms": [
+                  "todas",
+                  "completo",
+                  "general",
+                  "todas las alertas",
+                  "ambas",
+                  "los dos",
+                  "las dos",
+                  "todo junto",
+                  "lo que sea",
+                  "no se",
+                  "cualquiera",
+                  "me da igual"
+                ]
               }
             }
           ]
@@ -404,7 +365,7 @@
           "slots": [
             {
               "name": "nombreProducto",
-              "type": "SciposProducto",
+              "type": "AMAZON.SearchQuery",
               "elicitationRequired": true,
               "confirmationRequired": true,
               "prompts": {
@@ -472,7 +433,7 @@
           "slots": [
             {
               "name": "producto",
-              "type": "SciposProducto",
+              "type": "AMAZON.SearchQuery",
               "elicitationRequired": true,
               "confirmationRequired": true,
               "prompts": {
@@ -501,7 +462,7 @@
             },
             {
               "name": "proveedor",
-              "type": "SciposProveedor",
+              "type": "AMAZON.SearchQuery",
               "elicitationRequired": true,
               "confirmationRequired": false,
               "prompts": { "elicitation": "Elicit.Slot.SurtirInventario.proveedor" }
@@ -557,10 +518,7 @@
             "type": "PlainText",
             "value": "El precio de compra debe ser mayor a cero. ¿En cuánto lo compras?"
           },
-          {
-            "type": "PlainText",
-            "value": "Ese costo no es válido. Dime un monto mayor a cero."
-          }
+          { "type": "PlainText", "value": "Ese costo no es válido. Dime un monto mayor a cero." }
         ]
       },
       {
@@ -592,10 +550,7 @@
             "type": "PlainText",
             "value": "El precio de venta debe ser mayor a cero. ¿En cuánto lo vendes?"
           },
-          {
-            "type": "PlainText",
-            "value": "Ese precio no es válido. Dime un monto mayor a cero."
-          }
+          { "type": "PlainText", "value": "Ese precio no es válido. Dime un monto mayor a cero." }
         ]
       },
       {
@@ -682,10 +637,7 @@
             "type": "PlainText",
             "value": "La cantidad debe ser de al menos una pieza. ¿Cuántas entraron?"
           },
-          {
-            "type": "PlainText",
-            "value": "No puedo surtir cero piezas. Dime una cantidad mayor."
-          }
+          { "type": "PlainText", "value": "No puedo surtir cero piezas. Dime una cantidad mayor." }
         ]
       },
       {

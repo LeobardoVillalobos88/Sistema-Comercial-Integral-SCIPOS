@@ -9,6 +9,13 @@ Nombre de invocación: **`asistente almacen`**. Se dice *"Alexa, abre asistente
 almacén"*. No lleva la preposición «de» porque Amazon no la admite en los
 nombres de invocación.
 
+Los slots que reciben nombres —el producto y el proveedor— son de tipo
+**`AMAZON.SearchQuery`**, es decir texto libre. No se usa un tipo con lista
+porque los productos y las marcas no se pueden enumerar: en cuanto alguien dice
+algo que no se parece a ningún valor de la lista, el slot no se llena, Alexa
+repregunta y a la tercera cierra la sesión. Quien resuelve el nombre contra el
+catálogo real es el Lambda, no el modelo.
+
 Notación de la capa de intención, en el orden en que se configuran:
 
 | Marca | Significado |
@@ -34,7 +41,7 @@ surtirlo es la siguiente acción.
 
 | Slot | Tipo | F | V | C |
 |---|---|:-:|:-:|:-:|
-| `nombreProducto` | `SciposProducto` | F | — | C |
+| `nombreProducto` | `AMAZON.SearchQuery` | F | — | C |
 | `precioCompra` | `AMAZON.NUMBER` | F | V | — |
 | `precioVenta` | `AMAZON.NUMBER` | F | V | C |
 | `fechaCaducidad` | `AMAZON.DATE` | F | — | C |
@@ -66,15 +73,15 @@ Registra la mercancía que llega de un proveedor e incrementa las existencias.
 
 - "surte inventario"
 - "llego mercancia"
-- "surte {cantidad} de {producto}"
+- "surte {producto}"
 
 **Capa de intención** — `SurtirInventarioIntent`, con confirmación de intent.
 
 | Slot | Tipo | F | V | C |
 |---|---|:-:|:-:|:-:|
-| `producto` | `SciposProducto` | F | — | C |
+| `producto` | `AMAZON.SearchQuery` | F | — | C |
 | `cantidad` | `AMAZON.NUMBER` | F | V | — |
-| `proveedor` | `SciposProveedor` | F | — | — |
+| `proveedor` | `AMAZON.SearchQuery` | F | — | — |
 
 Validación: la cantidad va de una a cinco mil piezas.
 

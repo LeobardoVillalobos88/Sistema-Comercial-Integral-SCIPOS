@@ -28,23 +28,71 @@ function normalizarTexto(texto) {
     .replace(/\s+/g, " ");
 }
 
+/** Palabras de arranque que el dictado arrastra y que no nombran nada. */
+const MULETILLAS = [
+  "el",
+  "la",
+  "los",
+  "las",
+  "un",
+  "una",
+  "unos",
+  "unas",
+  "es",
+  "son",
+  "mi",
+  "mis",
+];
+
+/**
+ * Quita las muletillas del principio de un nombre dictado. El slot de texto
+ * libre arrastra lo que se dijo completo —"es divella", "el chicharrón"— y esas
+ * palabras no forman parte del nombre. Solo se recortan al inicio: en medio sí
+ * significan algo, como en "pasta de dientes".
+ *
+ * Conserva mayúsculas y acentos del original, porque el resultado no solo se
+ * usa para comparar: también es el nombre con el que el producto queda guardado.
+ */
+function limpiarNombreDictado(texto) {
+  const palabras = String(texto === null || texto === undefined ? "" : texto)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  let inicio = 0;
+  while (inicio < palabras.length && MULETILLAS.includes(normalizarTexto(palabras[inicio]))) {
+    inicio += 1;
+  }
+  // Si todo eran muletillas se devuelve tal cual: vaciarlo sería peor.
+  if (inicio === palabras.length) return palabras.join(" ");
+  return palabras.slice(inicio).join(" ");
+}
+
 /**
  * Busca un producto por el nombre dictado. Primero exige coincidencia exacta y
  * solo después acepta parcial: si no, "leche" ganaría sobre el producto "Leche".
+ * Si nada coincide, reintenta sin las muletillas del principio.
  */
 function buscarProducto(productos, nombre) {
   const buscado = normalizarTexto(nombre);
   if (!buscado) return null;
 
   const catalogo = productos || [];
-  const exacto = catalogo.find((producto) => normalizarTexto(producto.nombre) === buscado);
-  if (exacto) return exacto;
+  const coincidir = (texto) => {
+    const exacto = catalogo.find((producto) => normalizarTexto(producto.nombre) === texto);
+    if (exacto) return exacto;
+    return (
+      catalogo.find((producto) => {
+        const candidato = normalizarTexto(producto.nombre);
+        return candidato.includes(texto) || texto.includes(candidato);
+      }) || null
+    );
+  };
 
-  const parcial = catalogo.find((producto) => {
-    const candidato = normalizarTexto(producto.nombre);
-    return candidato.includes(buscado) || buscado.includes(candidato);
-  });
-  return parcial || null;
+  const directo = coincidir(buscado);
+  if (directo) return directo;
+
+  const limpio = limpiarNombreDictado(buscado);
+  return limpio === buscado ? null : coincidir(limpio);
 }
 
 /** Siguiente clave de lote: dictarla en voz alta sería una tortura. */
@@ -172,6 +220,7 @@ module.exports = {
   describirAlertas,
   esOperacionRepetida,
   interpretarTipoRevision,
+  limpiarNombreDictado,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
