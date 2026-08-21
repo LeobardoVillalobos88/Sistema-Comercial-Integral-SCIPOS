@@ -1,8 +1,8 @@
 # Cumplimiento de la rúbrica — skill de Alexa
 
-Repaso punto por punto de los requerimientos y de la rúbrica de evaluación,
-con dónde se cumple cada uno y cómo comprobarlo. Los criterios de presentación
-quedan fuera: dependen del equipo, no del código.
+Repaso punto por punto de los requerimientos y de la rúbrica de evaluación, con
+dónde se cumple cada uno y cómo comprobarlo. Incluye los criterios de
+presentación, con el guion de demostración y las respuestas preparadas.
 
 Las cifras de este documento no están escritas a mano: las mide
 `apps/alexa-skill/verificacion/modelo-interaccion.spec.js`, que corre con
@@ -304,10 +304,132 @@ la siguiente acción es lo que convierte cuatro intents sueltos en un flujo.
 
 ---
 
-## Qué queda fuera del código
+## Rúbrica — presentación
 
-Los cuatro criterios de presentación —mostrar la skill en Amazon Developer,
-explicar su función dentro del proyecto, presentar el diseño de conversación y
-justificar cómo se acopla al proyecto web— dependen del equipo. El material está
-listo: el diagrama para proyectar, este documento para preparar la defensa, y la
-demostración de privilegios como cierre.
+Estos cuatro criterios los califica lo que se dice y se muestra, no el código.
+Lo que sigue es el material para llegar preparado.
+
+### 1. Presentar la skill en Amazon Developer
+
+Se muestra en la consola, en la pestaña **Test** con el idioma en *Español (MX)*.
+Conviene tener abiertas de antemano tres pestañas: la consola de Alexa, la
+interfaz web del sistema en `/productos`, y `/usuarios` para la demostración
+final de privilegios.
+
+**Guion de demostración.** Las cuatro acciones encadenadas, de modo que cada una
+prepare a la siguiente:
+
+1. *"Alexa, abre asistente almacén"* → da la bienvenida y enumera las acciones.
+2. *"Registra un producto nuevo"* → completar el diálogo con un producto que
+   **no esté en el catálogo**, dictando una fecha de caducidad cercana. Al
+   terminar, mostrar en `/productos` de la web que ya está ahí con su lote
+   `VOZ-XXX`. Ese salto de la voz a la pantalla es el momento que prueba el
+   criterio de comunicación con la API.
+3. *"Surte inventario"* → surtir ese mismo producto. Mostrar que la existencia
+   subió en la web.
+4. **Repetir la frase idéntica** → responde que ya la registró y no vuelve a
+   sumar. Es la prueba de idempotencia, y se ve mejor haciéndola que contándola.
+5. *"Revisa las alertas del inventario"* → el producto recién dado de alta
+   aparece por caducar.
+6. *"¿Qué registré hoy por voz?"* → el resumen cierra el recorrido.
+
+**Si alguien intenta romperla**, que es lo esperable: los nombres de producto y
+proveedor aceptan cualquier cosa, incluidas marcas reales; los precios y
+cantidades fuera de rango se rechazan con una explicación; cancelar, detener,
+pedir ayuda y volver al inicio están atendidos; y una frase sin relación cae en
+el manejo de lo no entendido, que repite el menú sin cerrar la sesión.
+
+### 2. Explicar la función de la skill dentro del proyecto
+
+La frase corta, por si hay poco tiempo:
+
+> Es el asistente de voz del almacén. Deja registrar productos y entradas de
+> mercancía sin soltar lo que traes en las manos, y avisa qué está por caducar o
+> por agotarse.
+
+El desarrollo, si hay tiempo para argumentarlo:
+
+**El problema que resuelve.** Quien recibe mercancía está en el almacén con las
+manos ocupadas y las cajas enfrente. Ir a una computadora, iniciar sesión y
+llenar un formulario por cada producto es justo lo que hace que la captura se
+posponga —y un inventario que se captura tarde es un inventario que miente.
+
+**Por qué estas cuatro acciones y no otras.** Las tres primeras son las del
+almacén: dar de alta, surtir y revisar. La cuarta cierra el ciclo respondiendo
+"¿qué llevo hecho hoy?", que es lo que uno se pregunta al terminar un turno.
+Ninguna es una consulta de estatus: tres escriben o leen datos reales del
+sistema y la cuarta agrega información que no existe en ningún otro lado.
+
+**Qué aporta que la web no tenga.** Dos cosas concretas. La bitácora de voz, que
+es un registro de lo que se capturó hablando y solo existe en DynamoDB. Y el
+proveedor de una compra: el campo existía en la base desde el principio, pero
+hasta que se hizo la skill ninguna pantalla lo llenaba.
+
+**Qué decidió el diseño.** La skill no calcula nada. Los precios, las
+existencias y los umbrales de las alertas los sigue calculando el backend, y la
+voz es otro cliente más de la misma API. Si se cambiara el umbral de caducidad
+en el servidor, la voz y la pantalla cambiarían juntas, porque no hay dos
+verdades.
+
+### 3. Presentar el diseño de conversación
+
+El diagrama está en [`diseno-conversacion-alexa.html`](./diseno-conversacion-alexa.html),
+listo para proyectar o imprimir a PDF en horizontal.
+
+Lo que conviene señalar al mostrarlo, porque es lo que el formato pide y lo que
+suele preguntarse:
+
+- **La capa de control tiene cuatro recorridos distintos, y el orden importa.**
+  Surtir consulta DynamoDB *antes* que la API porque duplicar una entrada deja
+  piezas que no existen en el anaquel; hay que cortar la repetición antes de
+  escribir. Registrar consulta la API primero porque el duplicado se decide
+  contra Postgres, que es la fuente de verdad: el producto pudo capturarse desde
+  la web, donde la bitácora de voz no lo vería. Revisar no persiste nada. Y la
+  bitácora solo existe en Dynamo.
+- **Los chips F, V y C** están en el orden que pide el formato y corresponden uno
+  a uno con el modelo: hay un script que lo verifica.
+- **DynamoDB no duplica Postgres.** Guarda tres cosas que solo tienen sentido del
+  lado de la voz: la bitácora, la huella que evita el doble dictado y el
+  contador de folios `VOZ-XXX`.
+
+### 4. La skill cumple o se acopla a los objetivos del proyecto web
+
+El argumento más fuerte es el sistema de privilegios, que es la pieza calificada
+de todo el proyecto integrador.
+
+**La demostración**, para cerrar la presentación:
+
+1. Mostrar que la skill acaba de registrar un producto.
+2. Entrar a `/usuarios` en la web como administrador y revocarle
+   `productos:crear` al usuario `asistente@scipos.com`.
+3. Volver al simulador y decir *"registra un producto nuevo"*.
+4. Alexa responde **"No tengo permiso para hacer eso en el sistema"**.
+
+Sin tocar una línea del código de la skill. Lo que se demuestra es que la voz y
+la web comparten el mismo control de acceso, y que el backend valida cada acción
+en lugar de confiar en quien la pide.
+
+> Los privilegios efectivos se guardan 60 segundos en Redis. Conviene revocar el
+> privilegio **antes** de empezar esa parte, o esperar el minuto, para que el
+> cambio ya esté surtiendo efecto cuando se pruebe.
+
+Los otros dos argumentos de acoplamiento:
+
+- **La skill usa la misma API, el mismo gateway y la misma base de datos** que la
+  interfaz web. No es un sistema paralelo: lo que se dicta aparece en la web al
+  instante, porque es el mismo dato.
+- **Opera con privilegios mínimos.** El usuario de la skill tiene rol Vendedor y
+  exactamente tres privilegios efectivos, porque se le conceden dos y se le
+  revocan nueve. Si esas credenciales se filtraran, el daño posible se limita al
+  almacén: no pueden vender, ni cobrar, ni tocar clientes.
+
+### Preguntas que conviene llevar contestadas
+
+| Pregunta probable | Respuesta corta |
+|---|---|
+| ¿Por qué el nombre de invocación no lleva "de"? | Amazon no admite preposiciones ni artículos en el nombre de invocación |
+| ¿Qué pasa si digo un producto que no existe? | Al surtir avisa que no lo encontró y sugiere registrarlo; al registrar lo acepta, porque es nuevo |
+| ¿Y si repito la misma orden? | La corta con la huella guardada en DynamoDB y responde el mismo resultado |
+| ¿Dónde están los datos, en Dynamo o en su base? | En Postgres, igual que la web. Dynamo solo guarda lo propio de la voz |
+| ¿Quién calcula los precios? | El backend. La skill nunca manda un precio en la petición |
+| ¿Por qué DynamoDB si ya tienen base de datos? | Porque la bitácora, la idempotencia y el folio de voz no son datos del sistema comercial |
