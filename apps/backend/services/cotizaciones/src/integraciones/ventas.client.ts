@@ -7,7 +7,6 @@ export interface CrearVentaDesdeCotizacion {
   folioCotizacion: string;
   clienteId: string;
   subtotal: number;
-  iva: number;
   total: number;
   partidas: Array<{
     productoId: string;

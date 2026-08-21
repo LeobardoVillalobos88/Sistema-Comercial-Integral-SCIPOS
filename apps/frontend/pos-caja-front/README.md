@@ -22,7 +22,7 @@ Un mismo componente, `PosCajaPage`, atiende tres rutas del shell según sus prop
 `modo` vale `"venta"` por defecto, así que `/pos` no necesita pasarlo.
 
 - **Punto de venta:** carrito con cantidades, descuento manual (solo con
-  `pos:descuento`), IVA, cancelación (`pos:cancelar`) y cobro. El envío a la API
+  `pos:descuento`), cancelación (`pos:cancelar`) y cobro. El envío a la API
   lleva únicamente `productoId` y `cantidad`: **el backend cotiza cada partida
   desde el catálogo y nunca confía en un precio mandado por el cliente**.
 - **Caja:** apertura con fondo inicial, ingresos y egresos manuales, corte del
@@ -53,9 +53,10 @@ src/
 `PanelCaja` no guarda estado propio: recibe todo por props y solo presenta. Toda
 la decisión vive en `PosCajaPage`.
 
-Los importes que se muestran salen de `calcularTotales`, que recorta el descuento
-al subtotal para que la base gravable nunca sea negativa. Son cifras de pantalla:
-la venta que se registra la vuelve a calcular el backend.
+Los importes salen de `calcularTotales`, que recorta el descuento al subtotal
+para que el total nunca sea negativo. No suma impuesto: los precios del catálogo
+son los finales al público. Son cifras de pantalla, y la venta que se registra la
+vuelve a calcular el backend.
 
 ## Pruebas
 

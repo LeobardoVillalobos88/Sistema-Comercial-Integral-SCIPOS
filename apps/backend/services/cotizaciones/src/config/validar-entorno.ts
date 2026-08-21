@@ -7,7 +7,6 @@ export interface EntornoCotizaciones {
   CLIENTES_URL: string;
   PRODUCTOS_URL: string;
   VENTAS_CAJA_URL: string;
-  IVA_PORCENTAJE: string;
 }
 
 export function validarEntorno(config: Record<string, unknown>): EntornoCotizaciones {
@@ -18,7 +17,6 @@ export function validarEntorno(config: Record<string, unknown>): EntornoCotizaci
     CLIENTES_URL: String(config.CLIENTES_URL ?? "http://localhost:4003"),
     PRODUCTOS_URL: String(config.PRODUCTOS_URL ?? "http://localhost:4002"),
     VENTAS_CAJA_URL: String(config.VENTAS_CAJA_URL ?? "http://localhost:4005"),
-    IVA_PORCENTAJE: String(config.IVA_PORCENTAJE ?? "16"),
   };
 
   if (!entorno.DATABASE_URL) {
@@ -27,11 +25,6 @@ export function validarEntorno(config: Record<string, unknown>): EntornoCotizaci
 
   if (!ENTERO_POSITIVO.test(entorno.PORT) || Number(entorno.PORT) > 65535) {
     throw new Error("PORT debe ser un puerto válido");
-  }
-
-  const iva = Number(entorno.IVA_PORCENTAJE);
-  if (!Number.isFinite(iva) || iva < 0 || iva > 100) {
-    throw new Error("IVA_PORCENTAJE debe estar entre 0 y 100");
   }
 
   for (const variable of [

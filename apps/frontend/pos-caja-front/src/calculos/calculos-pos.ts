@@ -1,17 +1,11 @@
 import type { ItemCarrito, ModoPos, ProductoPos } from "../types/pos";
 
-/** Tasa de IVA aplicada sobre la base gravable. */
-export const IVA = 0.16;
-
 /** Importes de una venta o compra, derivados del carrito y el descuento. */
 export interface TotalesCarrito {
   /** Suma de los importes de las partidas, antes de descuento. */
   subtotal: number;
   /** Descuento realmente aplicado: nunca supera al subtotal. */
   descuento: number;
-  /** Monto sobre el que se calcula el IVA. */
-  baseGravable: number;
-  iva: number;
   total: number;
 }
 
@@ -34,19 +28,31 @@ export function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarr
 }
 
 /**
- * Importes del carrito. El descuento se recorta al subtotal para que la base
- * gravable nunca sea negativa y el total no se vuelva un reembolso.
+ * Importes del carrito. El descuento se recorta al subtotal para que el total
+ * nunca se vuelva un reembolso.
+ *
+ * Los precios del catálogo son los finales al público, así que no se suma
+ * impuesto encima. **Una compra a proveedor tampoco admite descuento**: su DTO
+ * ni siquiera tiene ese campo, y aplicarlo mostraría un total que la base no
+ * tiene.
  *
  * Estos importes son los que se muestran en pantalla. El backend vuelve a
  * calcular el precio de cada partida desde el catálogo al registrar la
  * operación, así que aquí no se decide cuánto se cobra.
  */
-export function calcularTotales(carrito: ItemCarrito[], descuentoAplicado: number): TotalesCarrito {
+export function calcularTotales(
+  carrito: ItemCarrito[],
+  descuentoAplicado: number,
+  modo: ModoPos,
+): TotalesCarrito {
   const subtotal = carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0);
+
+  if (modo === "compra") {
+    return { subtotal, descuento: 0, total: subtotal };
+  }
+
   const descuento = Math.min(descuentoAplicado, subtotal);
-  const baseGravable = Math.max(subtotal - descuento, 0);
-  const iva = baseGravable * IVA;
-  return { subtotal, descuento, baseGravable, iva, total: baseGravable + iva };
+  return { subtotal, descuento, total: Math.max(subtotal - descuento, 0) };
 }
 
 /** Agrega el producto al carrito, o suma uno si ya estaba. */

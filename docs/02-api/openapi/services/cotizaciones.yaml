@@ -293,7 +293,6 @@ components:
         - clienteNombre
         - estado
         - subtotal
-        - iva
         - total
         - creadaEn
         - actualizadaEn
@@ -306,8 +305,7 @@ components:
         estado:
           $ref: "#/components/schemas/EstadoCotizacion"
         subtotal: { type: number, format: double, example: 145 }
-        iva: { type: number, format: double, example: 23.2 }
-        total: { type: number, format: double, example: 168.2 }
+        total: { type: number, format: double, example: 145 }
         ventaId: { type: string, nullable: true, example: v-001 }
         creadaEn: { type: string, format: date-time }
         actualizadaEn: { type: string, format: date-time }

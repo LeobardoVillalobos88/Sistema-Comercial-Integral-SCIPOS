@@ -15,6 +15,7 @@ const {
   describirAlertas,
   esOperacionRepetida,
   interpretarTipoRevision,
+  limpiarNombreDictado,
   normalizarTexto,
   resumirBitacora,
   siguienteLote,
@@ -305,7 +306,11 @@ const RegistrarProductoIntentHandler = {
         .getResponse();
     }
 
-    const nombre = Alexa.getSlotValue(handlerInput.requestEnvelope, "nombreProducto");
+    // El slot de texto libre arrastra lo que se dijo entero; sin limpiarlo el
+    // catálogo acabaría con un producto llamado "es chicharrones".
+    const nombre = limpiarNombreDictado(
+      Alexa.getSlotValue(handlerInput.requestEnvelope, "nombreProducto"),
+    );
     const precioCompra = Number.parseFloat(
       Alexa.getSlotValue(handlerInput.requestEnvelope, "precioCompra"),
     );
@@ -407,7 +412,9 @@ const SurtirInventarioIntentHandler = {
       Alexa.getSlotValue(handlerInput.requestEnvelope, "cantidad"),
       10,
     );
-    const proveedor = Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor");
+    const proveedor = limpiarNombreDictado(
+      Alexa.getSlotValue(handlerInput.requestEnvelope, "proveedor"),
+    );
 
     try {
       // Dynamo primero: repetir la frase no debe duplicar la entrada.
@@ -555,6 +562,26 @@ const HelpIntentHandler = {
   },
 };
 
+/**
+ * "Vuelve al inicio". En una skill sin pantalla el inicio es el menú, así que
+ * se repite sin cerrar la sesión. Sin este handler el intent caería al
+ * reflector y Alexa contestaría con su nombre técnico.
+ */
+const NavigateHomeIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "AMAZON.NavigateHomeIntent"
+    );
+  },
+  handle(handlerInput) {
+    return handlerInput.responseBuilder
+      .speak(`Volvamos al principio. ${MENU}`)
+      .reprompt(MENU)
+      .getResponse();
+  },
+};
+
 const CancelAndStopIntentHandler = {
   canHandle(handlerInput) {
     const nombre = Alexa.getIntentName(handlerInput.requestEnvelope);
@@ -628,6 +655,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     RevisarInventarioIntentHandler,
     BitacoraVozIntentHandler,
     HelpIntentHandler,
+    NavigateHomeIntentHandler,
     CancelAndStopIntentHandler,
     FallbackIntentHandler,
     SessionEndedRequestHandler,

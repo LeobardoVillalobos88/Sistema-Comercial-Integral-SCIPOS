@@ -28,7 +28,6 @@ model Cotizacion {
   clienteNombre String            @map("cliente_nombre") @db.VarChar(180)
   estado        EstadoCotizacion  @default(BORRADOR)
   subtotal      Decimal           @db.Decimal(12, 2)
-  iva           Decimal           @db.Decimal(12, 2)
   total         Decimal           @db.Decimal(12, 2)
   ventaId       String?           @unique @map("venta_id") @db.VarChar(40)
   creadaEn      DateTime          @default(now()) @map("creada_en")

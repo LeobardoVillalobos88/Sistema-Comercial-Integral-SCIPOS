@@ -241,12 +241,7 @@ export function PosCajaPage({
     cargarCompras();
   }, [activeTab, esCompra, permisos.cargandoPermisos, permisos.usuario, cargarCompras]);
 
-  const {
-    subtotal: subtotalCarrito,
-    descuento: descuentoEfectivo,
-    iva,
-    total: totalVenta,
-  } = totales;
+  const { subtotal: subtotalCarrito, descuento: descuentoEfectivo, total: totalVenta } = totales;
 
   const ingresosManual = useMemo(
     () =>
@@ -823,7 +818,6 @@ export function PosCajaPage({
                           etiqueta="Descuento aplicado"
                           valor={formatearMoneda(descuentoEfectivo)}
                         />
-                        <ResumenMonto etiqueta="IVA (16%)" valor={formatearMoneda(iva)} />
                       </>
                     ) : null}
                     <ResumenMonto

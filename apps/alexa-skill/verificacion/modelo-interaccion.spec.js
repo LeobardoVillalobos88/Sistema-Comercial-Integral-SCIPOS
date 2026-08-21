@@ -1,7 +1,13 @@
 const assert = require("node:assert/strict");
 const { describe, it } = require("node:test");
 
+const fs = require("node:fs");
+const path = require("node:path");
+
 const modelo = require("../modelo-interaccion.json");
+
+/** Código del Lambda, leído como texto para comprobar que atiende lo declarado. */
+const CODIGO_LAMBDA = fs.readFileSync(path.join(__dirname, "../lambda/index.js"), "utf8");
 
 const MODELO = modelo.interactionModel.languageModel;
 const DIALOGO = modelo.interactionModel.dialog;
@@ -14,6 +20,20 @@ const INTENTS_PROPIOS = [
   "RevisarInventarioIntent",
   "BitacoraVozIntent",
 ];
+
+/**
+ * Mínimo de utterances por intent. La rúbrica pide 10-15; se duplica ese techo
+ * para que la NLU tenga de dónde agarrarse cuando alguien improvise una frase.
+ */
+const MINIMO_UTTERANCES = 30;
+
+/**
+ * Slots de texto libre. Reciben nombres que no se pueden enumerar —cualquier
+ * producto, cualquier marca de proveedor—, así que van con AMAZON.SearchQuery
+ * en vez de un tipo con lista: una lista finita deja de llenar el slot en
+ * cuanto alguien dice algo que no se le parece, y a la tercera Alexa cuelga.
+ */
+const SLOTS_DE_TEXTO_LIBRE = ["nombreProducto", "producto", "proveedor"];
 
 /** Slots que declaran slot filling y por tanto deben cumplir el criterio de 4 y 8. */
 const SLOTS_CON_LLENADO = [
@@ -68,10 +88,59 @@ describe("modelo de interaccion", () => {
     }
   });
 
-  it("da al menos 15 utterances a cada intent propio", () => {
+  it("da vocabulario amplio de utterances a cada intent propio", () => {
     for (const nombre of INTENTS_PROPIOS) {
       const cantidad = intent(nombre).samples.length;
-      assert.ok(cantidad >= 15, `${nombre} tiene ${cantidad} utterances, se piden 15`);
+      assert.ok(
+        cantidad >= MINIMO_UTTERANCES,
+        `${nombre} tiene ${cantidad} utterances, se piden ${MINIMO_UTTERANCES}`,
+      );
+    }
+  });
+
+  it("usa AMAZON.SearchQuery en los slots que reciben nombres libres", () => {
+    for (const nombreIntent of INTENTS_PROPIOS) {
+      for (const slot of intent(nombreIntent).slots || []) {
+        if (!SLOTS_DE_TEXTO_LIBRE.includes(slot.name)) continue;
+        assert.equal(
+          slot.type,
+          "AMAZON.SearchQuery",
+          `${nombreIntent}.${slot.name} debe ser de texto libre: un tipo con lista cuelga la sesión ante un nombre nuevo`,
+        );
+      }
+    }
+  });
+
+  it("no mezcla un slot de texto libre con otro slot en la misma utterance", () => {
+    // Amazon rechaza el modelo si AMAZON.SearchQuery comparte utterance con
+    // otro slot. Se comprueba aquí para no descubrirlo en el Build Model.
+    for (const nombreIntent of INTENTS_PROPIOS) {
+      for (const sample of intent(nombreIntent).samples) {
+        const usados = [...sample.matchAll(/{([^}]+)}/g)].map((m) => m[1]);
+        const libres = usados.filter((u) => SLOTS_DE_TEXTO_LIBRE.includes(u));
+        if (libres.length === 0) continue;
+        assert.equal(
+          usados.length,
+          1,
+          `"${sample}" (${nombreIntent}) mezcla ${libres[0]} con otros slots`,
+        );
+      }
+    }
+  });
+
+  it("acompaña con palabras toda utterance de un slot de texto libre", () => {
+    // Una muestra que sea solo "{slot}" no es válida con AMAZON.SearchQuery.
+    for (const nombreIntent of INTENTS_PROPIOS) {
+      for (const slot of intent(nombreIntent).slots || []) {
+        if (!SLOTS_DE_TEXTO_LIBRE.includes(slot.name)) continue;
+        for (const sample of slot.samples || []) {
+          const sinSlot = sample.replace(/{[^}]+}/g, "").trim();
+          assert.ok(
+            sinSlot.length > 0,
+            `"${sample}" (${nombreIntent}.${slot.name}) necesita palabras además del slot`,
+          );
+        }
+      }
     }
   });
 
@@ -159,31 +228,60 @@ describe("modelo de interaccion", () => {
     assert.ok(validacionesVistas >= 4, "Se esperan al menos 4 validaciones configuradas");
   });
 
+  it("atiende con un handler propio cada intent declarado", () => {
+    // Un intent declarado sin handler cae en el reflector y Alexa contesta con
+    // su nombre técnico: "todavía no sé atender AMAZON.NavigateHomeIntent".
+    // Queda feo y es de las primeras cosas que alguien prueba.
+    for (const declarado of MODELO.intents) {
+      assert.ok(
+        CODIGO_LAMBDA.includes(`=== "${declarado.name}"`),
+        `${declarado.name} está declarado en el modelo pero ningún handler lo atiende`,
+      );
+    }
+  });
+
+  it("cierra cada respuesta con reprompt salvo las que terminan la sesión", () => {
+    // Perder la sesión por no reofrecer el siguiente paso es de lo que más
+    // penaliza la evaluación. Solo cancelar/detener y las re-preguntas de slot
+    // pueden salir sin reprompt.
+    const contar = (aguja) => CODIGO_LAMBDA.split(aguja).length - 1;
+    const speaks = contar(".speak(");
+    const reprompts = contar(".reprompt(");
+    const elicitaciones = contar("addElicitSlotDirective(");
+    const sinReprompt = speaks - reprompts;
+    assert.ok(
+      sinReprompt <= elicitaciones + 1,
+      `Hay ${sinReprompt} respuestas sin reprompt; solo se admiten las ${elicitaciones} re-preguntas de slot y la despedida`,
+    );
+  });
+
   it("delega el dialogo a Alexa", () => {
     assert.equal(DIALOGO.delegationStrategy, "ALWAYS");
   });
 
-  it("declara los tres tipos personalizados con sinonimos", () => {
-    for (const nombre of ["SciposProducto", "SciposProveedor", "SciposTipoRevision"]) {
-      const tipo = MODELO.types.find((t) => t.name === nombre);
-      assert.ok(tipo, `Falta el tipo ${nombre}`);
-      assert.ok(tipo.values.length > 0, `${nombre} no tiene valores`);
+  it("declara el tipo de revisión con sinónimos suficientes", () => {
+    // Es el único tipo con lista que queda, porque sus opciones sí son cerradas.
+    // Lo que no es cerrado es cómo se dicen, así que lleva sinónimos de sobra
+    // para que nadie se quede atorado buscando la palabra exacta.
+    const tipo = MODELO.types.find((t) => t.name === "SciposTipoRevision");
+    assert.ok(tipo, "Falta el tipo SciposTipoRevision");
+    assert.equal(tipo.values.length, 3, "Las opciones de revisión son tres y solo tres");
+    for (const valor of tipo.values) {
+      const sinonimos = (valor.name.synonyms || []).length;
+      assert.ok(
+        sinonimos >= 8,
+        `"${valor.name.value}" tiene ${sinonimos} sinónimos; se piden 8 para no atorar a quien no dé con la palabra exacta`,
+      );
     }
   });
 
-  it("da vocabulario ancho a los tipos que reciben nombres libres", () => {
-    // Producto y proveedor reciben nombres que pueden no estar en la lista: la
-    // lista solo orienta a la NLU. Con pocos valores deja de reconocer lo que
-    // no se parece a ninguno, el slot se queda vacío y Alexa vuelve a preguntar
-    // en bucle. El tipo de revisión no entra aquí: sus tres opciones sí son
-    // cerradas y no admiten nada más.
-    for (const nombre of ["SciposProducto", "SciposProveedor"]) {
-      const tipo = MODELO.types.find((t) => t.name === nombre);
-      assert.ok(
-        tipo.values.length >= 20,
-        `${nombre} tiene ${tipo.values.length} valores; con tan pocos la NLU rechaza los nombres que no se parecen a ninguno`,
-      );
+  it("no deja tipos personalizados sin usar", () => {
+    const usados = new Set();
+    for (const i of MODELO.intents) {
+      for (const slot of i.slots || []) usados.add(slot.type);
     }
+    const huerfanos = MODELO.types.map((t) => t.name).filter((t) => !usados.has(t));
+    assert.deepEqual(huerfanos, [], `Tipos declarados y nunca usados: ${huerfanos}`);
   });
 
   it("no deja prompts declarados sin usar", () => {

@@ -14,7 +14,6 @@ export function mapearCotizacion(cotizacion: CotizacionConPartidas): CotizacionR
     clienteNombre: cotizacion.clienteNombre,
     estado: cotizacion.estado,
     subtotal: cotizacion.subtotal.toNumber(),
-    iva: cotizacion.iva.toNumber(),
     total: cotizacion.total.toNumber(),
     ventaId: cotizacion.ventaId,
     creadaEn: cotizacion.creadaEn,

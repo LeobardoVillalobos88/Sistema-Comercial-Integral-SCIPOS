@@ -53,7 +53,6 @@ function TablaVentasHistoricas({
             <TableCell>Fecha</TableCell>
             <TableCell align="right">Subtotal</TableCell>
             <TableCell align="right">Descuento</TableCell>
-            <TableCell align="right">IVA</TableCell>
             <TableCell align="right">Total</TableCell>
             <TableCell align="center">Comprobante</TableCell>
           </TableRow>
@@ -65,7 +64,6 @@ function TablaVentasHistoricas({
               <TableCell>{formatearFechaConHora(venta.fecha)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.subtotal)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.descuento)}</TableCell>
-              <TableCell align="right">{formatearMoneda(venta.iva)}</TableCell>
               <TableCell align="right">{formatearMoneda(venta.total)}</TableCell>
               <TableCell align="center">
                 <Tooltip title="Ver comprobante PDF">

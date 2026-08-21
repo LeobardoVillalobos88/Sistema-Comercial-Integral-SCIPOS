@@ -8,8 +8,9 @@ import { PrismaClient } from ".prisma/client";
  */
 const CAJA_HISTORICA = {
   id: "CORTE-HIST-001",
+  // 1000 inicial + 145.40 de ventas + 150 de ingresos - 82.50 de egresos.
   montoInicial: 1000,
-  montoFinal: 5298.25,
+  montoFinal: 1212.9,
   fechaApertura: new Date("2026-06-30T08:00:00.000Z"),
   fechaCierre: new Date("2026-06-30T16:00:00.000Z"),
   estado: "CERRADA" as const,
@@ -17,8 +18,9 @@ const CAJA_HISTORICA = {
 
 const CAJA_HISTORICA_2 = {
   id: "CORTE-HIST-002",
+  // 1200 inicial + 200 de ingresos - 120 de egresos. Este turno no tuvo ventas.
   montoInicial: 1200,
-  montoFinal: 5135.2,
+  montoFinal: 1280,
   fechaApertura: new Date("2026-06-29T14:00:00.000Z"),
   fechaCierre: new Date("2026-06-29T22:00:00.000Z"),
   estado: "CERRADA" as const,
@@ -30,8 +32,7 @@ const VENTAS = [
     cajaId: CAJA_HISTORICA.id,
     clienteId: "c-001",
     descuento: 5,
-    iva: 9.36,
-    total: 67.86,
+    total: 58.5,
     estado: "COMPLETA" as const,
     fecha: new Date("2026-06-30T09:25:00.000Z"),
     partidas: [
@@ -56,8 +57,7 @@ const VENTAS = [
     cajaId: CAJA_HISTORICA.id,
     clienteId: "c-002",
     descuento: 0,
-    iva: 13.9,
-    total: 100.8,
+    total: 86.9,
     estado: "COMPLETA" as const,
     fecha: new Date("2026-06-30T11:12:00.000Z"),
     partidas: [

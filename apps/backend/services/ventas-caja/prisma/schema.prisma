@@ -44,7 +44,6 @@ model Venta {
   clienteId     String
   cotizacionId  String?       @unique
   descuento     Float         @default(0)
-  iva           Float
   total         Float
   estado        EstadoVenta   @default(COMPLETA)
   fecha         DateTime      @default(now())

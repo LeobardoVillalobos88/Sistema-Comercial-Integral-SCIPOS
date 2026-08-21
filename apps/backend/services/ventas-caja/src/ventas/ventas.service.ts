@@ -166,7 +166,6 @@ export class VentasService {
         clienteId: dto.clienteId,
         cotizacionId: opciones.cotizacionId,
         descuento: totales.descuentoEfectivo,
-        iva: totales.iva,
         total: totales.total,
         partidas: {
           create: totales.partidas.map((partida) => ({
@@ -240,7 +239,6 @@ export class VentasService {
       clienteId: string;
       cotizacionId: string | null;
       descuento: number;
-      iva: number;
       total: number;
       estado: "COMPLETA" | "CANCELADA";
       fecha: Date;
@@ -265,7 +263,6 @@ export class VentasService {
       cotizacionId: venta.cotizacionId,
       subtotal: Math.round(subtotal * 100) / 100,
       descuento: venta.descuento,
-      iva: venta.iva,
       total: venta.total,
       estado: venta.estado,
       fecha: venta.fecha.toISOString(),

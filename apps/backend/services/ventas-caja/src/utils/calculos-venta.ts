@@ -1,6 +1,3 @@
-/** Tasa de IVA aplicada en el POS (16%). */
-export const TASA_IVA = 0.16;
-
 export interface PartidaCalculada {
   productoId: string;
   cantidad: number;
@@ -11,7 +8,6 @@ export interface PartidaCalculada {
 export interface TotalesVenta {
   subtotal: number;
   descuentoEfectivo: number;
-  iva: number;
   total: number;
   partidas: PartidaCalculada[];
 }
@@ -22,8 +18,8 @@ export function redondearMoneda(valor: number): number {
 }
 
 /**
- * Calcula subtotal por partida, descuento efectivo, IVA y total en el backend
- * con la misma regla que el frontend del POS.
+ * Calcula subtotal por partida, descuento efectivo y total en el backend con la
+ * misma regla que el frontend del POS.
  */
 export function calcularTotalesVenta(
   partidasEntrada: Array<{ productoId: string; cantidad: number; precioVenta: number }>,
@@ -40,9 +36,9 @@ export function calcularTotalesVenta(
     partidas.reduce((acumulado, partida) => acumulado + partida.subtotal, 0),
   );
   const descuentoEfectivo = redondearMoneda(Math.min(Math.max(descuentoSolicitado, 0), subtotal));
-  const baseGravable = redondearMoneda(Math.max(subtotal - descuentoEfectivo, 0));
-  const iva = redondearMoneda(baseGravable * TASA_IVA);
-  const total = redondearMoneda(baseGravable + iva);
+  // El total es el subtotal menos el descuento: los precios del catálogo ya
+  // son los finales, sin impuesto que agregar encima.
+  const total = redondearMoneda(Math.max(subtotal - descuentoEfectivo, 0));
 
-  return { subtotal, descuentoEfectivo, iva, total, partidas };
+  return { subtotal, descuentoEfectivo, total, partidas };
 }

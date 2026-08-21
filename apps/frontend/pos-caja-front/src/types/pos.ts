@@ -37,7 +37,6 @@ export interface VentaPOS {
   items: ItemCarrito[];
   subtotal: number;
   descuento: number;
-  iva: number;
   total: number;
 }
 

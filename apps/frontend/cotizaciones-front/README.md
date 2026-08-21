@@ -7,7 +7,7 @@ Microfrontend de **Cotizaciones + conversión a venta** (RF-13 a RF-17).
 - **Listado de cotizaciones**: búsqueda, filtro por cliente (historial por cliente, RF-16) y
   por estado (Borrador/Enviada/Vendida), cargado desde la API.
 - **Nueva cotización**: consulta clientes y productos reales, envía únicamente IDs y cantidades,
-  y deja que el backend asigne el folio, consulte precios y calcule subtotal, IVA y total.
+  y deja que el backend asigne el folio, consulte precios y calcule subtotal y total.
 - **Detalle de cotización**: muestra los snapshots e importes confirmados por el backend, permite
   **marcar como enviada** y **convertir a venta** sin recapturar datos (RF-17).
 - **Eliminar** cotización en borrador (solo Administrador, con confirmación).
