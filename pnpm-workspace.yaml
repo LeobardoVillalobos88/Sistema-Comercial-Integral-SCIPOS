@@ -4,7 +4,6 @@ packages:
   - "apps/backend/*"
   - "apps/backend/services/*"
   - "apps/alexa-skill"
-  - "packages/*"
 
 # Dependencias a las que se les permite ejecutar scripts de instalación.
 allowBuilds:
