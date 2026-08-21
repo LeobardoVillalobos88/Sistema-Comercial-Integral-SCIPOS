@@ -53,11 +53,15 @@ git push -u origin feature/reportes-exportables
 # se abre el PR en GitHub, alguien más lo revisa y lo fusiona
 ```
 
-Cada PR tiene que traer: qué resuelve, cómo probarlo y `pnpm lint`, `pnpm
-typecheck` y `pnpm test` en verde. Desde que existe
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) esos tres los corre
-GitHub Actions solo, más la construcción completa y la validación de los
-contratos OpenAPI. Un PR en rojo no se fusiona.
+Cada PR tiene que traer: qué resuelve, cómo probarlo y `pnpm lint`, `pnpm test` y
+`pnpm build` en verde. Desde que existe
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) los corre GitHub
+Actions solo, más la validación de los seis contratos OpenAPI. Un PR en rojo no
+se fusiona.
+
+La construcción hace las veces de revisión de tipos: `next build` los verifica en
+cada frontend y `nest build` compila con `tsc`. Para revisar un paquete suelto
+sin construir todo, `pnpm --filter <paquete> typecheck`.
 
 Publicar es un segundo paso, deliberadamente aparte: `develop` → `release/vX.Y`
 → `main`, y después el procedimiento de despliegue en el servidor.
@@ -160,8 +164,8 @@ de quedarse una semana en una rama que después choca con cinco.
 ### Cuando el conflicto ya ocurrió
 
 Se resuelve **en la rama de trabajo**, nunca en `develop`. Se trae `develop` a la
-rama, se resuelve ahí, se comprueba que `pnpm lint`, `pnpm typecheck` y
-`pnpm test` sigan pasando, y entonces se actualiza el PR. Así `develop` nunca
+rama, se resuelve ahí, se comprueba que `pnpm lint`, `pnpm test` y `pnpm build`
+sigan pasando, y entonces se actualiza el PR. Así `develop` nunca
 pasa por un estado roto.
 
 Hay un conflicto que aparece en cada versión y ya tiene procedimiento: fusionar

@@ -371,4 +371,4 @@ fuera con razón:
 | Los patrones de seguridad están donde se dice | `apps/backend/commons/src/seguridad/` |
 | Las cuentas del POS están probadas | `pnpm --filter @scipos/pos-caja-front test` |
 | La regla de privilegios efectivos está probada | `pnpm --filter @scipos/seguridad-service test` |
-| Todo el repositorio compila y pasa | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` |
+| Todo el repositorio compila y pasa | `pnpm lint && pnpm test && pnpm build` |

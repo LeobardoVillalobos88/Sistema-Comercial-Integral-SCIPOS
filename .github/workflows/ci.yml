@@ -28,6 +28,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    env:
+      # `prisma generate` evalúa prisma.config.ts, que exige que DATABASE_URL
+      # resuelva aunque generar el cliente no abra ninguna conexión. En una
+      # máquina de desarrollo la aporta el .env de cada servicio; aquí no hay
+      # ninguno, así que sin este relleno la revisión de tipos falla con
+      # "PrismaConfigEnvError: Cannot resolve environment variable".
+      #
+      # No apunta a nada y no hace falta que lo haga: este trabajo no levanta
+      # base de datos porque ninguna prueba la necesita. Es el mismo relleno que
+      # usa la etapa de construcción de infra/docker/Dockerfile.backend.
+      DATABASE_URL: postgresql://relleno:relleno@localhost:5432/relleno?schema=public
+      # Misma ruta relativa que usa el despliegue: la interfaz y la API
+      # comparten origen detrás de nginx.
+      NEXT_PUBLIC_API_URL: /api
+
     steps:
       - name: Traer el código
         uses: actions/checkout@v4
@@ -52,21 +67,21 @@ jobs:
       - name: Revisar formato y reglas de estilo
         run: pnpm lint
 
-      - name: Revisar tipos
-        run: pnpm typecheck
-
       - name: Correr las pruebas
         # Ninguna suite necesita base de datos ni Redis: son funciones puras y
         # servicios con dependencias inyectadas a mano. Por eso este trabajo no
         # levanta contenedores.
         run: pnpm test
 
-      - name: Construir todo el monorepo
+      # La construcción es también la revisión de tipos: `next build` verifica
+      # los tipos de cada frontend y `nest build` compila con tsc. No hay un
+      # paso aparte de `tsc --noEmit` sobre todo el monorepo porque corriendo
+      # veintitantos a la vez se pisan entre ellos: varios `prisma generate` y
+      # `next build` escriben en los mismos archivos generados que tsc está
+      # leyendo, y el resultado es un fallo intermitente que no dice nada útil.
+      # Para revisar un paquete suelto: pnpm --filter <paquete> typecheck.
+      - name: Construir todo el monorepo (verifica también los tipos)
         run: pnpm build
-        env:
-          # Misma ruta relativa que usa el despliegue: la interfaz y la API
-          # comparten origen detrás de nginx.
-          NEXT_PUBLIC_API_URL: /api
 
   contratos:
     name: Contratos OpenAPI

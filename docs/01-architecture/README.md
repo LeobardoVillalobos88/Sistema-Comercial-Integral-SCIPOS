@@ -67,9 +67,8 @@ comandos son la demostración:
 
 ```bash
 pnpm lint        # formato y reglas de estilo sobre 305 archivos
-pnpm typecheck   # tipos de los 22 paquetes
 pnpm test        # 129 pruebas en 6 paquetes, sin base de datos ni navegador
-pnpm build       # los 7 frontends y los 8 paquetes de backend
+pnpm build       # los 7 frontends y los 8 de backend; verifica también los tipos
 ```
 
 Y sobre el sistema publicado, la comprobación de una línea de que los privilegios
