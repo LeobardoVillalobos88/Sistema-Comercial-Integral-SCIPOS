@@ -545,7 +545,7 @@ components:
       properties:
         token:
           type: string
-          description: Access token JWT RS256 (Authorization: Bearer).
+          description: "Access token JWT RS256 (Authorization: Bearer)."
         refreshToken:
           type: string
           description: Refresh token opaco para renovar la sesión.
