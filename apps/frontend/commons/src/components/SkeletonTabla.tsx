@@ -14,7 +14,15 @@ export interface SkeletonTablaProps {
   conBusqueda?: boolean;
 }
 
-/** Esqueleto de carga para tablas (mismo aspecto que SearchableTable). */
+/**
+ * Esqueleto de carga para tablas (mismo aspecto que SearchableTable).
+ *
+ * Aquí la posición sí sirve como clave, al revés que en SearchableTable: estas
+ * celdas no representan ningún dato, no se reordenan ni se filtran, y la
+ * cuadrícula entera desaparece de golpe cuando llegan los datos de verdad. No
+ * hay estado que se pueda quedar pegado a la fila equivocada porque no hay
+ * estado.
+ */
 export function SkeletonTabla({ columnas = 5, filas = 6, conBusqueda = true }: SkeletonTablaProps) {
   return (
     <Box>
@@ -22,9 +30,11 @@ export function SkeletonTabla({ columnas = 5, filas = 6, conBusqueda = true }: S
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={1.5}>
           {Array.from({ length: filas }).map((_, fila) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: cuadrícula fija sin datos ni estado
             <Stack key={`fila-${fila}`} direction="row" spacing={2}>
               {Array.from({ length: columnas }).map((_, col) => (
                 <Skeleton
+                  // biome-ignore lint/suspicious/noArrayIndexKey: cuadrícula fija sin datos ni estado
                   key={`celda-${fila}-${col}`}
                   variant="text"
                   height={28}

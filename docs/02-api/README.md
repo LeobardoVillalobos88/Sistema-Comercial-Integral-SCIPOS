@@ -20,4 +20,6 @@ demás integrantes usan para integrarse con tu servicio sin esperarte.
   servicios (el gateway lo descarta de las peticiones externas). Sin token válido en un
   endpoint protegido: **401**; sin el privilegio requerido: **403**.
 - Los errores usan el formato estándar del backend: `{ estatus, mensaje, error, ruta, fecha }`.
-- Las colecciones de Postman y sus environments van en `postman/`.
+- Los seis contratos se validan en cada empujón: el trabajo `contratos` de
+  [la integración continua](../../.github/workflows/ci.yml) los parsea y falla si
+  alguno queda mal formado. Un YAML roto no avisa hasta que alguien abre `/docs`.

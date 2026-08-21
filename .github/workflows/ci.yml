@@ -1,0 +1,116 @@
+# Integración continua de SCIPOS.
+#
+# Corre en cada empujón a las ramas base y en cada pull request. Verifica lo
+# mismo que exige el repositorio en local —formato, tipos, pruebas y
+# construcción— para que ninguna rama llegue a `develop` sin haberlo pasado.
+#
+# No despliega nada: el servidor se actualiza a mano desde `main` siguiendo
+# docs/DESPLIEGUE-AWS.md. Publicar automáticamente sobre una sola instancia
+# significaría dejar el sistema abajo unos minutos en cada empujón, y este
+# despliegue no tiene un segundo servidor que reciba el tráfico mientras tanto.
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# Un empujón nuevo cancela la corrida anterior de la misma rama: lo que importa
+# es si el último commit está sano, no los intermedios.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Formato, tipos, pruebas y construcción
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # `prisma generate` evalúa prisma.config.ts, que exige que DATABASE_URL
+      # resuelva aunque generar el cliente no abra ninguna conexión. En una
+      # máquina de desarrollo la aporta el .env de cada servicio; aquí no hay
+      # ninguno, así que sin este relleno la revisión de tipos falla con
+      # "PrismaConfigEnvError: Cannot resolve environment variable".
+      #
+      # No apunta a nada y no hace falta que lo haga: este trabajo no levanta
+      # base de datos porque ninguna prueba la necesita. Es el mismo relleno que
+      # usa la etapa de construcción de infra/docker/Dockerfile.backend.
+      DATABASE_URL: postgresql://relleno:relleno@localhost:5432/relleno?schema=public
+      # Misma ruta relativa que usa el despliegue: la interfaz y la API
+      # comparten origen detrás de nginx.
+      NEXT_PUBLIC_API_URL: /api
+
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      - name: Preparar pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          # La versión sale de .nvmrc para que no haya dos fuentes que se
+          # contradigan cuando el proyecto suba de versión.
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        # --frozen-lockfile falla si alguien tocó un package.json sin
+        # actualizar el lockfile, que es justo el descuido que rompe el
+        # despliegue.
+        run: pnpm install --frozen-lockfile
+
+      - name: Revisar formato y reglas de estilo
+        run: pnpm lint
+
+      - name: Correr las pruebas
+        # Ninguna suite necesita base de datos ni Redis: son funciones puras y
+        # servicios con dependencias inyectadas a mano. Por eso este trabajo no
+        # levanta contenedores.
+        run: pnpm test
+
+      # La construcción es también la revisión de tipos: `next build` verifica
+      # los tipos de cada frontend y `nest build` compila con tsc. No hay un
+      # paso aparte de `tsc --noEmit` sobre todo el monorepo porque corriendo
+      # veintitantos a la vez se pisan entre ellos: varios `prisma generate` y
+      # `next build` escriben en los mismos archivos generados que tsc está
+      # leyendo, y el resultado es un fallo intermitente que no dice nada útil.
+      # Para revisar un paquete suelto: pnpm --filter <paquete> typecheck.
+      - name: Construir todo el monorepo (verifica también los tipos)
+        run: pnpm build
+
+  contratos:
+    name: Contratos OpenAPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      - name: Validar cada contrato
+        # El repositorio escribe el contrato antes que el endpoint. Si un YAML
+        # queda mal formado nadie se entera hasta que alguien abre /docs, así
+        # que se revisa aquí.
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 - <<'PY'
+          import pathlib, sys, yaml
+
+          fallos = []
+          for ruta in sorted(pathlib.Path("docs/02-api/openapi").rglob("*.yaml")):
+              try:
+                  documento = yaml.safe_load(ruta.read_text(encoding="utf-8"))
+                  rutas = len(documento.get("paths", {}))
+                  print(f"  ok  {ruta}  ({rutas} rutas)")
+              except Exception as error:
+                  fallos.append(f"  falla  {ruta}: {error}")
+
+          if fallos:
+              print("\n".join(fallos))
+              sys.exit(1)
+          PY

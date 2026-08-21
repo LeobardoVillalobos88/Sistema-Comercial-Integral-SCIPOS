@@ -466,14 +466,118 @@ docker system prune -a --volumes=false
 
 ## Servir por HTTPS
 
-El montaje actual sirve por HTTP. Para publicar con certificado hace falta un
-dominio apuntando a la IP elástica; con eso, la ruta más corta es añadir un
-contenedor de Certbot junto a nginx y montar el certificado emitido en el
-bloque `server`, cambiando `listen 80` por `listen 443 ssl` y dejando un
-`server` en el 80 que redirija.
+Con el dominio apuntando a la instancia, se puede emitir un certificado de
+Let's Encrypt y servir cifrado. Todo lo necesario está en el repositorio:
+`infra/nginx/nginx.tls.conf` y `infra/docker/compose/docker-compose.tls.yml`.
 
-Mientras no exista el dominio no se puede emitir el certificado: Let's Encrypt
-valida contra un nombre, no contra una IP.
+**El montaje sin TLS no se toca.** El archivo de TLS es una *superposición* que
+se aplica encima del de producción; mientras no se use, el despliegue sigue
+exactamente igual. Volver atrás es quitar un `-f`.
+
+### Antes de empezar
+
+Tres cosas tienen que estar listas, en este orden:
+
+1. **El dominio resuelve a la IP elástica.** Compruébalo desde tu máquina:
+   ```bash
+   curl -I http://TU_DOMINIO
+   ```
+   Debe responder 200. Si responde de otra cosa, el DNS todavía no propagó y
+   emitir el certificado fallará: Let's Encrypt visita el dominio para
+   comprobar que es tuyo.
+
+2. **El puerto 443 abierto en el grupo de seguridad.** Es un renglón nuevo:
+   HTTPS, 443, origen `0.0.0.0/0`. **El 80 se queda abierto**: es por donde
+   Let's Encrypt valida cada renovación, y también por donde se redirige a
+   quien escriba la dirección sin `https`.
+
+3. **`DOMINIO` en el `.env`:**
+   ```
+   DOMINIO=scipos.tech
+   ```
+
+### 1. Emitir el certificado
+
+Se pide una sola vez. Certbot deja el desafío en un volumen que nginx ya está
+sirviendo, así que **no hace falta apagar nada**:
+
+```bash
+# nginx tiene que estar sirviendo el desafío: se levanta con la superposición,
+# que monta el volumen compartido
+docker compose -f infra/docker/compose/docker-compose.prod.yml \
+               -f infra/docker/compose/docker-compose.tls.yml \
+               --env-file .env up -d nginx
+
+docker run --rm \
+  -v scipos_certbot-conf:/etc/letsencrypt \
+  -v scipos_certbot-www:/var/www/certbot \
+  certbot/certbot certonly --webroot -w /var/www/certbot \
+  -d scipos.tech -d www.scipos.tech \
+  --email TU_CORREO --agree-tos --no-eff-email
+```
+
+> **La primera vez conviene añadir `--dry-run`.** Let's Encrypt limita a cinco
+> intentos fallidos por hora y por dominio; con la prueba en seco se descubre
+> un DNS a medio propagar sin gastar intentos. Si la prueba pasa, se repite el
+> comando sin `--dry-run`.
+
+Debe terminar con `Successfully received certificate`. Si dice
+`Timeout during connect`, es el puerto 80 cerrado o el DNS sin propagar.
+
+### 2. Levantar con TLS
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.prod.yml \
+               -f infra/docker/compose/docker-compose.tls.yml \
+               --env-file .env up -d
+```
+
+Comprueba:
+
+```bash
+curl -I https://scipos.tech            # 200
+curl -I http://scipos.tech             # 301 hacia https
+curl -i https://scipos.tech/api/seguridad/usuarios   # 401, como debe ser
+```
+
+La renovación queda sola: el contenedor `certbot` despierta cada doce horas y
+renueva cuando al certificado le quedan menos de 30 días.
+
+### 3. Actualizar la skill de Alexa
+
+**Este paso se olvida y rompe la skill.** El Lambda llama a la API con la
+dirección que tiene escrita en el bloque de conexión de `index.js`. Si el
+sitio pasa a HTTPS y redirige el 80, el cliente HTTP nativo de la skill
+**no sigue redirecciones**: recibiría un 301 sin cuerpo y respondería que no
+pudo iniciar sesión, sin pista de por qué.
+
+En la consola de Alexa Developer, en `lambda/index.js`, cambia la línea:
+
+```js
+const API_URL = process.env.SCIPOS_API_URL || "https://scipos.tech/api";
+```
+
+No hace falta tocar nada más: la función `peticion()` ya elige entre los
+módulos `http` y `https` y entre los puertos 80 y 443 según el protocolo de la
+dirección. Guarda, despliega la skill y prueba una frase.
+
+### Lo que **no** hay que cambiar
+
+- **`NEXT_PUBLIC_API_URL` se queda en `/api`.** Es una ruta relativa: la
+  interfaz llama al mismo origen desde el que se sirvió, así que funciona igual
+  en HTTP que en HTTPS y no hay que reconstruir la imagen.
+- **`ORIGENES_PERMITIDOS`** tampoco: interfaz y API siguen compartiendo origen
+  detrás del mismo nginx.
+
+### Volver a HTTP si algo sale mal
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.prod.yml \
+               --env-file .env up -d
+```
+
+Sin el segundo `-f`, nginx vuelve a su configuración de siempre. Los
+certificados quedan guardados en su volumen para cuando se retome.
 
 ---
 

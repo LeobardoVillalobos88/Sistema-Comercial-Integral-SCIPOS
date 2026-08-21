@@ -14,7 +14,7 @@ integradas por el `web-shell`, que es el host de navegación y layout.
 | `clientes-front/` | 3004 | Gestión de clientes + detalle con historial de cotizaciones y ventas |
 | `cotizaciones-front/` | 3005 | Cotizaciones (Borrador → Enviada → Vendida) y conversión a venta |
 | `pos-caja-front/` | 3006 | Punto de venta, punto de compra y caja (apertura, movimientos, corte) |
-| `reportes-front/` | 3007 | Reportes (ventas, cotizaciones, inventario valuado, cortes, utilidad) con exportación CSV |
+| `reportes-front/` | 3007 | Reportes (ventas, cotizaciones, inventario valuado, cortes, utilidad) con exportación CSV. Tres privilegios: `reportes:ver`, `reportes:utilidad` y `reportes:exportar` |
 
 > Cada `*-front` corre en su propio puerto (3003–3007).
 

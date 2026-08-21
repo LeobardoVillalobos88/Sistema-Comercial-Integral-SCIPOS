@@ -78,10 +78,11 @@ export class VentasController {
   }
 
   @Get(":id/comprobante")
-  @RequierePrivilegio("pos:ver")
+  @RequierePrivilegio("ventas:comprobante")
   @ApiOperation({
     summary: "Comprobante PDF no fiscal de una venta",
-    description: "Documento con folio, fecha, cliente, partidas y totales (RF-27, RF-28, RF-29).",
+    description:
+      "Documento con folio, fecha, cliente, partidas y totales (RF-27, RF-28, RF-29). Emitirlo es un privilegio propio: entrar al punto de venta no basta para imprimir comprobantes de ventas ajenas.",
   })
   @ApiParam({ name: "id", example: "VTA-HIST-001" })
   @ApiProduces("application/pdf")

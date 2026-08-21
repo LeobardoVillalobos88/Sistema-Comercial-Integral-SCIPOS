@@ -21,6 +21,7 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "cotizaciones:convertir",
     "pos:ver",
     "pos:vender",
+    "ventas:comprobante",
   ],
 
   // El cajero opera el punto de venta y la caja.
@@ -29,13 +30,15 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "clientes:ver",
     "pos:ver",
     "pos:vender",
+    "ventas:comprobante",
     "caja:ver",
     "caja:abrir",
     "caja:movimiento",
     "caja:cerrar",
   ],
 
-  // El supervisor ve todo y autoriza acciones sensibles (descuentos, cancelaciones).
+  // El supervisor ve todo y autoriza acciones sensibles (descuentos,
+  // cancelaciones) y es el único rol no administrador que consulta la utilidad.
   SUPERVISOR: [
     "productos:ver",
     "productos:crear",
@@ -46,10 +49,13 @@ export const MATRIZ_PRIVILEGIOS: Record<Rol, Privilegio[] | "*"> = {
     "pos:ver",
     "pos:descuento",
     "pos:cancelar",
+    "ventas:comprobante",
     "compras:ver",
     "caja:ver",
     "caja:cerrar",
     "reportes:ver",
+    "reportes:utilidad",
+    "reportes:exportar",
   ],
 };
 

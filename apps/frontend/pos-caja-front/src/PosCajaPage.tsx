@@ -142,6 +142,7 @@ export function PosCajaPage({
   const puedeAbrirCaja = permisos.can("caja:abrir");
   const puedeRegistrarMovimiento = permisos.can("caja:movimiento");
   const puedeCerrarCaja = permisos.can("caja:cerrar");
+  const puedeVerComprobante = permisos.can("ventas:comprobante");
 
   const cargarProductos = useCallback(async () => {
     setCargandoProductos(true);
@@ -892,6 +893,7 @@ export function PosCajaPage({
           cargandoHistorial={cargandoHistorial}
           ventasHistorial={ventasHistorial}
           cortesCaja={cortesCaja}
+          puedeVerComprobante={puedeVerComprobante}
           onVerComprobante={verComprobante}
         />
       ) : null}

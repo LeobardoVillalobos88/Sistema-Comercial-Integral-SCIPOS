@@ -123,6 +123,14 @@ productos y son los mismos que usan las cifras del dashboard.
 | Armar carrito y cobrar (precio de venta, resta inventario) | Administrador, Vendedor, Cajero |
 | Aplicar descuento | **Administrador, Supervisor** |
 | Cancelar venta | **Administrador, Supervisor** |
+| Emitir el comprobante PDF | Administrador, Vendedor, Cajero, Supervisor |
+
+Emitir el comprobante tiene privilegio propio (`ventas:comprobante`) y no viene
+incluido en entrar al punto de venta. Son cosas distintas: cobrar es la
+operación del día, y reimprimir el comprobante de una venta ajena es sacar del
+sistema el nombre del cliente y lo que compró. Si se le quita el privilegio a un
+usuario, la columna del PDF desaparece de su historial y el endpoint le responde
+403 aunque escriba la dirección a mano.
 
 ### 🛍️ Punto de compra
 | Acción | Quién puede |
@@ -141,6 +149,24 @@ de captura: la pantalla y la skill de Alexa.
 | Ver caja, ventas y cortes | Administrador, Cajero, Supervisor |
 | Abrir caja y registrar movimientos | **Administrador, Cajero** |
 | Cierre con corte | **Administrador, Cajero, Supervisor** |
+
+### 📈 Reportes
+| Acción | Quién puede |
+|--------|-------------|
+| Consultar ventas, cotizaciones, inventario y cortes | **Administrador, Supervisor** |
+| Ver la pestaña de utilidad y el margen | **Administrador, Supervisor** |
+| Descargar cualquier reporte en CSV | **Administrador, Supervisor** |
+
+Los tres renglones los cubren tres privilegios distintos —`reportes:ver`,
+`reportes:utilidad` y `reportes:exportar`—, aunque hoy los mismos dos roles
+tengan los tres. Están separados porque son capacidades distintas: mirar la
+operación, conocer cuánto se gana y llevarse la información en un archivo. Con
+esa separación se le puede dar a alguien la consulta sin darle el margen, o la
+consulta sin darle la descarga, desde *Usuarios* y sin tocar código.
+
+El archivo CSV lo arma el servidor, no el navegador. Es a propósito: si se
+armara con los datos que la pantalla ya tiene, esconder el botón sería toda la
+protección, y esconder botones no protege nada.
 
 ---
 

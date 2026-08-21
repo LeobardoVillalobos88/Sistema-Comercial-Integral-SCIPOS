@@ -19,8 +19,15 @@
       "persistent": true
     },
     "lint": {},
+    // DATABASE_URL se declara porque la prueba de cotizaciones ejercita un
+    // servicio que importa el cliente de Prisma, y su script lo genera antes de
+    // correr; generarlo exige que la variable resuelva aunque no abra ninguna
+    // conexión. No basta con exportarla: turbo 2 filtra el entorno y solo
+    // entrega a cada tarea las variables que esa tarea nombra, así que sin este
+    // renglón el fallo aparece justo donde uno juraría haberla definido.
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL"]
     }
   }
 }
