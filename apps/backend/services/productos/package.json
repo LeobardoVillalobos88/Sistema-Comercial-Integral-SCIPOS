@@ -1,6 +1,6 @@
 {
   "name": "@scipos/productos-service",
-  "version": "0.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Servicio de productos de SCIPOS: catálogo, inventario y compras a proveedor.",
   "scripts": {

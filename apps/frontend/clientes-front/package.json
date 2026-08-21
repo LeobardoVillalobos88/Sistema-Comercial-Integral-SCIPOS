@@ -1,6 +1,6 @@
 {
   "name": "@scipos/clientes-front",
-  "version": "0.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Módulo de gestión de clientes para SCIPOS.",
   "scripts": {

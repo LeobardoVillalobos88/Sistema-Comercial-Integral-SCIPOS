@@ -1,6 +1,6 @@
 {
   "name": "@scipos/cotizaciones-front",
-  "version": "0.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Cotizaciones + conversión a venta. Corre standalone (puerto 3004) y se embebe en el web-shell.",
   "type": "module",
