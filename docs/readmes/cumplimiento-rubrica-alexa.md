@@ -4,6 +4,10 @@ Repaso punto por punto de los requerimientos y de la rúbrica de evaluación, co
 dónde se cumple cada uno y cómo comprobarlo. Incluye los criterios de
 presentación, con el guion de demostración y las respuestas preparadas.
 
+Para probar la skill paso a paso está el
+[guion de pruebas](./guion-pruebas-alexa.md), pensado para copiar y pegar en el
+simulador.
+
 Las cifras de este documento no están escritas a mano: las mide
 `apps/alexa-skill/verificacion/modelo-interaccion.spec.js`, que corre con
 `pnpm --filter @scipos/alexa-skill test` y falla si alguna deja de cumplirse.

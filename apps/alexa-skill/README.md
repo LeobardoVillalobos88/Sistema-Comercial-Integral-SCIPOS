@@ -229,6 +229,12 @@ antes de dar por fallida la demostración.
 | Alexa confunde registrar con surtir | El modelo no se reconstruyó tras editar | **Build Model** otra vez y espera a que termine |
 | La bitácora sale vacía tras reiniciar | Se está sobrescribiendo el item de Dynamo | El arranque debe leer antes de crear, nunca hacer `put` incondicional |
 
+## Guion de pruebas
+
+Para probar la skill completa copiando y pegando en el simulador, sin tener que
+acordarse de nada:
+[](../../docs/readmes/guion-pruebas-alexa.md).
+
 ## Cumplimiento de la rúbrica
 
 El repaso punto por punto de los requerimientos y de la rúbrica de evaluación,
