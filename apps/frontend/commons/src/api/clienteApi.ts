@@ -151,8 +151,13 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
 }
 
 /**
- * Descarga un recurso binario (por ejemplo un PDF) con la sesión activa y
- * devuelve el blob listo para abrirse o guardarse.
+ * Descarga un recurso binario (por ejemplo un PDF o un CSV) con la sesión
+ * activa y devuelve el blob listo para abrirse o guardarse.
+ *
+ * Cuando falla no se conforma con el número: el cuerpo de un error del backend
+ * sigue siendo JSON aunque la petición pidiera un archivo, así que se lee de
+ * ahí el mensaje. Sin esto, a quien le falta el privilegio le aparecía
+ * "no se pudo descargar el archivo (403)" en vez de qué privilegio le falta.
  */
 export async function descargarArchivo(ruta: string): Promise<Blob> {
   let respuesta = await ejecutar(ruta, { method: "GET" });
@@ -162,9 +167,38 @@ export async function descargarArchivo(ruta: string): Promise<Blob> {
   if (!respuesta.ok) {
     throw new ErrorApi(
       respuesta.status,
-      `No se pudo descargar el archivo (${respuesta.status}).`,
+      await mensajeDeErrorDescarga(respuesta),
       ESTATUS_SIN_SERVICIO.has(respuesta.status),
     );
   }
   return respuesta.blob();
+}
+
+/** Saca el mensaje del backend de una descarga fallida; si no lo hay, describe el estatus. */
+async function mensajeDeErrorDescarga(respuesta: Response): Promise<string> {
+  try {
+    const cuerpo = (await respuesta.json()) as CuerpoErrorBackend;
+    const crudo = cuerpo.mensaje ?? cuerpo.message;
+    if (crudo) {
+      return Array.isArray(crudo) ? crudo.join(" ") : crudo;
+    }
+  } catch {
+    // El error vino sin cuerpo o sin JSON; queda el mensaje genérico.
+  }
+  return `No se pudo descargar el archivo (${respuesta.status}).`;
+}
+
+/**
+ * Descarga un archivo del backend y se lo entrega al navegador para guardarlo.
+ * El objeto URL se libera enseguida: cada uno retiene el blob en memoria hasta
+ * que se suelta, y exportar varias veces seguidas los iría acumulando.
+ */
+export async function guardarArchivo(ruta: string, nombreSugerido: string): Promise<void> {
+  const blob = await descargarArchivo(ruta);
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombreSugerido;
+  enlace.click();
+  URL.revokeObjectURL(url);
 }

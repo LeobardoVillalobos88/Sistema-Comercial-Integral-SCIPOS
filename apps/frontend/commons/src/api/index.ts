@@ -4,6 +4,7 @@ export {
   descargarArchivo,
   establecerRefreshToken,
   establecerToken,
+  guardarArchivo,
   llamarApi,
   registrarRenovacionTokens,
   registrarSesionExpirada,

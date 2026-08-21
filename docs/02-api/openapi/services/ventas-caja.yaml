@@ -224,9 +224,10 @@ paths:
       tags: [ventas]
       summary: Comprobante PDF no fiscal de una venta
       description: >
-        "Privilegio requerido: pos:ver. Documento con folio, fecha, cliente,
-        partidas y totales (RF-27, RF-28); la facturación es simulada, sin
-        timbrado fiscal (RF-29)."
+        "Privilegio requerido: ventas:comprobante. Documento con folio, fecha,
+        cliente, partidas y totales (RF-27, RF-28); la facturación es simulada,
+        sin timbrado fiscal (RF-29). Emitir el comprobante es un permiso propio:
+        entrar al punto de venta no basta para imprimir ventas ajenas."
       parameters:
         - $ref: "#/components/parameters/HeaderUsuarioId"
         - name: id

@@ -25,6 +25,7 @@ import {
   StatCard,
   formatearFechaConHora,
   formatearMoneda,
+  guardarArchivo,
   llamarApi,
   usePermisos,
 } from "@scipos/frontend-commons";
@@ -99,28 +100,50 @@ interface ReporteUtilidad {
   ventasConsideradas: number;
 }
 
-const PESTANAS = ["Ventas", "Cotizaciones", "Inventario", "Cortes", "Utilidad"] as const;
+/**
+ * Pestañas del panel. El índice de cada una es su identidad —el contenido se
+ * decide con él—, así que se declara aquí y no se recalcula al filtrar: si la
+ * utilidad se oculta por privilegio, las demás no deben correrse de lugar.
+ */
+const PESTANAS = [
+  { titulo: "Ventas" },
+  { titulo: "Cotizaciones" },
+  { titulo: "Inventario" },
+  { titulo: "Cortes" },
+  { titulo: "Utilidad", privilegio: "reportes:utilidad" },
+] as const;
+
+/** Reportes que el backend sabe entregar como archivo. */
+type TipoExportable = "ventas" | "cotizaciones" | "inventario" | "cortes";
 
 function mensajeError(error: unknown, mensajePorDefecto: string): string {
   return error instanceof ErrorApi ? error.message : mensajePorDefecto;
 }
 
-/** Descarga filas como archivo CSV (RF: exportación de información). */
-function exportarCsv(nombreArchivo: string, encabezados: string[], filas: string[][]): void {
-  const escapar = (valor: string) => `"${valor.replaceAll('"', '""')}"`;
-  const lineas = [encabezados, ...filas].map((fila) => fila.map(escapar).join(","));
-  const blob = new Blob([`﻿${lineas.join("\r\n")}`], { type: "text/csv;charset=utf-8" });
-  const enlace = document.createElement("a");
-  enlace.href = URL.createObjectURL(blob);
-  enlace.download = nombreArchivo;
-  enlace.click();
-  URL.revokeObjectURL(enlace.href);
+/**
+ * Botón de descarga de un reporte. Se pinta solo con el privilegio de
+ * exportar; sin él no aparece, y aunque apareciera el backend rechazaría la
+ * descarga, que es donde de verdad se decide.
+ */
+function BotonExportar({ puede, onExportar }: { puede: boolean; onExportar: () => void }) {
+  if (!puede) {
+    return null;
+  }
+  return (
+    <Button startIcon={<FileDownloadIcon />} onClick={onExportar}>
+      Exportar CSV
+    </Button>
+  );
 }
 
 /**
  * Panel de reportes comerciales (RF-30, RF-31, RF-33): ventas, cotizaciones,
  * inventario, cortes y utilidad, con filtro por periodo y exportación CSV.
- * El backend exige reportes:ver en cada consulta.
+ *
+ * Tres privilegios distintos, porque son tres permisos distintos: consultar
+ * (reportes:ver), conocer el margen del negocio (reportes:utilidad) y sacar la
+ * información en un archivo (reportes:exportar). El backend exige cada uno por
+ * su cuenta.
  */
 export function PanelReportes() {
   const { can, usuario, cargandoPermisos } = usePermisos();
@@ -177,8 +200,37 @@ export function PanelReportes() {
     [rangoQuery, toast],
   );
 
+  /**
+   * Pide el archivo al backend en vez de armarlo con los datos que la pantalla
+   * ya tiene. Así la descarga pasa por el guard: esconder el botón sería toda
+   * la protección, y eso no protege nada.
+   */
+  const descargarReporte = useCallback(
+    async (tipo: TipoExportable) => {
+      try {
+        await guardarArchivo(
+          `/reportes/reportes/exportar/${tipo}${rangoQuery()}`,
+          `reporte-${tipo}.csv`,
+        );
+      } catch (error) {
+        toast.error(mensajeError(error, "No se pudo exportar el reporte."));
+      }
+    },
+    [rangoQuery, toast],
+  );
+
+  const puedeExportar = can("reportes:exportar");
+  const pestanasVisibles = PESTANAS.map((pestanaDef, indice) => ({ ...pestanaDef, indice })).filter(
+    (pestanaDef) => !("privilegio" in pestanaDef) || can(pestanaDef.privilegio),
+  );
+
   useEffect(() => {
     if (cargandoPermisos || !usuario || !can("reportes:ver")) {
+      return;
+    }
+    // La utilidad tiene su propio privilegio: sin él ni se pide, para no
+    // provocar un 403 que el usuario no puede resolver.
+    if (pestana === 4 && !can("reportes:utilidad")) {
       return;
     }
     cargarPestana(pestana);
@@ -210,8 +262,8 @@ export function PanelReportes() {
           variant="scrollable"
           allowScrollButtonsMobile
         >
-          {PESTANAS.map((titulo) => (
-            <Tab key={titulo} label={titulo} />
+          {pestanasVisibles.map((pestanaDef) => (
+            <Tab key={pestanaDef.titulo} label={pestanaDef.titulo} value={pestanaDef.indice} />
           ))}
         </Tabs>
       </Paper>
@@ -267,25 +319,10 @@ export function PanelReportes() {
                 />
               </Box>
               <Stack direction="row" justifyContent="flex-end">
-                <Button
-                  startIcon={<FileDownloadIcon />}
-                  onClick={() =>
-                    exportarCsv(
-                      "reporte-ventas.csv",
-                      ["Folio", "Cliente", "Estado", "Descuento", "Total", "Fecha"],
-                      ventas.ventas.map((venta) => [
-                        venta.id,
-                        venta.clienteId,
-                        venta.estado,
-                        String(venta.descuento),
-                        String(venta.total),
-                        venta.fecha,
-                      ]),
-                    )
-                  }
-                >
-                  Exportar CSV
-                </Button>
+                <BotonExportar
+                  puede={puedeExportar}
+                  onExportar={() => descargarReporte("ventas")}
+                />
               </Stack>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
@@ -339,24 +376,10 @@ export function PanelReportes() {
                 />
               </Box>
               <Stack direction="row" justifyContent="flex-end">
-                <Button
-                  startIcon={<FileDownloadIcon />}
-                  onClick={() =>
-                    exportarCsv(
-                      "reporte-cotizaciones.csv",
-                      ["Folio", "Cliente", "Estado", "Total", "Creada"],
-                      cotizaciones.cotizaciones.map((cotizacion) => [
-                        cotizacion.folio,
-                        cotizacion.clienteNombre,
-                        cotizacion.estado,
-                        String(cotizacion.total),
-                        cotizacion.creadaEn,
-                      ]),
-                    )
-                  }
-                >
-                  Exportar CSV
-                </Button>
+                <BotonExportar
+                  puede={puedeExportar}
+                  onExportar={() => descargarReporte("cotizaciones")}
+                />
               </Stack>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
@@ -410,25 +433,10 @@ export function PanelReportes() {
                 />
               </Box>
               <Stack direction="row" justifyContent="flex-end">
-                <Button
-                  startIcon={<FileDownloadIcon />}
-                  onClick={() =>
-                    exportarCsv(
-                      "reporte-inventario.csv",
-                      ["Producto", "Tipo", "Precio compra", "Precio venta", "Existencia", "Activo"],
-                      productos.productos.map((producto) => [
-                        producto.nombre,
-                        producto.tipo,
-                        String(producto.precioCompra),
-                        String(producto.precioVenta),
-                        String(producto.existencia),
-                        producto.activo ? "Sí" : "No",
-                      ]),
-                    )
-                  }
-                >
-                  Exportar CSV
-                </Button>
+                <BotonExportar
+                  puede={puedeExportar}
+                  onExportar={() => descargarReporte("inventario")}
+                />
               </Stack>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
@@ -465,24 +473,10 @@ export function PanelReportes() {
                 <Typography variant="subtitle1">
                   {cortes.cantidadCortes} cortes realizados
                 </Typography>
-                <Button
-                  startIcon={<FileDownloadIcon />}
-                  onClick={() =>
-                    exportarCsv(
-                      "reporte-cortes.csv",
-                      ["Folio", "Apertura", "Cierre", "Monto inicial", "Monto final"],
-                      cortes.cortes.map((corte) => [
-                        corte.id,
-                        corte.fechaApertura,
-                        corte.fechaCierre ?? "",
-                        String(corte.montoInicial),
-                        String(corte.montoFinal ?? ""),
-                      ]),
-                    )
-                  }
-                >
-                  Exportar CSV
-                </Button>
+                <BotonExportar
+                  puede={puedeExportar}
+                  onExportar={() => descargarReporte("cortes")}
+                />
               </Stack>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">

@@ -2,6 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ClienteHttp } from "@scipos/backend-commons";
 import { RedisService } from "../redis/redis.service";
+import {
+  type ArchivoCsv,
+  type TipoExportable,
+  csvCortes,
+  csvCotizaciones,
+  csvInventario,
+  csvVentas,
+} from "./csv";
 
 /** Venta tal como la entrega el servicio de ventas-caja. */
 interface VentaRemota {
@@ -180,6 +188,31 @@ export class ReportesService {
     };
     await this.redis.set(claveCache, resultado, TTL_CACHE_SEGUNDOS);
     return resultado;
+  }
+
+  /**
+   * Arma el archivo CSV de un reporte (RF-30: exportación de información).
+   *
+   * La descarga se resuelve aquí y no en el navegador porque exportar es un
+   * privilegio propio: si el archivo se armara con los datos que la pantalla ya
+   * tiene, esconder el botón sería toda la protección, y ocultar botones no es
+   * proteger nada. Al pasar por el endpoint, el guard decide.
+   */
+  async exportar(tipo: TipoExportable, rango: RangoFechas, usuarioId: string): Promise<ArchivoCsv> {
+    if (tipo === "ventas") {
+      const reporte = await this.ventas(rango, usuarioId);
+      return csvVentas(reporte.ventas);
+    }
+    if (tipo === "cotizaciones") {
+      const reporte = await this.cotizaciones(rango, usuarioId);
+      return csvCotizaciones(reporte.cotizaciones);
+    }
+    if (tipo === "inventario") {
+      const reporte = await this.productos(usuarioId);
+      return csvInventario(reporte.productos);
+    }
+    const reporte = await this.cortes(usuarioId);
+    return csvCortes(reporte.cortes);
   }
 
   private obtenerVentas(rango: RangoFechas, usuarioId: string): Promise<VentaRemota[]> {
