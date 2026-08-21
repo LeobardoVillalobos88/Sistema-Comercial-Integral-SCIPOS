@@ -37,12 +37,26 @@ export function crearItemCarrito(producto: ProductoPos, modo: ModoPos): ItemCarr
  * Importes del carrito. El descuento se recorta al subtotal para que la base
  * gravable nunca sea negativa y el total no se vuelva un reembolso.
  *
+ * **Una compra a proveedor no lleva IVA ni descuento.** El servicio la guarda
+ * como la suma de cantidad por precio de compra, y su DTO ni siquiera acepta un
+ * descuento; aplicar aquí la aritmética de venta haría que la pantalla mostrara
+ * un total que la base de datos no tiene.
+ *
  * Estos importes son los que se muestran en pantalla. El backend vuelve a
  * calcular el precio de cada partida desde el catálogo al registrar la
  * operación, así que aquí no se decide cuánto se cobra.
  */
-export function calcularTotales(carrito: ItemCarrito[], descuentoAplicado: number): TotalesCarrito {
+export function calcularTotales(
+  carrito: ItemCarrito[],
+  descuentoAplicado: number,
+  modo: ModoPos,
+): TotalesCarrito {
   const subtotal = carrito.reduce((acumulado, item) => acumulado + item.subtotal, 0);
+
+  if (modo === "compra") {
+    return { subtotal, descuento: 0, baseGravable: subtotal, iva: 0, total: subtotal };
+  }
+
   const descuento = Math.min(descuentoAplicado, subtotal);
   const baseGravable = Math.max(subtotal - descuento, 0);
   const iva = baseGravable * IVA;
