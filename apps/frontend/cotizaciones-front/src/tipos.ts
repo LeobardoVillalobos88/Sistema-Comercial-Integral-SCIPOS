@@ -18,7 +18,6 @@ export interface CotizacionApi {
   clienteNombre: string;
   estado: EstadoCotizacion;
   subtotal: number;
-  iva: number;
   total: number;
   ventaId: string | null;
   creadaEn: string;

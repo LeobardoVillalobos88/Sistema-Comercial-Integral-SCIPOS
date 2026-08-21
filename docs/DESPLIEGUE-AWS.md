@@ -358,6 +358,49 @@ Es el caso de la versión que incorpora la skill de Alexa: trae el usuario
 `asistente@scipos.com`, y sin ese paso la skill responde "no pude iniciar sesión
 en el sistema" en todas sus acciones.
 
+### La versión que quita el IVA
+
+Esa versión trae **dos migraciones que eliminan la columna `iva`**, una en
+cotizaciones y otra en ventas-caja. Se aplican solas al arrancar, sin más
+trámite: quitar una columna no falla ni requiere convertir nada.
+
+Lo que sí conviene saber es que **las cotizaciones y ventas que ya existían
+conservan el total con el que se guardaron**, calculado con el IVA sumado
+encima. Una migración cambia la forma de la tabla, no recalcula su contenido. En
+la práctica queda una venta antigua cuyo total no cuadra con la suma de sus
+partidas.
+
+**Lo más simple es arrancar con datos limpios.** Si la instancia solo tiene
+información de demostración, se borra el volumen y se vuelve a sembrar todo, y
+así no queda ningún registro con la regla vieja:
+
+```bash
+pnpm prod:down
+docker volume rm compose_scipos-db-data
+```
+```bash
+sed -i 's/^EJECUTAR_SEMILLA=false/EJECUTAR_SEMILLA=true/' .env
+pnpm prod:up
+```
+
+Cuando termine de sembrar, **vuelve a poner `EJECUTAR_SEMILLA=false`** y
+reinicia, o cada arranque recargará los datos.
+
+> Esto **borra la base entera**, incluidos los usuarios y sus contraseñas. Solo
+> es buena idea mientras el sistema tenga datos de demostración. Si hubiera algo
+> que conservar, respáldalo antes (ver la sección siguiente).
+
+Si prefieres conservar los datos, se corrigen al menos los registros de la
+semilla volviendo a sembrar esos dos servicios, que hacen `upsert` por id fijo:
+
+```bash
+docker exec scipos-cotizaciones pnpm exec tsx prisma/seed.ts
+docker exec scipos-ventas-caja pnpm exec tsx prisma/seed.ts
+```
+
+Las ventas y cotizaciones creadas a mano no se tocan por esa vía: llevan un id
+distinto y quedarán con su total viejo.
+
 ### Respaldar la base de datos
 
 ```bash

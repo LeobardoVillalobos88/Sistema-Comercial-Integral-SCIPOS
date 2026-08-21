@@ -10,8 +10,7 @@ const cotizaciones = [
     clienteNombre: "María González López",
     estado: EstadoCotizacion.BORRADOR,
     subtotal: "145.00",
-    iva: "23.20",
-    total: "168.20",
+    total: "145.00",
     ventaId: null,
     creadaEn: new Date("2026-07-14T15:00:00.000Z"),
     partidas: [
@@ -38,8 +37,7 @@ const cotizaciones = [
     clienteNombre: "Comercializadora del Sur SA de CV",
     estado: EstadoCotizacion.ENVIADA,
     subtotal: "392.00",
-    iva: "62.72",
-    total: "454.72",
+    total: "392.00",
     ventaId: null,
     creadaEn: new Date("2026-07-15T17:30:00.000Z"),
     partidas: [
@@ -66,8 +64,7 @@ const cotizaciones = [
     clienteNombre: "Juan Pérez Hernández",
     estado: EstadoCotizacion.VENDIDA,
     subtotal: "242.80",
-    iva: "38.85",
-    total: "281.65",
+    total: "242.80",
     ventaId: "v-001",
     creadaEn: new Date("2026-07-16T13:00:00.000Z"),
     partidas: [

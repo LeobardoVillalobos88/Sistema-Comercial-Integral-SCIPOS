@@ -32,7 +32,7 @@ paths:
       tags: [ventas]
       summary: Registrar una venta en el POS
       description: >
-        Crea una venta con caja abierta. Calcula subtotal, IVA (16%) y total en el
+        Crea una venta con caja abierta. Calcula subtotal, descuento y total en el
         servidor, descuenta existencias en productos y aplica descuento solo si el
         usuario tiene el privilegio `pos:descuento`. Requiere `pos:vender`.
       parameters:
@@ -492,7 +492,6 @@ components:
         - id
         - clienteId
         - descuento
-        - iva
         - total
         - estado
         - fecha
@@ -507,10 +506,6 @@ components:
           type: number
           format: float
           example: 5
-        iva:
-          type: number
-          format: float
-          example: 9.36
         total:
           type: number
           format: float

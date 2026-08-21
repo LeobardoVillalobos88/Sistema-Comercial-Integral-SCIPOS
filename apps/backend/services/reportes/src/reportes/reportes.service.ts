@@ -10,7 +10,6 @@ interface VentaRemota {
   cotizacionId: string | null;
   subtotal: number;
   descuento: number;
-  iva: number;
   total: number;
   estado: "COMPLETA" | "CANCELADA";
   fecha: string;

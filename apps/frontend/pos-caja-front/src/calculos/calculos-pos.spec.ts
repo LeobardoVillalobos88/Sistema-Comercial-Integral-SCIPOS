@@ -71,14 +71,13 @@ describe("crearItemCarrito", () => {
 });
 
 describe("calcularTotales en modo compra", () => {
-  // Una compra a proveedor no lleva IVA ni descuento: el servicio la guarda como
-  // la suma de cantidad por precio de compra, y nada más. Si la pantalla
-  // aplicara la aritmética de venta, mostraría un total que la base no tiene.
-  it("no aplica IVA", () => {
+  // El servicio guarda la compra como la suma de cantidad por precio de compra,
+  // y su DTO ni siquiera acepta descuento. Si la pantalla aplicara la
+  // aritmética de venta, mostraría un total que la base no tiene.
+  it("el total es el subtotal, sin nada encima", () => {
     const totales = calcularTotales([partida({ cantidad: 5, subtotal: 50 })], 0, "compra");
 
     assert.equal(totales.subtotal, 50);
-    assert.equal(totales.iva, 0);
     assert.equal(totales.total, 50);
   });
 
@@ -86,7 +85,6 @@ describe("calcularTotales en modo compra", () => {
     const totales = calcularTotales([partida({ subtotal: 200 })], 100, "compra");
 
     assert.equal(totales.descuento, 0);
-    assert.equal(totales.baseGravable, 200);
     assert.equal(totales.total, 200);
   });
 
@@ -94,8 +92,6 @@ describe("calcularTotales en modo compra", () => {
     assert.deepEqual(calcularTotales([], 0, "compra"), {
       subtotal: 0,
       descuento: 0,
-      baseGravable: 0,
-      iva: 0,
       total: 0,
     });
   });
@@ -117,36 +113,28 @@ describe("calcularTotales", () => {
     assert.deepEqual(calcularTotales([], 0, "venta"), {
       subtotal: 0,
       descuento: 0,
-      baseGravable: 0,
-      iva: 0,
       total: 0,
     });
   });
 
-  it("suma los importes de las partidas y aplica el IVA", () => {
+  it("el total es lo que se cobra: los precios del catálogo ya son los finales", () => {
     const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 0, "venta");
 
     assert.equal(totales.subtotal, 200);
-    assert.equal(totales.baseGravable, 200);
-    assert.equal(totales.iva, 32);
-    assert.equal(totales.total, 232);
+    assert.equal(totales.total, 200);
   });
 
-  it("descuenta antes de calcular el IVA", () => {
+  it("resta el descuento del total", () => {
     const totales = calcularTotales([partida({ cantidad: 2, subtotal: 200 })], 100, "venta");
 
     assert.equal(totales.descuento, 100);
-    assert.equal(totales.baseGravable, 100);
-    assert.equal(totales.iva, 16);
-    assert.equal(totales.total, 116);
+    assert.equal(totales.total, 100);
   });
 
   it("recorta un descuento mayor que el subtotal en lugar de generar un negativo", () => {
     const totales = calcularTotales([partida({ subtotal: 100 })], 500, "venta");
 
     assert.equal(totales.descuento, 100);
-    assert.equal(totales.baseGravable, 0);
-    assert.equal(totales.iva, 0);
     assert.equal(totales.total, 0);
   });
 
