@@ -2,7 +2,7 @@
 
 Los documentos que explican **por qué** el sistema está hecho como está. Para
 saber **qué hace** cada módulo, la
-[guía del sistema](../readmes/GUIA-DEL-SISTEMA.md); para levantarlo, el
+[guía del sistema](../GUIA-DEL-SISTEMA.md); para levantarlo, el
 [README](../../README.md); para publicarlo,
 [despliegue en AWS](../DESPLIEGUE-AWS.md).
 

@@ -200,7 +200,7 @@ Cosas que conviene saber al usarla:
   misma base de datos.
 
 El detalle técnico y el procedimiento de alta están en
-[`apps/alexa-skill/README.md`](../../apps/alexa-skill/README.md).
+[`apps/alexa-skill/README.md`](../apps/alexa-skill/README.md).
 
 ---
 
@@ -242,4 +242,4 @@ El detalle técnico y el procedimiento de alta están en
 
 El despliegue se hace con contenedores sobre una sola máquina, detrás de nginx.
 El procedimiento completo —desde crear la instancia hasta verificar que responde—
-está en [`docs/DESPLIEGUE-AWS.md`](../DESPLIEGUE-AWS.md).
+está en [`docs/DESPLIEGUE-AWS.md`](./DESPLIEGUE-AWS.md).

@@ -100,13 +100,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${anchoActual}px)` },
-          // Un ítem flex arranca con min-width:auto, o sea que se niega a
-          // encogerse por debajo del ancho de su contenido. Con una tabla ancha
-          // adentro, el área crecía hasta medir lo que la tabla y arrastraba
-          // consigo a toda la página: en un teléfono, 922px de contenido dentro
-          // de una pantalla de 375. El TableContainer nunca llegaba a
-          // desplazarse porque su padre le cedía el espacio. Ponerlo en cero
-          // devuelve el desplazamiento a la tabla, que es donde corresponde.
+          // Necesario: un ítem flex no se encoge por debajo del ancho de su
+          // contenido. Sin esto, una tabla ancha estira el área y desborda la
+          // página en lugar de desplazarse dentro de su TableContainer.
           minWidth: 0,
           bgcolor: "background.default",
           transition: (theme) =>

@@ -10,18 +10,65 @@ OpenAPI/Scalar.
 
 | Documento | Para qué |
 |---|---|
-| [Guía del sistema](docs/readmes/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo (funcional) |
+| [Guía del sistema](docs/GUIA-DEL-SISTEMA.md) | Qué hace cada módulo y quién puede hacer qué |
 | [Arquitectura](docs/01-architecture/README.md) | Por qué está hecho así: decisiones, patrones, SOLID, estructura y ramas |
-| [Despliegue en AWS](docs/DESPLIEGUE-AWS.md) | Publicar el sistema en una instancia, paso a paso |
 | [Contratos de API](docs/02-api/README.md) | Flujo contrato-primero y OpenAPI por servicio |
+| [Despliegue en AWS](docs/DESPLIEGUE-AWS.md) | Publicar el sistema en una instancia, paso a paso |
+
+**Implementación de referencia.** El sistema se publicó en una instancia EC2 con
+Docker Compose detrás de nginx como único punto de entrada, con dominio propio y
+certificado. El procedimiento completo, reproducible de cero, está en
+[docs/DESPLIEGUE-AWS.md](docs/DESPLIEGUE-AWS.md).
+
 ---
 
-# Encendido del sistema en local (dev)
+# Cómo levantar el sistema
 
-Guía para levantar SCIPOS completo desde cero: infraestructura (Postgres + Redis),
-backend (gateway + servicio de seguridad) y frontend (web-shell y microfrontends).
+Hay dos caminos. Los dos dejan el sistema completo funcionando con datos de
+ejemplo; elige según lo que tengas instalado.
 
-## 0. Requisitos (una sola vez por máquina)
+| | Camino A · Docker | Camino B · pnpm |
+|---|---|---|
+| Necesitas | Solo Docker | Node 22+, pnpm 11 y Docker |
+| Comandos | 2 | 3 |
+| Tarda | 5-15 min (construye imágenes) | 3-5 min |
+| Bueno para | Probar que funciona sin instalar nada más | Leer y modificar el código |
+
+---
+
+## Camino A · Un solo comando, solo con Docker
+
+Levanta los siete procesos de backend, la interfaz, PostgreSQL, Redis y nginx.
+No depende de la versión de Node que tengas.
+
+```bash
+cp .env.example .env
+```
+
+Abre el `.env` y pon `EJECUTAR_SEMILLA=true` (solo la primera vez, para que
+cargue los datos de ejemplo). Después:
+
+```bash
+pnpm prod:build && pnpm prod:up
+```
+
+Sin pnpm instalado, el mismo comando directo:
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env build
+docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env up -d
+```
+
+Cuando termine, el sistema está en **http://localhost** y la API en
+**http://localhost/api**. Entra con `admin@scipos.com` / `Admin1234`.
+
+Para apagarlo: `pnpm prod:down`.
+
+---
+
+## Camino B · Con pnpm, para trabajar en el código
+
+### 1. Requisitos
 
 | Herramienta | Versión | Verifica con |
 |---|---|---|
@@ -33,35 +80,22 @@ backend (gateway + servicio de seguridad) y frontend (web-shell y microfrontends
 > **Docker Desktop debe estar abierto** antes de empezar (icono de la ballena activo).
 > Si `pnpm` no existe: `corepack enable` y vuelve a abrir la terminal.
 
-## 1. Clonar e instalar
+### 2. Instalar y preparar
 
 ```bash
-git clone https://github.com/LeobardoVillalobos88/Sistema-Comercial-Integral-SCIPOS.git
-cd Sistema-Comercial-Integral-SCIPOS
-git checkout develop
 pnpm install
+pnpm setup:local
 ```
 
-## 2. Variables de entorno
+`setup:local` comprueba los requisitos, crea los siete `.env` a partir de sus
+`.env.example`, genera el par de llaves RSA con el que se firman los tokens,
+levanta PostgreSQL y Redis, aplica las migraciones y siembra los datos de
+ejemplo. Si algo falta te lo dice antes de empezar, no a medio camino.
 
-Cada app del backend trae un `.env.example`; cópialo como `.env` (los `.env` no se
-suben a git):
+Los valores por defecto ya apuntan a la infraestructura local; no hay que editar
+nada. El frontend no necesita `.env`: usa `http://localhost:4000/api`.
 
-```bash
-cp apps/backend/gateway/.env.example apps/backend/gateway/.env
-cp apps/backend/services/seguridad/.env.example apps/backend/services/seguridad/.env
-cp apps/backend/services/productos/.env.example apps/backend/services/productos/.env
-cp apps/backend/services/clientes/.env.example apps/backend/services/clientes/.env
-cp apps/backend/services/cotizaciones/.env.example apps/backend/services/cotizaciones/.env
-cp apps/backend/services/ventas-caja/.env.example apps/backend/services/ventas-caja/.env
-cp apps/backend/services/reportes/.env.example apps/backend/services/reportes/.env
-```
-
-Los valores por defecto ya apuntan a la infraestructura local (Postgres y Redis del
-paso 3), no hay que editar nada. El frontend no necesita `.env`: usa
-`http://localhost:4000/api` por defecto.
-
-El de productos trae además los dos umbrales con los que el sistema avisa del
+El `.env` de productos trae además los dos umbrales con los que el sistema avisa del
 inventario al entrar. Si no los defines, usa estos mismos valores:
 
 | Variable | Por defecto | Qué controla |
@@ -72,33 +106,24 @@ inventario al entrar. Si no los defines, usa estos mismos valores:
 Son también los umbrales de las cifras del dashboard, para que el aviso y el
 tablero no digan cosas distintas del mismo catálogo.
 
-## 3. Infraestructura + base de datos (un solo comando)
+Los datos de ejemplo que carga: la matriz de privilegios con los cinco usuarios
+semilla, el catálogo de productos, los clientes, unas cotizaciones y un turno de
+caja con ventas históricas. Si todo salió bien, la última línea dice algo como
+`Semilla aplicada: { cajas: 2, ventas: 2, movimientos: 4 }`.
 
-```bash
-pnpm setup:backend
-```
-
-Ese comando hace, en orden: genera el par de llaves RSA para firmar los tokens
-(en `keys/`, ignorada por git), levanta los contenedores `scipos-db` (Postgres 16)
-y `scipos-redis` (Redis 5), compila `@scipos/backend-commons` y prepara cada servicio
-(genera el cliente de Prisma, aplica migraciones y siembra datos): la matriz de
-privilegios con los 5 usuarios semilla, el catálogo de productos, los clientes, unas
-cotizaciones de ejemplo y un turno de caja con ventas históricas.
-
-Si todo salió bien, la última línea dice algo como `Semilla aplicada: { cajas: 2, ventas: 2, movimientos: 4 }`
-
-## 4. Levantar las apps
-
-Lo mínimo para trabajar (todo el backend + el shell):
-
-```bash
-pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/cotizaciones-service --filter @scipos/ventas-caja-service --filter @scipos/reportes-service --filter @scipos/web-shell
-```
-
-O todo el monorepo (todos los microfrontends y servicios existentes):
+### 3. Levantar las apps
 
 ```bash
 pnpm dev
+```
+
+Y entra en **http://localhost:3001** con `admin@scipos.com` / `Admin1234`.
+
+Si tu máquina va justa de memoria, el mínimo funcional (todo el backend más el
+armazón, sin los microfrontends por separado):
+
+```bash
+pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/productos-service --filter @scipos/clientes-service --filter @scipos/cotizaciones-service --filter @scipos/ventas-caja-service --filter @scipos/reportes-service --filter @scipos/web-shell
 ```
 
 ### Puertos
@@ -128,7 +153,12 @@ pnpm --filter @scipos/alexa-skill test
 El procedimiento de alta en la consola, las variables de entorno y la lista de
 comprobación están en [`apps/alexa-skill/README.md`](apps/alexa-skill/README.md).
 
-## 5. Verificar que todo funciona
+---
+
+# Verificar que todo funciona
+
+Sirve para los dos caminos; cambia el puerto según el que hayas usado
+(Docker sirve todo por el 80, pnpm usa el 3001 y el 4000).
 
 1. **Salud del backend:** http://localhost:4000/health debe responder `"status": "ok"`
    con la tabla de servicios enrutados. http://localhost:4001/health responde el
@@ -225,17 +255,24 @@ cuando expira); el menú lateral tiene el botón para cerrar sesión.
   consumido cierra la sesión (defensa ante robo). El **logout** revoca el token
   al instante vía una denylist en Redis, sin esperar a que expire.
 
-## 6. Apagar
+---
+
+# Apagar
 
 ```bash
-# Ctrl+C en la terminal de pnpm dev, y después:
+# Camino A (Docker)
+pnpm prod:down
+
+# Camino B (pnpm): Ctrl+C en la terminal de pnpm dev, y después
 pnpm infra:down
 ```
 
-## 7. Desplegar en producción
+---
 
-Todo lo anterior es para desarrollo local. Para publicar el sistema en una
-instancia (por ejemplo EC2) el procedimiento completo está en
+# Publicar en un servidor
+
+Los dos caminos de arriba son para una máquina propia. Para publicar el sistema
+en una instancia (por ejemplo EC2) el procedimiento completo está en
 **[docs/DESPLIEGUE-AWS.md](docs/DESPLIEGUE-AWS.md)**.
 
 En resumen: se levanta con Docker Compose detrás de nginx, que queda como único
@@ -254,7 +291,9 @@ Las contraseñas semilla de la tabla de arriba son públicas por estar en este
 documento. En una instancia expuesta a internet defínelas con las variables
 `SEED_*_PASSWORD` del `.env` antes del primer arranque.
 
-## Problemas comunes
+---
+
+# Problemas comunes
 
 | Síntoma | Causa y solución |
 |---|---|

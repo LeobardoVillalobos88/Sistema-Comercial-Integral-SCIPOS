@@ -116,7 +116,7 @@ En este orden, y en menos de una hora:
 
 1. **[`README.md`](../../README.md)** — levantar el sistema completo en local.
    Son cuatro comandos.
-2. **[Guía del sistema](../readmes/GUIA-DEL-SISTEMA.md)** — qué hace cada módulo
+2. **[Guía del sistema](../GUIA-DEL-SISTEMA.md)** — qué hace cada módulo
    y quién puede hacer qué.
 3. **Este documento** — dónde está cada cosa.
 4. **[Decisiones técnicas](./decisiones-tecnicas.md)** — por qué está así.
