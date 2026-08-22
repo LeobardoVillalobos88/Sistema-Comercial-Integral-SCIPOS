@@ -27,42 +27,68 @@ certificado. El procedimiento completo, reproducible de cero, está en
 Hay dos caminos. Los dos dejan el sistema completo funcionando con datos de
 ejemplo; elige según lo que tengas instalado.
 
-| | Camino A · Docker | Camino B · pnpm |
+| | Camino A · Todo en contenedores | Camino B · Con pnpm |
 |---|---|---|
-| Necesitas | Solo Docker | Node 22+, pnpm 11 y Docker |
-| Comandos | 2 | 3 |
-| Tarda | 5-15 min (construye imágenes) | 3-5 min |
-| Bueno para | Probar que funciona sin instalar nada más | Leer y modificar el código |
+| Necesitas | Docker (y el `.env` de la entrega, o Node para generar las llaves) | Node 22+, pnpm 11 y Docker |
+| Qué levanta | El montaje completo, igual que en el servidor | Los procesos en modo desarrollo, con recarga en caliente |
+| Tarda la primera vez | 5-15 min construyendo imágenes | 3-5 min instalando y preparando |
+| Se sirve en | http://localhost | http://localhost:3001 |
+| Bueno para | Comprobar que el sistema funciona | Leer, modificar y depurar el código |
 
 ---
 
-## Camino A · Un solo comando, solo con Docker
+## Camino A · Todo en contenedores
 
 Levanta los siete procesos de backend, la interfaz, PostgreSQL, Redis y nginx.
-No depende de la versión de Node que tengas.
+Es el mismo montaje que corre en el servidor.
 
-```bash
-cp .env.example .env
-```
+### 1. El archivo `.env` de la raíz
 
-Abre el `.env` y pon `EJECUTAR_SEMILLA=true` (solo la primera vez, para que
-cargue los datos de ejemplo). Después:
+Es el único archivo que hay que preparar. Dos maneras:
+
+- **Si recibiste el `.env` junto con el proyecto**, cópialo a la raíz y listo:
+  ya trae las llaves de firma y la semilla activada.
+- **Si partes solo del repositorio**, hay que generar las llaves RSA con las que
+  se firman los tokens. No vienen versionadas a propósito: quien tenga la
+  privada puede emitir tokens válidos, así que cada instalación genera la suya.
+
+  ```bash
+  cp .env.example .env
+  pnpm generar:llaves      # crea el par en keys/
+  pnpm llaves:entorno      # imprime las dos líneas JWT_*, pégalas en el .env
+  ```
+
+  Y en el `.env`, pon `EJECUTAR_SEMILLA=true` para que cargue los datos de
+  ejemplo en el primer arranque.
+
+> Sin las llaves, el servicio de seguridad no arranca: es el único que firma
+> tokens y no tiene con qué.
+
+### 2. Construir y levantar
 
 ```bash
 pnpm prod:build && pnpm prod:up
 ```
 
-Sin pnpm instalado, el mismo comando directo:
+O sin pnpm, con Docker directamente:
 
 ```bash
 docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env build
 docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env up -d
 ```
 
-Cuando termine, el sistema está en **http://localhost** y la API en
-**http://localhost/api**. Entra con `admin@scipos.com` / `Admin1234`.
+La construcción tarda entre 5 y 15 minutos la primera vez. Cuando termine, el
+sistema está en **http://localhost** y la API en **http://localhost/api**. Entra
+con `admin@scipos.com` / `Admin1234`.
 
-Para apagarlo: `pnpm prod:down`.
+Comprueba que los contenedores estén sanos:
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env ps
+```
+
+Para apagarlo: `pnpm prod:down`. Después del primer arranque conviene volver
+`EJECUTAR_SEMILLA` a `false`, para que un reinicio no recargue los datos.
 
 ---
 
@@ -117,7 +143,13 @@ caja con ventas históricas. Si todo salió bien, la última línea dice algo co
 pnpm dev
 ```
 
-Y entra en **http://localhost:3001** con `admin@scipos.com` / `Admin1234`.
+**La primera vez tarda unos 4 minutos y parece detenido**: antes de arrancar, el
+armazón construye los cinco microfrontends de los que depende. Verás varias
+líneas `Compiled successfully`. Las siguientes veces arranca en segundos, porque
+Turborepo reutiliza la construcción.
+
+Cuando termine, entra en **http://localhost:3001** con `admin@scipos.com` /
+`Admin1234`.
 
 Si tu máquina va justa de memoria, el mínimo funcional (todo el backend más el
 armazón, sin los microfrontends por separado):
@@ -303,3 +335,12 @@ documento. En una instancia expuesta a internet defínelas con las variables
 | `P1001: Can't reach database server` | El contenedor `scipos-db` no está arriba: `pnpm infra:up`. |
 | Quiero resetear la base de datos | `docker compose -f infra/docker/compose/docker-compose.dev.yml down -v` y de nuevo `pnpm setup:backend` (el `-v` borra los datos). |
 | Redis apagado | El sistema sigue funcionando (solo pierde la caché); revisa `pnpm infra:up` si quieres la caché de privilegios. |
+| `Filename too long` al clonar (Windows) | Límite de 260 caracteres de Windows. `git config --global core.longpaths true`, o clona en una ruta corta como `C:\dev\`. |
+| El puerto 5432 ya está ocupado | Tienes un PostgreSQL instalado en la máquina. Deténlo, o cambia el puerto publicado en `infra/docker/compose/docker-compose.dev.yml` y el `DATABASE_URL` de cada servicio. |
+| `Killed` o el build se congela (Camino A) | Falta memoria en Docker. En Docker Desktop, Settings → Resources, súbela a 4 GB. |
+| `pnpm: command not found` | `corepack enable` y vuelve a abrir la terminal. Viene con Node 22. |
+
+El equipo desarrolla en Windows y en macOS, y el sistema corre en ambos. El
+arranque de este README se verificó además desde un clon limpio y con la base de
+datos vacía. Las tres imágenes que usa —PostgreSQL, Redis y Node— publican
+variante `arm64`, así que en un Mac con Apple Silicon corren nativas.
