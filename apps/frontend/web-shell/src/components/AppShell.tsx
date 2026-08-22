@@ -89,6 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Topbar anchoMenu={anchoActual} onAbrirMenu={() => setMenuMovilAbierto(true)} />
       <Sidebar
         ancho={anchoActual}
+        anchoMovil={ANCHO_MENU_ABIERTO}
         menuMovilAbierto={menuMovilAbierto}
         onCerrarMenu={() => setMenuMovilAbierto(false)}
         sidebarAbierto={sidebarAbierto}
