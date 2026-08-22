@@ -193,10 +193,9 @@ export class ReportesService {
   /**
    * Arma el archivo CSV de un reporte (RF-30: exportación de información).
    *
-   * La descarga se resuelve aquí y no en el navegador porque exportar es un
-   * privilegio propio: si el archivo se armara con los datos que la pantalla ya
-   * tiene, esconder el botón sería toda la protección, y ocultar botones no es
-   * proteger nada. Al pasar por el endpoint, el guard decide.
+   * Se resuelve en el servidor y no en el navegador para que la descarga pase
+   * por el guard de `reportes:exportar`. Armado desde los datos que la pantalla
+   * ya tiene, el privilegio no se podría aplicar.
    */
   async exportar(tipo: TipoExportable, rango: RangoFechas, usuarioId: string): Promise<ArchivoCsv> {
     if (tipo === "ventas") {

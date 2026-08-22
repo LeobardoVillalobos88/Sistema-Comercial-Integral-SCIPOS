@@ -2,13 +2,8 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from ".prisma/client";
 
-/**
- * Semilla del servicio ventas-caja. Usa IDs fijos conocidos por el equipo y los
- * IDs de productos del servicio de productos (`p-00x`).
- */
 const CAJA_HISTORICA = {
   id: "CORTE-HIST-001",
-  // 1000 inicial + 145.40 de ventas + 150 de ingresos - 82.50 de egresos.
   montoInicial: 1000,
   montoFinal: 1212.9,
   fechaApertura: new Date("2026-06-30T08:00:00.000Z"),
@@ -18,7 +13,6 @@ const CAJA_HISTORICA = {
 
 const CAJA_HISTORICA_2 = {
   id: "CORTE-HIST-002",
-  // 1200 inicial + 200 de ingresos - 120 de egresos. Este turno no tuvo ventas.
   montoInicial: 1200,
   montoFinal: 1280,
   fechaApertura: new Date("2026-06-29T14:00:00.000Z"),

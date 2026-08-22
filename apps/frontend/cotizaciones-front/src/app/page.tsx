@@ -75,7 +75,6 @@ interface ModalNuevaCotizacionProps {
   catalogosCargando: boolean;
 }
 
-/** Modal de alta de cotización: cliente, productos, folio y total automáticos. */
 function ModalNuevaCotizacion({
   open,
   onClose,
@@ -305,7 +304,6 @@ interface ModalDetalleCotizacionProps {
   clientes: Cliente[];
 }
 
-/** Modal de detalle: partidas, total y conversión a venta sin recapturar datos. */
 function ModalDetalleCotizacion({ open, id, onClose, clientes }: ModalDetalleCotizacionProps) {
   const { obtenerPorId, marcarEnviada, convertirAVenta } = useCotizaciones();
   const toast = useToast();
@@ -450,12 +448,6 @@ function ModalDetalleCotizacion({ open, id, onClose, clientes }: ModalDetalleCot
   );
 }
 
-/**
- * Pantalla completa del módulo de Cotizaciones (listado + alta + detalle).
- * Contenido puro: no incluye Sidebar/Topbar, esos los aporta quien la
- * hospede (el AppShell local al correr standalone, o el web-shell cuando se
- * embebe vía `@scipos/cotizaciones-front`).
- */
 export default function CotizacionesPage() {
   const { can, usuario, cargandoPermisos } = usePermisos();
   const { cotizaciones, cargando, errorCarga, recargar, eliminar } = useCotizaciones();
@@ -638,7 +630,6 @@ export default function CotizacionesPage() {
             tamano="small"
             opciones={clientes}
             valor={clientes.find((c) => c.id === clienteId) ?? null}
-            // Vaciar el campo es la forma de volver a "todos los clientes".
             onCambio={(cliente) => setClienteId(cliente?.id ?? "TODOS")}
             obtenerEtiqueta={(c) => c.nombre}
             obtenerClave={(c) => c.id}

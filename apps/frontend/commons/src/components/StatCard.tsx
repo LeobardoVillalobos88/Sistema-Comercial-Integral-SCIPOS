@@ -9,13 +9,11 @@ import Typography from "@mui/material/Typography";
 export interface StatCardProps {
   titulo: string;
   valor: string | number;
-  /** Texto secundario opcional (por ejemplo, "vs. ayer"). */
   detalle?: string;
   icono?: React.ReactNode;
   color?: "primary" | "secondary" | "success" | "error";
 }
 
-/** Tarjeta de métrica para el dashboard. */
 export function StatCard({ titulo, valor, detalle, icono, color = "primary" }: StatCardProps) {
   return (
     <Card variant="outlined" sx={{ height: "100%" }}>

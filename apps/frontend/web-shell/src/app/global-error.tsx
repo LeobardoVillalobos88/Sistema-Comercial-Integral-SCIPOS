@@ -3,14 +3,6 @@
 import { CONTENIDO_ERROR } from "@scipos/frontend-commons";
 import { useEffect } from "react";
 
-/**
- * Último recurso: se muestra cuando falla el propio armazón raíz, así que
- * reemplaza el documento completo y corre fuera de los proveedores.
- *
- * Por eso no usa MUI ni el tema: los colores van en línea. Si lo que se rompió
- * fue el proveedor de tema, una pantalla que dependiera de él se rompería
- * también, y el usuario se quedaría mirando el vacío.
- */
 export default function ErrorGlobal({
   error,
   reset,

@@ -1,6 +1,6 @@
 {
   "name": "@scipos/cotizaciones-service",
-  "version": "0.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "Microservicio de cotizaciones de SCIPOS",
   "license": "UNLICENSED",

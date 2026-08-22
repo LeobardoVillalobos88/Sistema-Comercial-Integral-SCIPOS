@@ -4,18 +4,11 @@ import { HEADER_USUARIO_ID, RequierePrivilegio, UsuarioActual } from "@scipos/ba
 import { TIPOS_EXPORTABLES, esTipoExportable } from "./csv";
 import { ReportesService } from "./reportes.service";
 
-/** Forma mínima de la respuesta HTTP que necesita la descarga del archivo. */
 interface RespuestaDescarga {
   setHeader: (nombre: string, valor: string) => void;
   send: (cuerpo: string) => void;
 }
 
-/**
- * Consultar reportes exige reportes:ver (RF-31). Dos acciones se separan del
- * resto porque el enunciado las trata como privilegios propios: la utilidad,
- * reservada a supervisión y administración (RF-33), y la descarga de archivos,
- * que puede sacar información del sistema y por eso no viaja con la consulta.
- */
 @ApiTags("reportes")
 @ApiHeader({ name: HEADER_USUARIO_ID, required: false })
 @Controller("reportes")

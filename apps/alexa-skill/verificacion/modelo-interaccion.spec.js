@@ -6,14 +6,12 @@ const path = require("node:path");
 
 const modelo = require("../modelo-interaccion.json");
 
-/** Código del Lambda, leído como texto para comprobar que atiende lo declarado. */
 const CODIGO_LAMBDA = fs.readFileSync(path.join(__dirname, "../lambda/index.js"), "utf8");
 
 const MODELO = modelo.interactionModel.languageModel;
 const DIALOGO = modelo.interactionModel.dialog;
 const PROMPTS = modelo.interactionModel.prompts;
 
-/** Intents propios de la skill: los de AMAZON no llevan utterances nuestras. */
 const INTENTS_PROPIOS = [
   "RegistrarProductoIntent",
   "SurtirInventarioIntent",
@@ -21,21 +19,10 @@ const INTENTS_PROPIOS = [
   "BitacoraVozIntent",
 ];
 
-/**
- * Mínimo de utterances por intent. La rúbrica pide 10-15; se duplica ese techo
- * para que la NLU tenga de dónde agarrarse cuando alguien improvise una frase.
- */
 const MINIMO_UTTERANCES = 30;
 
-/**
- * Slots de texto libre. Reciben nombres que no se pueden enumerar —cualquier
- * producto, cualquier marca de proveedor—, así que van con AMAZON.SearchQuery
- * en vez de un tipo con lista: una lista finita deja de llenar el slot en
- * cuanto alguien dice algo que no se le parece, y a la tercera Alexa cuelga.
- */
 const SLOTS_DE_TEXTO_LIBRE = ["nombreProducto", "producto", "proveedor"];
 
-/** Slots que declaran slot filling y por tanto deben cumplir el criterio de 4 y 8. */
 const SLOTS_CON_LLENADO = [
   ["RegistrarProductoIntent", "nombreProducto"],
   ["RegistrarProductoIntent", "precioCompra"],
@@ -67,8 +54,6 @@ function prompt(id) {
 
 describe("modelo de interaccion", () => {
   it("declara el nombre de invocacion sin tilde y sin preposiciones", () => {
-    // Amazon rechaza los nombres de invocacion con articulos o preposiciones,
-    // asi que no puede llevar el "de" que pediria el espanol.
     assert.equal(MODELO.invocationName, "asistente almacen");
   });
 
@@ -112,8 +97,6 @@ describe("modelo de interaccion", () => {
   });
 
   it("no mezcla un slot de texto libre con otro slot en la misma utterance", () => {
-    // Amazon rechaza el modelo si AMAZON.SearchQuery comparte utterance con
-    // otro slot. Se comprueba aquí para no descubrirlo en el Build Model.
     for (const nombreIntent of INTENTS_PROPIOS) {
       for (const sample of intent(nombreIntent).samples) {
         const usados = [...sample.matchAll(/{([^}]+)}/g)].map((m) => m[1]);
@@ -129,7 +112,6 @@ describe("modelo de interaccion", () => {
   });
 
   it("acompaña con palabras toda utterance de un slot de texto libre", () => {
-    // Una muestra que sea solo "{slot}" no es válida con AMAZON.SearchQuery.
     for (const nombreIntent of INTENTS_PROPIOS) {
       for (const slot of intent(nombreIntent).slots || []) {
         if (!SLOTS_DE_TEXTO_LIBRE.includes(slot.name)) continue;
@@ -229,9 +211,6 @@ describe("modelo de interaccion", () => {
   });
 
   it("atiende con un handler propio cada intent declarado", () => {
-    // Un intent declarado sin handler cae en el reflector y Alexa contesta con
-    // su nombre técnico: "todavía no sé atender AMAZON.NavigateHomeIntent".
-    // Queda feo y es de las primeras cosas que alguien prueba.
     for (const declarado of MODELO.intents) {
       assert.ok(
         CODIGO_LAMBDA.includes(`=== "${declarado.name}"`),
@@ -241,9 +220,6 @@ describe("modelo de interaccion", () => {
   });
 
   it("cierra cada respuesta con reprompt salvo las que terminan la sesión", () => {
-    // Perder la sesión por no reofrecer el siguiente paso es de lo que más
-    // penaliza la evaluación. Solo cancelar/detener y las re-preguntas de slot
-    // pueden salir sin reprompt.
     const contar = (aguja) => CODIGO_LAMBDA.split(aguja).length - 1;
     const speaks = contar(".speak(");
     const reprompts = contar(".reprompt(");
@@ -260,9 +236,6 @@ describe("modelo de interaccion", () => {
   });
 
   it("declara el tipo de revisión con sinónimos suficientes", () => {
-    // Es el único tipo con lista que queda, porque sus opciones sí son cerradas.
-    // Lo que no es cerrado es cómo se dicen, así que lleva sinónimos de sobra
-    // para que nadie se quede atorado buscando la palabra exacta.
     const tipo = MODELO.types.find((t) => t.name === "SciposTipoRevision");
     assert.ok(tipo, "Falta el tipo SciposTipoRevision");
     assert.equal(tipo.values.length, 3, "Las opciones de revisión son tres y solo tres");

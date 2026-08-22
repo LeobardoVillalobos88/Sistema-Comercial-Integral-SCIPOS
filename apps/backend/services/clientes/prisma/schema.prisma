@@ -7,7 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-/// Modelo que representa un Cliente en la base de datos de SCIPOS.
 model Cliente {
   id        String   @id @default(uuid())
   nombre    String

@@ -154,10 +154,9 @@ export async function llamarApi<T>(ruta: string, init?: RequestInit): Promise<T>
  * Descarga un recurso binario (por ejemplo un PDF o un CSV) con la sesión
  * activa y devuelve el blob listo para abrirse o guardarse.
  *
- * Cuando falla no se conforma con el número: el cuerpo de un error del backend
- * sigue siendo JSON aunque la petición pidiera un archivo, así que se lee de
- * ahí el mensaje. Sin esto, a quien le falta el privilegio le aparecía
- * "no se pudo descargar el archivo (403)" en vez de qué privilegio le falta.
+ * Al fallar lee el mensaje del cuerpo: un error del backend sigue siendo JSON
+ * aunque la petición pidiera un archivo, y así el usuario ve qué privilegio le
+ * falta en vez de solo el número del estatus.
  */
 export async function descargarArchivo(ruta: string): Promise<Blob> {
   let respuesta = await ejecutar(ruta, { method: "GET" });

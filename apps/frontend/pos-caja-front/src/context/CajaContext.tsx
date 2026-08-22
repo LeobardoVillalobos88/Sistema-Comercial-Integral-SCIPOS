@@ -38,8 +38,6 @@ export function CajaProvider({ children }: CajaProviderProps) {
   const [movimientos, setMovimientos] = useState<MovimientoCaja[]>([]);
   const [ventasAcumuladas, setVentasAcumuladas] = useState(0);
 
-  // Restaura el turno abierto que ya existía en el backend al cargar la página,
-  // para que recargar no "pierda" la caja abierta (el estado no vive solo en el navegador).
   const hidratarDesdeEstado = useCallback((estado: EstadoCajaApi) => {
     if (!estado.abierta || !estado.caja) {
       setCajaAbierta(false);

@@ -9,15 +9,9 @@ import { ESMALTE, PLANO } from "../theme";
 export interface PageHeaderProps {
   titulo: string;
   descripcion?: string;
-  /** Acciones a la derecha (por ejemplo, un botón "Nuevo"). */
   acciones?: React.ReactNode;
 }
 
-/**
- * Encabezado de módulo. Es el rótulo de la pantalla: va a escala display con
- * sombra desplazada y cierra con una banda de pintura, de modo que quien entra
- * sepa dónde está desde el otro lado del salón.
- */
 export function PageHeader({ titulo, descripcion, acciones }: PageHeaderProps) {
   return (
     <Box sx={{ mb: 3, pb: 2, borderBottom: `4px solid ${ESMALTE.azul}` }}>

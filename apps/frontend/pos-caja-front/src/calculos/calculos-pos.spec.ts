@@ -37,7 +37,6 @@ function partida(parcial: Partial<ItemCarrito> = {}): ItemCarrito {
   };
 }
 
-/** Identificadores de las partidas, para afirmar sobre el contenido del carrito. */
 function claves(carrito: ItemCarrito[]): string[] {
   return carrito.map((item) => item.productoId);
 }
@@ -71,9 +70,6 @@ describe("crearItemCarrito", () => {
 });
 
 describe("calcularTotales en modo compra", () => {
-  // El servicio guarda la compra como la suma de cantidad por precio de compra,
-  // y su DTO ni siquiera acepta descuento. Si la pantalla aplicara la
-  // aritmética de venta, mostraría un total que la base no tiene.
   it("el total es el subtotal, sin nada encima", () => {
     const totales = calcularTotales([partida({ cantidad: 5, subtotal: 50 })], 0, "compra");
 
@@ -97,7 +93,6 @@ describe("calcularTotales en modo compra", () => {
   });
 
   it("coincide con lo que el servicio guarda como total de la compra", () => {
-    // El backend calcula: suma de cantidad x precioCompra de cada partida.
     const carrito = [
       partida({ cantidad: 5, subtotal: 50 }),
       partida({ productoId: "p-002", cantidad: 3, subtotal: 36 }),

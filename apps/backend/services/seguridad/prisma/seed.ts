@@ -158,7 +158,11 @@ const USUARIOS_SEMILLA = [
  * El asistente de voz parte del rol Vendedor y termina con exactamente tres
  * privilegios: consultar el catálogo, registrar productos y registrar entradas
  * de inventario. Para llegar ahí se le conceden los dos que su rol no trae y se
- * le revocan los nueve que sí trae pero que la skill nunca usa.
+ * le revocan los diez que sí trae pero que la skill nunca usa.
+ *
+ * `ventas:comprobante` está entre los revocados aunque el rol lo dé: ninguno de
+ * los cuatro intents emite comprobantes, y con él la cuenta podría descargar el
+ * de cualquier venta, que incluye el nombre del cliente y lo que compró.
  *
  * Ajustar al usuario en vez de crear un rol nuevo mantiene intactos los cuatro
  * roles del sistema, y deja unas credenciales cuyo daño posible, si se filtran,
@@ -182,6 +186,7 @@ const PRIVILEGIOS_POR_USUARIO: Array<{
       "cotizaciones:convertir",
       "pos:ver",
       "pos:vender",
+      "ventas:comprobante",
     ],
   },
 ];

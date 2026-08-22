@@ -6,23 +6,11 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 
 export interface SkeletonTablaProps {
-  /** Número de columnas del esqueleto. */
   columnas?: number;
-  /** Número de filas del esqueleto. */
   filas?: number;
-  /** Muestra un esqueleto de barra de búsqueda arriba. */
   conBusqueda?: boolean;
 }
 
-/**
- * Esqueleto de carga para tablas (mismo aspecto que SearchableTable).
- *
- * Aquí la posición sí sirve como clave, al revés que en SearchableTable: estas
- * celdas no representan ningún dato, no se reordenan ni se filtran, y la
- * cuadrícula entera desaparece de golpe cuando llegan los datos de verdad. No
- * hay estado que se pueda quedar pegado a la fila equivocada porque no hay
- * estado.
- */
 export function SkeletonTabla({ columnas = 5, filas = 6, conBusqueda = true }: SkeletonTablaProps) {
   return (
     <Box>

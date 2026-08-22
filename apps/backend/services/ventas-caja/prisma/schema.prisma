@@ -22,7 +22,6 @@ enum TipoMovimientoCaja {
   EGRESO
 }
 
-/// Turno de caja: apertura, movimientos y corte (RF-23, RF-25, RF-26).
 model Caja {
   id             String             @id @default(uuid())
   montoInicial   Float
@@ -36,7 +35,6 @@ model Caja {
   updatedAt      DateTime           @updatedAt
 }
 
-/// Venta registrada en el POS (RF-18, RF-19, RF-20, RF-21).
 model Venta {
   id            String        @id @default(uuid())
   cajaId        String
@@ -52,7 +50,6 @@ model Venta {
   updatedAt     DateTime      @updatedAt
 }
 
-/// Línea de una venta con precio de venta y subtotal calculado en backend.
 model PartidaVenta {
   id          String @id @default(uuid())
   ventaId     String
@@ -63,7 +60,6 @@ model PartidaVenta {
   subtotal    Float
 }
 
-/// Ingreso o egreso manual registrado durante un turno de caja (RF-24).
 model MovimientoCaja {
   id      String             @id @default(uuid())
   cajaId  String

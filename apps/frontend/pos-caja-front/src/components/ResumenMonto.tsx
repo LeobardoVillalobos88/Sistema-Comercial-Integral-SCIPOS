@@ -9,7 +9,6 @@ export interface ResumenMontoProps {
   color?: string;
 }
 
-/** Renglón de importe con su etiqueta a la izquierda y el monto a la derecha. */
 export function ResumenMonto({ etiqueta, valor, color }: ResumenMontoProps) {
   return (
     <Paper

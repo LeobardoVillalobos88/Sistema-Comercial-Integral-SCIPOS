@@ -56,11 +56,6 @@ function mensajeError(error: unknown, mensajePorDefecto: string): string {
   return error instanceof ErrorApi ? error.message : mensajePorDefecto;
 }
 
-/**
- * Administración de usuarios del sistema (RF-02): alta, edición, cambio de
- * rol y estado, restablecimiento de contraseña y eliminación. Cada acción la
- * valida el backend con los privilegios seguridad:*.
- */
 export default function UsuariosPage() {
   const { can, usuario: usuarioActivo, cargandoPermisos } = usePermisos();
   const toast = useToast();
@@ -157,8 +152,6 @@ export default function UsuariosPage() {
   const alternarEstado = useCallback(
     async (usuario: UsuarioSesion) => {
       const nuevoEstado = usuario.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";
-      // Desactivar le quita el acceso a una persona: se confirma antes, igual
-      // que en el resto de los módulos. Reactivar no necesita confirmación.
       if (nuevoEstado === "INACTIVO") {
         const confirmado = await confirmar({
           titulo: "¿Desactivar usuario?",

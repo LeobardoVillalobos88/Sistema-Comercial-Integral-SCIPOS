@@ -15,14 +15,6 @@ interface RespuestaDeError {
   fecha: string;
 }
 
-/**
- * Filtro global de excepciones. Da a todos los servicios el mismo formato de
- * error, con el mensaje en `mensaje` (es lo que muestran los toasts del
- * frontend).
- *
- * Registrarlo en el main.ts de cada servicio:
- *   app.useGlobalFilters(new FiltroExcepcionesHttp());
- */
 @Catch()
 export class FiltroExcepcionesHttp implements ExceptionFilter {
   private readonly logger = new Logger(FiltroExcepcionesHttp.name);

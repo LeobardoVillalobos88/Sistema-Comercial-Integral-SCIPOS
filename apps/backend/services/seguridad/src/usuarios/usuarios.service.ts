@@ -70,7 +70,6 @@ export class UsuariosService {
     return this.aSesion(usuario);
   }
 
-  /** Elimina definitivamente un usuario; nadie puede eliminarse a sí mismo. */
   async eliminar(id: string, solicitanteId: string) {
     await this.obtener(id);
     if (id === solicitanteId) {
@@ -81,7 +80,6 @@ export class UsuariosService {
     return { eliminado: true };
   }
 
-  /** Concede o revoca un privilegio específico a un usuario (RF-03). */
   async ajustarPrivilegio(id: string, dto: AjustarPrivilegioUsuarioDto) {
     await this.obtener(id);
     const privilegio = await this.prisma.privilegio.findUnique({
@@ -101,7 +99,6 @@ export class UsuariosService {
     return ajuste;
   }
 
-  /** Elimina un ajuste por usuario; vuelve a aplicar lo que dicte su rol. */
   async quitarAjuste(id: string, privilegioClave: string) {
     await this.obtener(id);
     await this.prisma.usuarioPrivilegio.deleteMany({

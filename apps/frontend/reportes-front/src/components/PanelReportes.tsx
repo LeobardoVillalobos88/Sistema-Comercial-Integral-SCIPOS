@@ -202,8 +202,7 @@ export function PanelReportes() {
 
   /**
    * Pide el archivo al backend en vez de armarlo con los datos que la pantalla
-   * ya tiene. Así la descarga pasa por el guard: esconder el botón sería toda
-   * la protección, y eso no protege nada.
+   * ya tiene, para que la descarga pase por el guard de `reportes:exportar`.
    */
   const descargarReporte = useCallback(
     async (tipo: TipoExportable) => {

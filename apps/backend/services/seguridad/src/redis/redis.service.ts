@@ -1,10 +1,6 @@
 import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
 import Redis from "ioredis";
 
-/**
- * Caché con Redis. Si Redis no está disponible, el servicio sigue
- * funcionando: solo pierde la caché y consulta directo a la base de datos.
- */
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
@@ -31,13 +27,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Guarda con TTL (segundos) para que la caché se auto-expire. */
   async set(clave: string, valor: unknown, ttlSegundos = 60): Promise<void> {
     try {
       await this.client.set(clave, JSON.stringify(valor), "EX", ttlSegundos);
-    } catch {
-      // Sin caché disponible; la siguiente lectura irá a la base de datos.
-    }
+    } catch {}
   }
 
   async del(...claves: string[]): Promise<void> {
@@ -46,22 +39,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       await this.client.del(...claves);
-    } catch {
-      // Sin caché disponible; no hay nada que invalidar.
-    }
+    } catch {}
   }
 
-  /**
-   * Marca una clave con el valor crudo "1" y un TTL (segundos), sin serializar.
-   * Lo usa la denylist de tokens: el verificador de commons compara contra "1".
-   */
   async marcar(clave: string, ttlSegundos: number): Promise<void> {
     try {
       if (ttlSegundos > 0) {
         await this.client.set(clave, "1", "EX", ttlSegundos);
       }
-    } catch {
-      // Sin Redis no se puede revocar al instante; el token expirará por sí solo.
-    }
+    } catch {}
   }
 }

@@ -19,14 +19,6 @@ export interface LoginViewProps {
   onLogin: (correo: string, contrasena: string) => Promise<void>;
 }
 
-/**
- * Pantalla de inicio de sesión (RF-01). Recibe las credenciales y delega en
- * `onLogin`, que abre la sesión real contra el servicio de seguridad.
- *
- * Es la primera pantalla del sistema y por eso lleva el rótulo a su escala
- * completa: el muro de esmalte con el nombre pintado, y la placa de
- * credenciales montada encima.
- */
 export function LoginView({ onLogin }: LoginViewProps) {
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
@@ -39,7 +31,6 @@ export function LoginView({ onLogin }: LoginViewProps) {
     setCargando(true);
     try {
       await onLogin(correo, contrasena);
-      // En caso de éxito la navegación desmonta esta vista; no reactivamos el botón.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Credenciales inválidas. Intente de nuevo.");
       setCargando(false);
@@ -115,7 +106,6 @@ export function LoginView({ onLogin }: LoginViewProps) {
             width: "100%",
             maxWidth: 400,
             p: { xs: 3, md: 4.5 },
-            // Banda de pintura arriba: por eso el panel va a esquina recta.
             borderRadius: 0,
             borderTop: `5px solid ${ESMALTE.ocre}`,
           }}

@@ -22,17 +22,13 @@ export function esTipoExportable(valor: string): valor is TipoExportable {
 }
 
 /**
- * Serializa una tabla a CSV.
+ * Serializa una tabla a CSV. Tres reglas del formato, cada una necesaria:
  *
- * Tres detalles que parecen adorno y no lo son:
- * - Cada celda va entrecomillada y las comillas internas se duplican, que es
- *   como el formato escapa. Sin esto, el nombre de un cliente con una coma
- *   parte la fila en dos columnas.
- * - Las líneas terminan en CRLF, no en LF: es lo que pide el formato y lo que
- *   Excel espera.
- * - El archivo abre con marca de orden de bytes. Sin ella Excel lee el texto
- *   como ANSI y los acentos aparecen rotos, que es el reporte de un error que
- *   no existe.
+ * - Celdas entrecomilladas y comillas internas duplicadas: evita que un dato
+ *   con comas parta la fila en columnas de más.
+ * - Fin de línea CRLF: es lo que pide el formato y lo que Excel espera.
+ * - Marca de orden de bytes al inicio: evita que Excel lea el archivo como
+ *   ANSI y muestre los acentos rotos.
  */
 export function aCsv(encabezados: string[], filas: string[][]): string {
   const escapar = (valor: string) => `"${valor.replaceAll('"', '""')}"`;

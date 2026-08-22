@@ -16,24 +16,19 @@ interface EstadoToast {
 }
 
 export interface ToastContextValue {
-  /** Verde con check. Éxito de una operación. */
   exito: (mensaje: string) => void;
-  /** Rojo con equis. Error u operación fallida. */
   error: (mensaje: string) => void;
-  /** Azul con signo de exclamación. Retroalimentación informativa. */
   info: (mensaje: string) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-// Iconos por tipo: éxito = check, error = equis, info = exclamación.
 const ICONOS = {
   success: <CheckCircleIcon fontSize="inherit" />,
   error: <CancelIcon fontSize="inherit" />,
   info: <PriorityHighIcon fontSize="inherit" />,
 };
 
-/** Proveedor de notificaciones tipo toast (esquina inferior derecha). */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [estado, setEstado] = useState<EstadoToast>({
     abierto: false,
@@ -81,10 +76,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Hook para lanzar notificaciones toast.
- * Ejemplo: const toast = useToast(); toast.exito("Producto guardado.");
- */
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext);
   if (!ctx) {

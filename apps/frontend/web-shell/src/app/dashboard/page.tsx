@@ -50,7 +50,6 @@ interface ResumenUtilidad {
   margenPorcentaje: number;
 }
 
-/** Fecha local de hoy en formato AAAA-MM-DD para el filtro del reporte. */
 function fechaDeHoy(): string {
   const ahora = new Date();
   const mes = String(ahora.getMonth() + 1).padStart(2, "0");
@@ -67,8 +66,6 @@ export default function DashboardPage() {
   const [resumenVentas, setResumenVentas] = useState<ResumenVentas | null>(null);
   const [resumenUtilidad, setResumenUtilidad] = useState<ResumenUtilidad | null>(null);
 
-  // Descarga los resúmenes reales; si un servicio no responde, la tarjeta
-  // correspondiente se oculta o muestra un valor neutro en vez de datos falsos.
   useEffect(() => {
     if (cargandoPermisos || !usuario) {
       return;

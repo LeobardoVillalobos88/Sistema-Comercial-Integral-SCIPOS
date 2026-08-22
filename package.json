@@ -1,6 +1,6 @@
 {
   "name": "scipos",
-  "version": "0.0.0",
+  "version": "3.0.0",
   "private": true,
   "description": "SCIPOS — Sistema Comercial Integral (LOBOSOFT / UTEZ)",
   "packageManager": "pnpm@11.8.0",
@@ -18,7 +18,8 @@
     "prod:up": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env up -d",
     "prod:down": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env down",
     "prod:logs": "docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env logs -f",
-    "setup:backend": "pnpm generar:llaves && pnpm infra:up && pnpm --filter @scipos/backend-commons build && pnpm --filter @scipos/seguridad-service preparar && pnpm --filter @scipos/productos-service preparar && pnpm --filter @scipos/clientes-service preparar && pnpm --filter @scipos/cotizaciones-service preparar && pnpm --filter @scipos/ventas-caja-service preparar",
+    "setup:local": "node scripts/preparar-entorno.mjs",
+    "setup:backend": "pnpm generar:llaves && pnpm infra:up && node scripts/esperar-base.mjs && pnpm --filter @scipos/backend-commons build && pnpm --filter @scipos/seguridad-service preparar && pnpm --filter @scipos/productos-service preparar && pnpm --filter @scipos/clientes-service preparar && pnpm --filter @scipos/cotizaciones-service preparar && pnpm --filter @scipos/ventas-caja-service preparar",
     "start": "turbo run start",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
