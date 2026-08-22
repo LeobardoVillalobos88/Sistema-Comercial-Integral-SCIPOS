@@ -84,7 +84,8 @@ Run from the repo root. Use **pnpm** (workspaces), not npm. **Node ≥ 22** (`.n
 pnpm install                                  # install the whole monorepo
 pnpm infra:up                                 # Postgres + Redis containers (Docker must be running)
 pnpm generar:llaves                           # RSA keys for RS256 JWT signing (into keys/, git-ignored)
-pnpm setup:backend                            # keys + infra + build commons + prisma migrate deploy + seed (first time / reset)
+pnpm setup:local                              # the one-command path: checks prerequisites, creates the seven .env files, then runs setup:backend
+pnpm setup:backend                            # keys + infra + wait for Postgres + build commons + prisma migrate deploy + seed
 pnpm dev                                      # turbo run dev — all apps at once
 pnpm dev --filter @scipos/seguridad-service --filter @scipos/gateway --filter @scipos/web-shell   # minimal working set
 pnpm --filter @scipos/web-shell dev           # just the host        → http://localhost:3001

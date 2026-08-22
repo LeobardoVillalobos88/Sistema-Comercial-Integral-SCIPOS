@@ -333,7 +333,7 @@ documento. En una instancia expuesta a internet defínelas con las variables
 | `EADDRINUSE :4000/:4001/:3001` | Ya hay algo corriendo en ese puerto (otra terminal con `pnpm dev`). Ciérrala. |
 | El frontend muestra acciones pero la API responde 403 | Es el diseño: el frontend cayó a la matriz local porque el backend estaba apagado; levanta seguridad + gateway. |
 | `P1001: Can't reach database server` | El contenedor `scipos-db` no está arriba: `pnpm infra:up`. |
-| Quiero resetear la base de datos | `docker compose -f infra/docker/compose/docker-compose.dev.yml down -v` y de nuevo `pnpm setup:backend` (el `-v` borra los datos). |
+| Quiero resetear la base de datos | `docker compose -f infra/docker/compose/docker-compose.dev.yml down -v` y de nuevo `pnpm setup:local` (el `-v` borra los datos). |
 | Redis apagado | El sistema sigue funcionando (solo pierde la caché); revisa `pnpm infra:up` si quieres la caché de privilegios. |
 | `Filename too long` al clonar (Windows) | Límite de 260 caracteres de Windows. `git config --global core.longpaths true`, o clona en una ruta corta como `C:\dev\`. |
 | El puerto 5432 ya está ocupado | Tienes un PostgreSQL instalado en la máquina. Deténlo, o cambia el puerto publicado en `infra/docker/compose/docker-compose.dev.yml` y el `DATABASE_URL` de cada servicio. |
