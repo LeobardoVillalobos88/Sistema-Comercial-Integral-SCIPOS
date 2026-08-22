@@ -14,6 +14,14 @@ import { Topbar } from "./Topbar";
 const ANCHO_MENU_ABIERTO = 248;
 const ANCHO_MENU_CERRADO = 80;
 
+/**
+ * Armazón principal de la aplicación: barra superior + menú lateral + área de
+ * contenido donde se renderiza cada módulo. Exige sesión: sin usuario redirige
+ * al login (el backend valida cada acción de todos modos).
+ *
+ * También es donde se decide qué pantalla de error toca: sesión vencida,
+ * servidor caído o módulo sin privilegio.
+ */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
   const [sidebarAbierto, setSidebarAbierto] = useState(false);
@@ -22,10 +30,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { usuario, cargandoPermisos, can, sesionExpirada, apiInalcanzable } = usePermisos();
 
   const enLogin = pathname === "/login";
+  // Las pantallas de error se pintan solas. Si pasaran por el armazón, un 401
+  // dispararía la redirección al login antes de que alguien alcance a leerlo.
   const enPantallaError = pathname.startsWith("/error");
   const sinArmazon = enLogin || enPantallaError;
 
   useEffect(() => {
+    // Sin sesión se va al login, salvo que haya un error que explicar primero.
     if (!cargandoPermisos && !usuario && !sinArmazon && !sesionExpirada && !apiInalcanzable) {
       router.replace("/login");
     }
@@ -35,14 +46,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <Box component="main">{children}</Box>;
   }
 
+  // El servidor no contestó al restaurar la sesión: los tokens siguen guardados,
+  // así que reintentar puede bastar.
   if (apiInalcanzable) {
     return <PantallaError codigo={503} />;
   }
 
+  // La sesión murió a media faena. Se explica, en vez de rebotar en silencio.
   if (sesionExpirada) {
     return <PantallaError codigo={401} />;
   }
 
+  // Mientras se resuelve la sesión (o se redirige al login) no mostramos el
+  // armazón protegido, para evitar parpadeos y peticiones sin token.
   if (cargandoPermisos || !usuario) {
     return (
       <Box
@@ -61,6 +77,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const moduloActual = NAVEGACION.find(
     (item) => pathname === item.ruta || pathname.startsWith(`${item.ruta}/`),
   );
+  // Entrar por dirección directa a un módulo ajeno: el menú ya lo esconde, pero
+  // la URL no lo impedía. El backend rechaza la acción de todos modos; esto es
+  // para que el usuario lea por qué y no se tope con una pantalla vacía.
   const sinPrivilegio = Boolean(moduloActual?.privilegio && !can(moduloActual.privilegio));
 
   const anchoActual = sidebarAbierto ? ANCHO_MENU_ABIERTO : ANCHO_MENU_CERRADO;
@@ -81,6 +100,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           width: { md: `calc(100% - ${anchoActual}px)` },
+          // Un ítem flex arranca con min-width:auto, o sea que se niega a
+          // encogerse por debajo del ancho de su contenido. Con una tabla ancha
+          // adentro, el área crecía hasta medir lo que la tabla y arrastraba
+          // consigo a toda la página: en un teléfono, 922px de contenido dentro
+          // de una pantalla de 375. El TableContainer nunca llegaba a
+          // desplazarse porque su padre le cedía el espacio. Ponerlo en cero
+          // devuelve el desplazamiento a la tabla, que es donde corresponde.
           minWidth: 0,
           bgcolor: "background.default",
           transition: (theme) =>

@@ -153,6 +153,7 @@ export class CotizacionesService {
   async convertir(id: string, usuarioId: string): Promise<CotizacionRespuestaDto> {
     return this.prisma.$transaction(
       async (tx) => {
+        // Serializa conversiones del mismo ID sin depender del search_path del adapter de Prisma.
         await tx.$queryRaw`
           SELECT pg_advisory_xact_lock(hashtext(${id}))::text AS "bloqueo"
         `;

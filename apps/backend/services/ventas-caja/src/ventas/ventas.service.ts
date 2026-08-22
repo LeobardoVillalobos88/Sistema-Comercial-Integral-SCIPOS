@@ -23,6 +23,7 @@ interface OpcionesCrearVenta {
   usuarioId: string;
 }
 
+/** Datos del producto que entrega el servicio de productos. */
 interface ProductoRemoto {
   id: string;
   nombre: string;
@@ -45,6 +46,8 @@ export class VentasService {
   }
 
   async convertirCotizacion(dto: ConvertirCotizacionDto, usuarioId: string) {
+    // Idempotencia: si la cotización ya generó una venta, se devuelve esa
+    // misma en lugar de duplicarla (reintentos del servicio de cotizaciones).
     const existente = await this.prisma.venta.findUnique({
       where: { cotizacionId: dto.cotizacionId },
       include: { partidas: true },
@@ -79,6 +82,7 @@ export class VentasService {
     return this.mapearVentaDetalle(ventaCancelada);
   }
 
+  /** Resumen para el dashboard: ventas del día y estado del turno de caja. */
   async resumen() {
     const inicioDelDia = new Date();
     inicioDelDia.setHours(0, 0, 0, 0);
@@ -108,6 +112,7 @@ export class VentasService {
     return this.listar({ clienteId });
   }
 
+  /** Lista ventas con filtros opcionales de cliente y rango de fechas. */
   async listar(filtros: { clienteId?: string; desde?: string; hasta?: string }) {
     const desde = filtros.desde ? new Date(`${filtros.desde}T00:00:00.000`) : undefined;
     const hasta = filtros.hasta ? new Date(`${filtros.hasta}T23:59:59.999`) : undefined;
@@ -134,6 +139,8 @@ export class VentasService {
       await this.validarPrivilegioDescuento(opciones.usuarioId);
     }
 
+    // Los precios se leen del servicio de productos: lo que mande el cliente
+    // en la petición no puede alterar el importe cobrado.
     const productos = await this.obtenerProductos(dto.partidas, opciones.usuarioId);
     const partidasConPrecio = dto.partidas.map((partida) => {
       const producto = productos.get(partida.productoId);

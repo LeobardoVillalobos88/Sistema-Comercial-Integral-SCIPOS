@@ -33,7 +33,6 @@ scipos/
 ├─ docs/
 │  ├─ 01-architecture/         por qué está hecho así (esta carpeta)
 │  ├─ 02-api/openapi/          los seis contratos, uno por servicio
-│  ├─ 03-runbooks/             guion de demostración
 │  ├─ readmes/                 guía funcional y planes de trabajo
 │  └─ pdfs/                    el enunciado y la rúbrica
 ├─ infra/
@@ -85,10 +84,10 @@ los servicios de los que copia.
 
 ### La numeración de `docs/`
 
-`01-architecture`, `02-api`, `03-runbooks` siguen el orden en que alguien nuevo
-los necesita: primero entender por qué, después el contrato, después cómo
-operarlo. El prefijo numérico existe para que el orden alfabético del sistema de
-archivos coincida con ese orden de lectura.
+`01-architecture` y `02-api` siguen el orden en que alguien nuevo los necesita:
+primero entender por qué está hecho así, después el contrato de cada servicio. El
+prefijo numérico existe para que el orden alfabético del sistema de archivos
+coincida con ese orden de lectura.
 
 ---
 
@@ -102,7 +101,7 @@ peor que revisar uno pequeño y completo.
 | Carpeta sugerida | Por qué no está |
 |---|---|
 | `apps/mobile/` | Flutter no está en el alcance. La cobertura móvil se resolvió haciendo responsive la aplicación web: los mismos flujos en teléfono y tablet, sin una segunda base de código. Que la API sirve a clientes no web ya está demostrado —la skill de Alexa consume los mismos endpoints con los mismos privilegios |
-| `apps/e2e/` | Deuda consciente. Se cubrió primero la lógica que puede dar un resultado incorrecto en silencio: 129 pruebas sin base de datos ni navegador. Los recorridos completos se verifican con el [guion de demostración](../03-runbooks/guion-de-demostracion.md) |
+| `apps/e2e/` | Deuda consciente. Se cubrió primero la lógica que puede dar un resultado incorrecto en silencio: 129 pruebas sin base de datos ni navegador. Los recorridos completos se verifican a mano contra el sistema levantado |
 | `apps/addons/` | Lo que una herramienta propia resolvería ya lo resuelven los scripts de `package.json` y Turborepo. `pnpm setup:backend` prepara la base desde cero y `pnpm dev --filter …` levanta el subconjunto que haga falta |
 | `packages/` | Reservada para código compartido entre frontend y backend. No hay ninguno: los dos `commons` cubren cada lado y compilan distinto. Si algún día un tipo tuviera que ser literalmente el mismo objeto en ambos, se crea la carpeta y se vuelve a añadir `packages/*` a `pnpm-workspace.yaml` |
 | `stubs/` | Para crear un módulo se copia uno existente —`productos-front` en el frontend, `clientes` en el backend— y se renombra. Un molde que se usa todos los días no se queda obsoleto; una plantilla apartada, sí |

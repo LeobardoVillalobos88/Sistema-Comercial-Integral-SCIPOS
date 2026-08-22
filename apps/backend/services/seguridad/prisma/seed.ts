@@ -3,6 +3,15 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSync } from "bcryptjs";
 import { PrismaClient } from ".prisma/client";
 
+/**
+ * Semilla del servicio de seguridad. Es idempotente: se puede correr las
+ * veces que haga falta sin duplicar datos.
+ *
+ * Carga el catálogo de privilegios `modulo:accion`, la matriz de privilegios
+ * por rol (la misma que usa el frontend en commons/permisos) y un usuario
+ * semilla por cada rol para operar el sistema sin registro de usuarios.
+ */
+
 const CATALOGO_PRIVILEGIOS: Array<{ clave: string; descripcion: string }> = [
   { clave: "productos:ver", descripcion: "Ver el catálogo de productos y servicios" },
   { clave: "productos:crear", descripcion: "Registrar productos y servicios" },
@@ -45,6 +54,7 @@ const ROLES: Array<{ clave: string; nombre: string; accesoTotal: boolean }> = [
   { clave: "SUPERVISOR", nombre: "Supervisor", accesoTotal: false },
 ];
 
+/** Matriz de privilegios por rol (equivalente a MATRIZ_PRIVILEGIOS del frontend). */
 const MATRIZ_ROLES: Record<string, string[]> = {
   ADMINISTRADOR: [],
   VENDEDOR: [
@@ -91,6 +101,19 @@ const MATRIZ_ROLES: Record<string, string[]> = {
   ],
 };
 
+/**
+ * Usuarios semilla con IDs fijos y credenciales conocidas por el equipo
+ * (documentadas en el README para poder iniciar sesión): uno por cada rol, más
+ * el asistente de voz que consume la skill de Alexa.
+ *
+ * En un despliegue expuesto conviene sustituir estas contraseñas: cada una se
+ * puede sobreescribir con su variable de entorno sin tocar el código.
+ *
+ * El respaldo se resuelve con || y no con ??, porque una variable declarada y
+ * vacía debe caer al valor documentado. Docker Compose entrega las variables
+ * sin valor como cadena vacía, no como indefinidas, y ?? las daría por buenas:
+ * el usuario quedaría sembrado con una contraseña vacía e inservible.
+ */
 const USUARIOS_SEMILLA = [
   {
     id: "usuario-administrador",
@@ -129,6 +152,18 @@ const USUARIOS_SEMILLA = [
   },
 ];
 
+/**
+ * Ajustes de privilegios por usuario sobre lo que otorga su rol.
+ *
+ * El asistente de voz parte del rol Vendedor y termina con exactamente tres
+ * privilegios: consultar el catálogo, registrar productos y registrar entradas
+ * de inventario. Para llegar ahí se le conceden los dos que su rol no trae y se
+ * le revocan los nueve que sí trae pero que la skill nunca usa.
+ *
+ * Ajustar al usuario en vez de crear un rol nuevo mantiene intactos los cuatro
+ * roles del sistema, y deja unas credenciales cuyo daño posible, si se filtran,
+ * se limita al almacén: no pueden vender, ni cobrar, ni tocar clientes.
+ */
 const PRIVILEGIOS_POR_USUARIO: Array<{
   usuarioId: string;
   concedidos: string[];
@@ -153,6 +188,7 @@ const PRIVILEGIOS_POR_USUARIO: Array<{
 
 async function main() {
   const url = process.env.DATABASE_URL ?? "";
+  // El adapter de pg no lee el parámetro ?schema= de la URL; hay que pasarlo aparte.
   const schema = new URL(url).searchParams.get("schema") ?? undefined;
   const adapter = new PrismaPg({ connectionString: url }, schema ? { schema } : undefined);
   const prisma = new PrismaClient({ adapter });

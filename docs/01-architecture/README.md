@@ -57,7 +57,7 @@ REST desde los demás.
 | Scaffolding y arquitectura del repositorio | [estructura-del-repositorio.md](./estructura-del-repositorio.md) y [estrategia-de-ramas.md](./estrategia-de-ramas.md) |
 | Multirol y multiprivilegio | [microfrontends.md](./microfrontends.md#cómo-se-muestran-u-ocultan-funciones-por-privilegio) y [microservicios.md](./microservicios.md#cómo-se-protegen-los-endpoints) |
 | Diseño responsive | [microfrontends.md](./microfrontends.md#diseño-adaptable) |
-| Integraciones adicionales | [skill de Alexa](../readmes/cumplimiento-rubrica-alexa.md) |
+| Integraciones adicionales | [skill de Alexa](../../apps/alexa-skill/README.md) |
 | Arquitectura cloud y calidad del despliegue | [despliegue en AWS](../DESPLIEGUE-AWS.md) |
 
 ## Cómo comprobar lo que aquí se afirma

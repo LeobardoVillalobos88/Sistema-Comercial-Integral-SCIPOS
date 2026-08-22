@@ -11,6 +11,7 @@ import {
   csvVentas,
 } from "./csv";
 
+/** Venta tal como la entrega el servicio de ventas-caja. */
 interface VentaRemota {
   id: string;
   clienteId: string;
@@ -23,6 +24,7 @@ interface VentaRemota {
   partidas: Array<{ productoId: string; cantidad: number; precioVenta: number; subtotal: number }>;
 }
 
+/** Producto tal como lo entrega el servicio de productos. */
 interface ProductoRemoto {
   id: string;
   nombre: string;
@@ -73,6 +75,11 @@ function aQuery(rango: RangoFechas): string {
   return cadena ? `?${cadena}` : "";
 }
 
+/**
+ * Reportes comerciales (RF-30, RF-31, RF-33). El servicio no persiste nada:
+ * consulta a los servicios de dominio por REST propagando la identidad del
+ * solicitante y agrega los resultados, con una caché corta en Redis.
+ */
 @Injectable()
 export class ReportesService {
   constructor(
@@ -81,6 +88,7 @@ export class ReportesService {
     private readonly config: ConfigService,
   ) {}
 
+  /** Reporte de ventas del periodo: listado y totales, separando canceladas. */
   async ventas(rango: RangoFechas, usuarioId: string) {
     const ventas = await this.obtenerVentas(rango, usuarioId);
     const completas = ventas.filter((venta) => venta.estado === "COMPLETA");
@@ -94,6 +102,7 @@ export class ReportesService {
     };
   }
 
+  /** Reporte de cotizaciones del periodo: listado y conteos por estado. */
   async cotizaciones(rango: RangoFechas, usuarioId: string) {
     const base = this.url("COTIZACIONES_URL", "http://localhost:4004");
     const [lista, resumen] = await Promise.all([
@@ -105,6 +114,7 @@ export class ReportesService {
     return { ...resumen, cotizaciones: lista };
   }
 
+  /** Reporte de inventario: catálogo valuado a precio de compra y de venta. */
   async productos(usuarioId: string) {
     const base = this.url("PRODUCTOS_URL", "http://localhost:4002");
     const productos = await this.http.get<ProductoRemoto[]>(`${base}/productos`, { usuarioId });
@@ -123,12 +133,18 @@ export class ReportesService {
     };
   }
 
+  /** Reporte de cortes de caja realizados. */
   async cortes(usuarioId: string) {
     const base = this.url("VENTAS_CAJA_URL", "http://localhost:4005");
     const cortes = await this.http.get<CorteRemoto[]>(`${base}/caja/cortes`, { usuarioId });
     return { cantidadCortes: cortes.length, cortes };
   }
 
+  /**
+   * Utilidad del periodo (RF-33): por cada partida vendida se resta el costo
+   * actual del producto (precioCompra) al precio al que se vendió, y al total
+   * se le descuentan los descuentos otorgados.
+   */
   async utilidad(rango: RangoFechas, usuarioId: string) {
     const claveCache = `reportes:utilidad:${rango.desde ?? ""}:${rango.hasta ?? ""}`;
     const cacheado = await this.redis.get<object>(claveCache);
@@ -174,6 +190,14 @@ export class ReportesService {
     return resultado;
   }
 
+  /**
+   * Arma el archivo CSV de un reporte (RF-30: exportación de información).
+   *
+   * La descarga se resuelve aquí y no en el navegador porque exportar es un
+   * privilegio propio: si el archivo se armara con los datos que la pantalla ya
+   * tiene, esconder el botón sería toda la protección, y ocultar botones no es
+   * proteger nada. Al pasar por el endpoint, el guard decide.
+   */
   async exportar(tipo: TipoExportable, rango: RangoFechas, usuarioId: string): Promise<ArchivoCsv> {
     if (tipo === "ventas") {
       const reporte = await this.ventas(rango, usuarioId);

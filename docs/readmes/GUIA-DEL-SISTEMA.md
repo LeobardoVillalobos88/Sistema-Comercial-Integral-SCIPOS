@@ -200,8 +200,7 @@ Cosas que conviene saber al usarla:
   misma base de datos.
 
 El detalle técnico y el procedimiento de alta están en
-[`apps/alexa-skill/README.md`](../../apps/alexa-skill/README.md), y el diseño de
-la conversación en [`diseno-conversacion-alexa.md`](./diseno-conversacion-alexa.md).
+[`apps/alexa-skill/README.md`](../../apps/alexa-skill/README.md).
 
 ---
 

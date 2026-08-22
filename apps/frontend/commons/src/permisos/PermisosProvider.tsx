@@ -15,6 +15,7 @@ import type { PermisosContextValue, Privilegio, Rol, UsuarioSesion } from "./tip
 
 const ROLES: Rol[] = ["ADMINISTRADOR", "VENDEDOR", "CAJERO", "SUPERVISOR"];
 
+/** Claves de sessionStorage donde se conservan los tokens de la pestaña. */
 const CLAVE_TOKEN = "scipos.token";
 const CLAVE_REFRESH = "scipos.refresh";
 
@@ -32,6 +33,7 @@ interface PerfilApi {
   privilegios: string[];
 }
 
+/** Guarda o limpia el par de tokens en el cliente HTTP y en sessionStorage. */
 function persistirTokens(token: string | null, refreshToken: string | null): void {
   establecerToken(token);
   establecerRefreshToken(refreshToken);
@@ -49,9 +51,23 @@ function persistirTokens(token: string | null, refreshToken: string | null): voi
 
 export interface PermisosProviderProps {
   children: React.ReactNode;
+  /** Rol con el que inicia la sesión demo. */
   rolInicial?: Rol;
 }
 
+/**
+ * Proveedor del contexto de permisos. La sesión es real: `iniciarSesion`
+ * obtiene un access token RS256 y un refresh token del servicio de seguridad;
+ * desde entonces todas las llamadas de `llamarApi` viajan firmadas y el backend
+ * valida cada acción (RF-05/RF-06). El access se renueva solo con el refresh
+ * cuando expira. `iniciarSesion` es lo que consume la pantalla de login; la
+ * sesión sobrevive a recargas dentro de la misma pestaña (sessionStorage +
+ * GET /auth/perfil).
+ *
+ * Si la API no está disponible, los privilegios se resuelven con la matriz
+ * local de respaldo para que la interfaz siga siendo navegable; las
+ * operaciones protegidas seguirán fallando porque el backend es quien valida.
+ */
 export function PermisosProvider({
   children,
   rolInicial = "ADMINISTRADOR",
@@ -76,6 +92,7 @@ export function PermisosProvider({
     setPrivilegios(null);
   }, []);
 
+  /** Inicia sesión real contra la API; lanza ErrorApi si las credenciales fallan. */
   const iniciarSesion = useCallback(
     async (correo: string, contrasena: string) => {
       const sesion = await llamarApi<SesionApi>("/seguridad/auth/login", {
@@ -91,11 +108,14 @@ export function PermisosProvider({
   );
 
   const cerrarSesion = useCallback(() => {
+    // Revoca el token en el backend (best-effort) y limpia la sesión local.
     llamarApi("/seguridad/auth/logout", { method: "POST" }).catch(() => undefined);
     limpiarSesion();
     setSesionExpirada(false);
   }, [limpiarSesion]);
 
+  // Al montar: persiste los tokens que el cliente renueve solo y restaura la
+  // sesión guardada en la pestaña.
   // biome-ignore lint/correctness/useExhaustiveDependencies: el arranque de sesión debe correr una sola vez
   useEffect(() => {
     let vigente = true;
@@ -103,6 +123,8 @@ export function PermisosProvider({
       window.sessionStorage.setItem(CLAVE_TOKEN, token);
       window.sessionStorage.setItem(CLAVE_REFRESH, refreshToken);
     });
+    // Cualquier llamada que se topa con un token muerto avisa aquí, y el shell
+    // muestra la pantalla de sesión terminada en vez de un rebote silencioso.
     registrarSesionExpirada(() => {
       if (vigente) {
         setSesionExpirada(true);
@@ -116,6 +138,7 @@ export function PermisosProvider({
         establecerToken(tokenGuardado);
         establecerRefreshToken(refreshGuardado);
         try {
+          // Si el access expiró, llamarApi lo renueva solo con el refresh.
           const perfil = await llamarApi<PerfilApi>("/seguridad/auth/perfil");
           if (vigente) {
             aplicarPerfil(perfil);
@@ -125,6 +148,9 @@ export function PermisosProvider({
           if (!vigente) {
             return;
           }
+          // Si el servidor no respondió, la sesión no tiene por qué morir: se
+          // conservan los tokens y se avisa que la API está caída, para poder
+          // reintentar. Solo se descarta cuando el backend sí contestó que no.
           if (error instanceof ErrorApi && error.esDeConectividad) {
             setApiInalcanzable(true);
           } else {
@@ -132,6 +158,8 @@ export function PermisosProvider({
           }
         }
       }
+      // Sin una sesión guardada válida se termina sin usuario: el shell redirige
+      // a /login para que las credenciales se ingresen de forma explícita.
     }
     arrancar().finally(() => {
       if (vigente) {
@@ -180,6 +208,12 @@ export function PermisosProvider({
   return <PermisosContext.Provider value={value}>{children}</PermisosContext.Provider>;
 }
 
+/**
+ * Hook para consumir los permisos en cualquier componente.
+ * Ejemplo:
+ *   const { can } = usePermisos();
+ *   {can("productos:crear") && <Button>Nuevo</Button>}
+ */
 export function usePermisos(): PermisosContextValue {
   const ctx = useContext(PermisosContext);
   if (!ctx) {

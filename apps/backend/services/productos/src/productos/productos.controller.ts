@@ -20,6 +20,7 @@ export class ProductosController {
     return this.productos.resumen();
   }
 
+  // Debe declararse antes de @Get(":id") o la ruta la absorbería como un id.
   @Get("alertas")
   @RequierePrivilegio("productos:ver")
   @ApiOperation({
