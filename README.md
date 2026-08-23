@@ -339,6 +339,7 @@ documento. En una instancia expuesta a internet defínelas con las variables
 | El puerto 5432 ya está ocupado | Tienes un PostgreSQL instalado en la máquina. Deténlo, o cambia el puerto publicado en `infra/docker/compose/docker-compose.dev.yml` y el `DATABASE_URL` de cada servicio. |
 | `Killed` o el build se congela (Camino A) | Falta memoria en Docker. En Docker Desktop, Settings → Resources, súbela a 4 GB. |
 | `pnpm: command not found` | `corepack enable` y vuelve a abrir la terminal. Viene con Node 22. |
+| `P1000: Authentication failed` (Camino A) | El volumen de PostgreSQL viene de un arranque anterior con otra contraseña; la contraseña solo se fija al inicializarlo. Para empezar de cero —**se pierden los datos**— añade `-v` al `down`: `docker compose -f infra/docker/compose/docker-compose.prod.yml --env-file .env down -v`. |
 
 El equipo desarrolla en Windows y en macOS, y el sistema corre en ambos. El
 arranque de este README se verificó además desde un clon limpio y con la base de
