@@ -1,7 +1,17 @@
+/**
+ * Armado de los archivos CSV que descarga el módulo de reportes.
+ *
+ * Vive aparte del servicio y no toca red ni Nest: recibe los datos ya
+ * agregados y devuelve texto. Así el formato del archivo se puede probar sin
+ * levantar los cinco servicios de los que se alimenta un reporte.
+ */
+
+/** Tipos de reporte que se pueden descargar. */
 export const TIPOS_EXPORTABLES = ["ventas", "cotizaciones", "inventario", "cortes"] as const;
 
 export type TipoExportable = (typeof TIPOS_EXPORTABLES)[number];
 
+/** Contenido de un archivo listo para entregarse al navegador. */
 export interface ArchivoCsv {
   nombre: string;
   contenido: string;
@@ -11,12 +21,22 @@ export function esTipoExportable(valor: string): valor is TipoExportable {
   return (TIPOS_EXPORTABLES as readonly string[]).includes(valor);
 }
 
+/**
+ * Serializa una tabla a CSV. Tres reglas del formato, cada una necesaria:
+ *
+ * - Celdas entrecomilladas y comillas internas duplicadas: evita que un dato
+ *   con comas parta la fila en columnas de más.
+ * - Fin de línea CRLF: es lo que pide el formato y lo que Excel espera.
+ * - Marca de orden de bytes al inicio: evita que Excel lea el archivo como
+ *   ANSI y muestre los acentos rotos.
+ */
 export function aCsv(encabezados: string[], filas: string[][]): string {
   const escapar = (valor: string) => `"${valor.replaceAll('"', '""')}"`;
   const lineas = [encabezados, ...filas].map((fila) => fila.map(escapar).join(","));
   return `﻿${lineas.join("\r\n")}`;
 }
 
+/** Convierte un valor numérico a la cadena que va en la celda. */
 function cifra(valor: number | null | undefined): string {
   return valor === null || valor === undefined ? "" : valor.toFixed(2);
 }
@@ -115,6 +135,8 @@ export function csvCortes(cortes: CorteExportable[]): ArchivoCsv {
         cifra(corte.montoInicial),
         cifra(corte.montoFinal),
         corte.fechaApertura,
+        // Un turno abierto no tiene cierre; la celda se deja vacía en vez de
+        // inventar una fecha o escribir "null" dentro del archivo.
         corte.fechaCierre ?? "",
       ]),
     ),

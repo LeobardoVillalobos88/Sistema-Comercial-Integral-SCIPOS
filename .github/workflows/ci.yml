@@ -1,8 +1,8 @@
 # Integración continua de SCIPOS.
 #
-# Corre en cada empujón a las ramas base y en cada pull request. Verifica lo
-# mismo que exige el repositorio en local —formato, tipos, pruebas y
-# construcción— para que ninguna rama llegue a `develop` sin haberlo pasado.
+# Corre en cada empujón a las ramas base y en cada pull request: formato,
+# pruebas y construcción. La construcción es además la revisión de tipos, porque
+# `next build` los verifica y `nest build` compila con tsc.
 #
 # No despliega nada: el servidor se actualiza a mano desde `main` siguiendo
 # docs/DESPLIEGUE-AWS.md. Publicar automáticamente sobre una sola instancia
@@ -29,15 +29,13 @@ jobs:
     timeout-minutes: 20
 
     env:
-      # `prisma generate` evalúa prisma.config.ts, que exige que DATABASE_URL
-      # resuelva aunque generar el cliente no abra ninguna conexión. En una
-      # máquina de desarrollo la aporta el .env de cada servicio; aquí no hay
-      # ninguno, así que sin este relleno la revisión de tipos falla con
-      # "PrismaConfigEnvError: Cannot resolve environment variable".
+      # `prisma generate` exige que DATABASE_URL resuelva, aunque generar el
+      # cliente no abra ninguna conexión. En una máquina de desarrollo la aporta
+      # el .env de cada servicio; aquí no hay ninguno.
       #
-      # No apunta a nada y no hace falta que lo haga: este trabajo no levanta
-      # base de datos porque ninguna prueba la necesita. Es el mismo relleno que
-      # usa la etapa de construcción de infra/docker/Dockerfile.backend.
+      # El valor no apunta a nada y no hace falta que lo haga: este trabajo no
+      # levanta base de datos porque ninguna prueba la necesita. Es el mismo
+      # relleno que usa infra/docker/Dockerfile.backend al construir.
       DATABASE_URL: postgresql://relleno:relleno@localhost:5432/relleno?schema=public
       # Misma ruta relativa que usa el despliegue: la interfaz y la API
       # comparten origen detrás de nginx.

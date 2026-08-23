@@ -8,6 +8,7 @@ import type { ActualizarEstadoDto } from "./dto/actualizar-estado.dto";
 import type { CrearClienteDto } from "./dto/crear-cliente.dto";
 
 const CLAVE_CACHE_LISTA = "clientes:lista";
+/** Ventana de días para considerar a un cliente "nuevo" en el resumen. */
 const DIAS_CLIENTE_NUEVO = 30;
 
 @Injectable()
@@ -26,6 +27,7 @@ export class ClientesService {
   }
 
   async listar(busqueda?: string) {
+    // Si hay búsqueda, consultamos directo a la base de datos sin cachear.
     if (busqueda) {
       const termino = busqueda.trim();
       return this.prisma.cliente.findMany({
@@ -41,6 +43,7 @@ export class ClientesService {
       });
     }
 
+    // Si no hay búsqueda, usamos caché Redis.
     const cacheado = await this.redis.get<unknown[]>(CLAVE_CACHE_LISTA);
     if (cacheado) {
       return cacheado;
@@ -86,6 +89,7 @@ export class ClientesService {
     return { eliminado: true };
   }
 
+  /** Resumen para el dashboard: clientes activos y clientes nuevos. */
   async resumen() {
     const desde = new Date();
     desde.setDate(desde.getDate() - DIAS_CLIENTE_NUEVO);
@@ -97,6 +101,7 @@ export class ClientesService {
   }
 
   async obtenerHistorial(id: string, usuarioId: string) {
+    // Validar primero que el cliente exista
     await this.obtener(id);
 
     const cotizacionesUrl = this.config.get<string>("COTIZACIONES_URL") ?? "http://localhost:4004";
@@ -107,6 +112,7 @@ export class ClientesService {
     let parcial = false;
     const fuentesFallidas: string[] = [];
 
+    // Llamada REST al microservicio de Cotizaciones
     try {
       cotizaciones = await this.http.get<unknown[]>(
         `${cotizacionesUrl}/cotizaciones?clienteId=${id}`,
@@ -119,6 +125,7 @@ export class ClientesService {
       fuentesFallidas.push("cotizaciones");
     }
 
+    // Llamada REST al microservicio de Ventas POS y Caja
     try {
       ventas = await this.http.get<unknown[]>(`${ventasUrl}/ventas?clienteId=${id}`, { usuarioId });
     } catch (error) {

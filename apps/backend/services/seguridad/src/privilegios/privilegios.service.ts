@@ -4,11 +4,14 @@ import { PrismaService } from "../prisma/prisma.service";
 import { RedisService } from "../redis/redis.service";
 import type { CrearPrivilegioDto } from "./dto/crear-privilegio.dto";
 
+/** Perfil de privilegios de un usuario, cacheado en Redis. */
 interface PerfilPrivilegios {
   rol: string;
   estado: "ACTIVO" | "INACTIVO";
   accesoTotal: boolean;
+  /** Privilegios efectivos: los del rol más los concedidos, menos los revocados. */
   privilegios: string[];
+  /** Privilegios revocados explícitamente al usuario. */
   revocados: string[];
 }
 
@@ -24,10 +27,12 @@ export class PrivilegiosService {
     private readonly redis: RedisService,
   ) {}
 
+  /** Catálogo completo de privilegios. */
   listarCatalogo() {
     return this.prisma.privilegio.findMany({ orderBy: { clave: "asc" } });
   }
 
+  /** Registra un privilegio nuevo en el catálogo. */
   async registrar(dto: CrearPrivilegioDto) {
     if (!FORMATO_PRIVILEGIO.test(dto.clave)) {
       throw new BadRequestException(
@@ -41,6 +46,7 @@ export class PrivilegiosService {
     });
   }
 
+  /** Verifica si un usuario cuenta con un privilegio (lo consume el guard). */
   async verificar(usuarioId: string, privilegio: string): Promise<ResultadoVerificacion> {
     const perfil = await this.obtenerPerfil(usuarioId);
     if (!perfil) {
@@ -58,6 +64,7 @@ export class PrivilegiosService {
     return { tiene: false, motivo: "SIN_PRIVILEGIO" };
   }
 
+  /** Lista de privilegios efectivos de un usuario (la consume el frontend). */
   async privilegiosDeUsuario(usuarioId: string): Promise<PrivilegiosDeUsuario> {
     const perfil = await this.obtenerPerfil(usuarioId);
     if (!perfil) {
@@ -74,10 +81,12 @@ export class PrivilegiosService {
     return { usuarioId, rol: perfil.rol, privilegios };
   }
 
+  /** Invalida la caché de un usuario (tras cambiar sus asignaciones). */
   invalidarUsuario(usuarioId: string): Promise<void> {
     return this.redis.del(clavePerfil(usuarioId));
   }
 
+  /** Invalida la caché de todos los usuarios de un rol. */
   async invalidarRol(rolClave: string): Promise<void> {
     const usuarios = await this.prisma.usuario.findMany({
       where: { rolClave },

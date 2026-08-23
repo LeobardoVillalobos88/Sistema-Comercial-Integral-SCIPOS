@@ -19,10 +19,16 @@ import {
   CLAVE_REQUIERE_IDENTIDAD,
 } from "./requiere-privilegio.decorator";
 
+/** Petición enriquecida con la identidad ya resuelta por el guard. */
 export interface PeticionConUsuario extends PeticionConCabeceras {
   usuarioId?: string;
 }
 
+/**
+ * Guard global que valida los privilegios dinámicos en el backend (RF-05,
+ * RF-06). Los endpoints declaran lo que exigen con @RequierePrivilegio o
+ * @RequiereIdentidad; los que no declaran nada son públicos.
+ */
 @Injectable()
 export class GuardPrivilegios implements CanActivate {
   constructor(
@@ -52,6 +58,8 @@ export class GuardPrivilegios implements CanActivate {
     if (!identidad) {
       throw new UnauthorizedException("La petición no identifica al usuario.");
     }
+    // Un token deslogueado conserva firma válida hasta expirar; la denylist es
+    // lo único que lo corta al instante en todos los servicios.
     if (identidad.jti && (await this.denylist.estaRevocado(identidad.jti))) {
       throw new UnauthorizedException("La sesión fue cerrada (token revocado).");
     }

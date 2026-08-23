@@ -233,15 +233,7 @@ antes de dar por fallida la demostración.
 
 Para probar la skill completa copiando y pegando en el simulador, sin tener que
 acordarse de nada:
-[](../../docs/readmes/guion-pruebas-alexa.md).
-
-## Cumplimiento de la rúbrica
-
-El repaso punto por punto de los requerimientos y de la rúbrica de evaluación,
-con la evidencia de cada uno, está en
-[](../../docs/readmes/cumplimiento-rubrica-alexa.md).
-Las cifras que cita las mide la prueba de , no están escritas a
-mano.
+la consola de Alexa Developer.
 
 ## Cómo agregar un intent
 
