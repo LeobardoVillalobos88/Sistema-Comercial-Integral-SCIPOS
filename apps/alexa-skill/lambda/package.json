@@ -1,6 +1,6 @@
 {
   "name": "asistente-de-almacen",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Skill de Alexa que opera el almacen de SCIPOS por voz",
   "main": "index.js",
   "dependencies": {

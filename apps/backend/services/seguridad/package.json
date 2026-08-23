@@ -1,6 +1,6 @@
 {
   "name": "@scipos/seguridad-service",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "Servicio de seguridad de SCIPOS: usuarios, roles y privilegios dinámicos por módulo y acción.",
   "scripts": {
